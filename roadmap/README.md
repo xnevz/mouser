@@ -10,9 +10,9 @@ Each file in this directory represents a distinct phase containing architecture 
 
 | Phase | Title | Focus Area | Status |
 | :---: | :--- | :--- | :---: |
-| **[Phase 0](./phase-0-macos-dev-setup.md)** | **macOS Development Setup & Prerequisites** | Toolchains, SDKs, Xcode Clang, TCC Security, dylib build pipeline | Ready |
-| **[Phase 1](./phase-1-ui-and-mvvm.md)** | **Modern UI & MVVM Presentation Layer** | XAML/Avalonia UI, Dark Theme, Interactive Monitor Canvas, ViewModels | Ready |
-| **[Phase 2](./phase-2-native-interop-and-networking.md)** | **Native C++ Interop & Networking Engine** | `[LibraryImport]`, C-ABI, Zero-Alloc UDP Sockets, mDNS Discovery | Ready |
+| **[Phase 0](./phase-0-macos-dev-setup.md)** | **macOS Development Setup & Prerequisites** | Toolchains, SDKs, Xcode Clang, TCC Security, dylib build pipeline | **Complete** |
+| **[Phase 1](./phase-1-ui-and-mvvm.md)** | **Modern UI & MVVM Presentation Layer** | XAML/Avalonia UI, Dark Theme, Interactive Monitor Canvas, ViewModels | **Complete** |
+| **[Phase 2](./phase-2-native-interop-and-networking.md)** | **Native C++ Interop & Networking Engine** | `[LibraryImport]`, C-ABI, Zero-Alloc UDP Sockets, mDNS Discovery | **Complete** |
 | **[Phase 3](./phase-3-android-companion.md)** | **Android Companion & Remote Input Hub** | Touchpad, 3D Gyro Air Mouse, Android UDP client, Desktop injection | Ready |
 | **[Phase 4](./phase-4-virtual-kvm-engine.md)** | **Virtual KVM & Mouse/Keyboard Sharing** | `CGEventTap`, Win32 Hooks, `uinput`, Edge Hopping, Key Translation | Ready |
 | **[Phase 5](./phase-5-smart-clipboard-engine.md)** | **Universal Multi-Format Smart Clipboard** | Cross-platform sync, E2EE encryption, SQLite FTS5 history, HUD | Ready |
