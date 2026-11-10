@@ -150,10 +150,28 @@ public sealed class InputInjectionService
 
 ---
 
-## 5. Phase 3 Deliverables & Exit Criteria
+## 6. Android Emulator & Testing Environment
 
-- [x] Native Android Studio project structure in `/android` ready to open and build.
-- [x] High-precision Jetpack Compose trackpad with tap/click gestures.
-- [x] 3D Gyroscope air-mouse pointer with hold-to-point trigger.
-- [x] Binary packet format 100% synchronized with desktop C# engine.
-- [x] Desktop `InputInjectionService` validated with unit tests.
+An Android Virtual Device (AVD) has been provisioned on macOS for testing the Android Companion:
+
+- **SDK Location**: `~/Library/Android/sdk`
+- **AVD Name**: `MouserPixel` (Pixel 7 configuration with Google APIs)
+- **Target OS**: Android 14.0 (API Level 34, `x86_64`)
+- **CLI Binaries**: `adb`, `emulator`, `avdmanager`, `sdkmanager` (configured in PATH via `~/.zshrc`)
+
+### Running the Emulator & Installing Mouser Android
+
+```bash
+# 1. Start the emulator
+emulator -avd MouserPixel &
+
+# 2. Wait for device to boot
+adb wait-for-device
+
+# 3. Build the companion app
+cd /Users/abdelkarim/Documents/mouser/android
+./gradlew assembleDebug
+
+# 4. Install onto the running emulator
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
