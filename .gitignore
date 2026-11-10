@@ -33,6 +33,8 @@ _deps/
 
 # IDEs
 .idea/
-.vscode/
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
 *.swp
 *.lock
