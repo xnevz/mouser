@@ -54,14 +54,14 @@ export const DownloadSection = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
             <Download className="w-3.5 h-3.5" />
             Universal Multi-Platform Binaries
           </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+          <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Download Mouser for Every Screen
           </h2>
-          <p className="mt-4 text-base sm:text-lg text-slate-300">
+          <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300">
             Native, cryptographically signed binaries compiled for macOS, Windows, Linux, Android, and iOS. Zero telemetry, zero bloat, completely free and open source.
           </p>
         </div>
@@ -85,29 +85,29 @@ export const DownloadSection = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -16, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-            className="rounded-3xl bg-slate-900/90 border border-slate-800 p-6 sm:p-10 shadow-2xl backdrop-blur-2xl relative overflow-hidden"
+            className="rounded-3xl bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-6 sm:p-10 shadow-xl dark:shadow-2xl backdrop-blur-2xl relative overflow-hidden"
           >
             {/* Subtle background glow */}
             <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 blur-[100px] pointer-events-none rounded-full" />
             <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500/10 blur-[100px] pointer-events-none rounded-full" />
 
           {/* Platform Header Info */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-slate-800">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-slate-200 dark:border-slate-800">
             <div>
               <div className="flex items-center gap-3">
-                <h3 className="text-2xl sm:text-3xl font-extrabold text-white">{currentData.name}</h3>
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">{currentData.name}</h3>
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30">
                   {currentData.badge}
                 </span>
-                <span className="text-xs text-slate-400 font-mono">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
                   {currentData.latestVersion} ({RELEASE_DATE})
                 </span>
               </div>
-              <p className="mt-2 text-slate-300 text-sm sm:text-base max-w-2xl">
+              <p className="mt-2 text-slate-600 dark:text-slate-300 text-sm sm:text-base max-w-2xl">
                 {currentData.subtitle}
               </p>
-              <div className="mt-2 flex items-center gap-2 text-xs text-slate-400 font-mono">
-                <Info className="w-3.5 h-3.5 text-cyan-400" />
+              <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                <Info className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
                 <span>Compatible with: {currentData.supportedVersions}</span>
               </div>
             </div>
@@ -129,8 +129,8 @@ export const DownloadSection = () => {
 
           {/* Artifacts Grid & Architectures */}
           <div className="mt-8">
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-              <FileCheck className="w-4 h-4 text-cyan-400" />
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
+              <FileCheck className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
               Available Architectures & Packages
             </h4>
 
@@ -138,24 +138,24 @@ export const DownloadSection = () => {
               {currentData.artifacts.map((artifact, idx) => (
                 <div
                   key={idx}
-                  className="rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-slate-700 p-5 flex flex-col justify-between transition-all group"
+                  className="rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 p-5 flex flex-col justify-between transition-all group"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
-                      <span className="font-bold text-white text-base group-hover:text-cyan-300 transition-colors">
+                      <span className="font-bold text-slate-900 dark:text-white text-base group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition-colors">
                         {artifact.title}
                       </span>
                       {artifact.recommended && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
                           RECOMMENDED
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 font-mono text-xs text-slate-400 truncate">
+                    <p className="mt-1 font-mono text-xs text-slate-500 dark:text-slate-400 truncate">
                       {artifact.filename}
                     </p>
-                    <div className="mt-3 flex items-center gap-2 text-xs text-slate-400 font-mono">
-                      <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                    <div className="mt-3 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                      <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
                         {artifact.archLabel}
                       </span>
                       <span>•</span>
@@ -163,10 +163,10 @@ export const DownloadSection = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                  <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between gap-2">
                     <button
                       onClick={() => setActiveChecksumModal(artifact)}
-                      className="text-xs text-slate-400 hover:text-cyan-400 flex items-center gap-1 transition-colors font-mono"
+                      className="text-xs text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 flex items-center gap-1 transition-colors font-mono"
                     >
                       <Key className="w-3.5 h-3.5" />
                       <span>SHA256</span>
@@ -174,9 +174,9 @@ export const DownloadSection = () => {
 
                     <a
                       href={artifact.downloadUrl}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-xs font-semibold transition-colors"
                     >
-                      <Download className="w-3.5 h-3.5 text-cyan-400" />
+                      <Download className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                       <span>Get File</span>
                     </a>
                   </div>
@@ -187,9 +187,9 @@ export const DownloadSection = () => {
 
           {/* Package Managers Section */}
           {currentData.packageManagers.length > 0 && (
-            <div className="mt-10 pt-8 border-t border-slate-800">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-cyan-400" />
+            <div className="mt-10 pt-8 border-t border-slate-200 dark:border-slate-800">
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
+                <Terminal className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
                 Package Manager & CLI Installation
               </h4>
 
@@ -197,22 +197,22 @@ export const DownloadSection = () => {
                 {currentData.packageManagers.map((pkg, idx) => (
                   <div
                     key={idx}
-                    className="rounded-xl bg-slate-950/90 border border-slate-800 p-4 flex flex-col justify-between"
+                    className="rounded-xl bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-between"
                   >
                     <div>
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-white text-sm">{pkg.name}</span>
-                        <span className="text-[11px] text-slate-400">{pkg.description}</span>
+                        <span className="font-bold text-slate-900 dark:text-white text-sm">{pkg.name}</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">{pkg.description}</span>
                       </div>
-                      <div className="mt-2 flex items-center justify-between px-3 py-2 rounded-lg bg-slate-900 border border-slate-800/90 font-mono text-xs text-cyan-300">
+                      <div className="mt-2 flex items-center justify-between px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/90 font-mono text-xs text-slate-800 dark:text-cyan-300">
                         <span className="truncate">{pkg.command}</span>
                         <button
                           onClick={() => handleCopyPkgCmd(pkg.command, `${selectedPlatform}-${idx}`)}
-                          className="ml-2 p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                          className="ml-2 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                           title="Copy command"
                         >
                           {copiedPkgCmd === `${selectedPlatform}-${idx}` ? (
-                            <Check className="w-4 h-4 text-emerald-400" />
+                            <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                           ) : (
                             <Copy className="w-4 h-4" />
                           )}
@@ -226,8 +226,8 @@ export const DownloadSection = () => {
           )}
 
           {/* Quick Setup Instructions */}
-          <div className="mt-8 pt-6 border-t border-slate-800 text-xs text-slate-400">
-            <span className="font-semibold text-slate-300 uppercase tracking-wider block mb-2">
+          <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+            <span className="font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
               Setup Instructions:
             </span>
             <ul className="list-disc list-inside space-y-1">
@@ -243,16 +243,16 @@ export const DownloadSection = () => {
 
         {/* SHA-256 Checksum Modal */}
         {activeChecksumModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <div className="flex items-center gap-2 text-white font-bold text-base">
-                  <ShieldCheck className="w-5 h-5 text-cyan-400" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
+                  <ShieldCheck className="w-5 h-5 text-cyan-500 dark:text-cyan-400" />
                   <span>Verify SHA-256 Checksum</span>
                 </div>
                 <button
                   onClick={() => setActiveChecksumModal(null)}
-                  className="text-slate-400 hover:text-white text-lg font-bold"
+                  className="text-slate-400 hover:text-slate-900 dark:hover:text-white text-lg font-bold"
                 >
                   ✕
                 </button>
@@ -260,19 +260,19 @@ export const DownloadSection = () => {
 
               <div className="mt-4 space-y-3">
                 <div>
-                  <span className="text-xs text-slate-400 block">Filename:</span>
-                  <span className="font-mono text-xs text-white">{activeChecksumModal.filename}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 block">Filename:</span>
+                  <span className="font-mono text-xs text-slate-800 dark:text-white">{activeChecksumModal.filename}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-400 block">SHA-256 Checksum:</span>
-                  <div className="mt-1 p-2.5 rounded-lg bg-slate-950 border border-slate-800 font-mono text-[11px] text-cyan-300 break-all select-all flex items-center justify-between gap-2">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 block">SHA-256 Checksum:</span>
+                  <div className="mt-1 p-2.5 rounded-lg bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono text-[11px] text-cyan-700 dark:text-cyan-300 break-all select-all flex items-center justify-between gap-2">
                     <span>{activeChecksumModal.sha256}</span>
                     <button
                       onClick={() => handleCopySha(activeChecksumModal.sha256)}
-                      className="p-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white flex-shrink-0"
+                      className="p-1 rounded bg-slate-200 dark:bg-slate-900 hover:bg-slate-300 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex-shrink-0"
                     >
                       {copiedSha === activeChecksumModal.sha256 ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
                       ) : (
                         <Copy className="w-3.5 h-3.5" />
                       )}
@@ -280,9 +280,9 @@ export const DownloadSection = () => {
                   </div>
                 </div>
 
-                <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400 space-y-1">
-                  <span className="font-semibold text-slate-300 block">How to verify on your terminal:</span>
-                  <p className="font-mono text-cyan-400">
+                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 space-y-1">
+                  <span className="font-semibold text-slate-800 dark:text-slate-300 block">How to verify on your terminal:</span>
+                  <p className="font-mono text-cyan-700 dark:text-cyan-400">
                     shasum -a 256 {activeChecksumModal.filename}
                   </p>
                 </div>
@@ -291,7 +291,7 @@ export const DownloadSection = () => {
               <div className="mt-6 flex justify-end">
                 <button
                   onClick={() => setActiveChecksumModal(null)}
-                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-colors"
+                  className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-semibold transition-colors"
                 >
                   Close
                 </button>

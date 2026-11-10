@@ -84,40 +84,40 @@ export const InteractiveCanvasDemo = () => {
   };
 
   return (
-    <section id="demo" className="py-20 relative bg-slate-950/60 border-y border-slate-800/80">
+    <section id="demo" className="py-20 relative bg-slate-100/60 dark:bg-slate-950/60 border-y border-slate-200 dark:border-slate-800/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-3">
             <Activity className="w-3.5 h-3.5" />
             Live Hardware Simulation
           </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+          <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             How Mouser Works in Real Time
           </h2>
-          <p className="mt-4 text-base sm:text-lg text-slate-300">
+          <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300">
             Slide mouse cursor past the border of any screen. Mouser captures raw peripheral events, streams zero-copy UDP packets to adjacent peer machines, and synchronizes the system clipboard across platforms.
           </p>
         </div>
 
         {/* Live Simulation Canvas */}
-        <div className="relative rounded-2xl bg-slate-900/90 border border-slate-800 p-6 sm:p-8 shadow-2xl backdrop-blur-xl overflow-hidden">
+        <div className="relative rounded-2xl bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xl dark:shadow-2xl backdrop-blur-xl overflow-hidden">
           {/* Subtle glow background */}
           <div className="absolute -top-24 -left-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
           <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
 
           {/* Top Control Bar & Live Diagnostics */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-6 mb-8 border-b border-slate-800 text-xs sm:text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-6 mb-8 border-b border-slate-200 dark:border-slate-800 text-xs sm:text-sm">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 font-mono text-slate-300">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 font-mono text-slate-700 dark:text-slate-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
                 <span>Link: 1,000 Hz UDP Socket</span>
               </div>
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 font-mono text-cyan-400">
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 font-mono text-cyan-700 dark:text-cyan-400">
                 <Activity className="w-3.5 h-3.5" />
                 <span>Packets: {packetsCount.toLocaleString()}</span>
               </div>
-              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 font-mono text-fuchsia-400">
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 font-mono text-fuchsia-700 dark:text-fuchsia-400">
                 <Shield className="w-3.5 h-3.5" />
                 <span>E2EE: AES-256-GCM Active</span>
               </div>
@@ -126,16 +126,16 @@ export const InteractiveCanvasDemo = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 transition-colors font-medium"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 transition-colors font-medium"
               >
                 {isPlaying ? (
                   <>
-                    <Pause className="w-3.5 h-3.5 text-amber-400" />
+                    <Pause className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                     <span>Pause Tour</span>
                   </>
                 ) : (
                   <>
-                    <Play className="w-3.5 h-3.5 text-emerald-400" />
+                    <Play className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
                     <span>Resume Tour</span>
                   </>
                 )}
@@ -143,7 +143,7 @@ export const InteractiveCanvasDemo = () => {
 
               <button
                 onClick={triggerClipboardSync}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-colors font-medium"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 transition-colors font-medium"
               >
                 <Copy className="w-3.5 h-3.5" />
                 <span>Simulate Clipboard Copy</span>
@@ -163,28 +163,28 @@ export const InteractiveCanvasDemo = () => {
                   onClick={() => setActiveScreenIndex(idx)}
                   className={`relative cursor-pointer rounded-xl transition-all duration-300 border p-4 sm:p-5 flex flex-col justify-between min-h-[260px] ${
                     isActive
-                      ? `bg-slate-900 shadow-xl shadow-cyan-500/10 ${screen.borderColor} ring-1 ring-cyan-500/50`
-                      : 'bg-slate-950/70 border-slate-800/80 hover:border-slate-700'
+                      ? `bg-white dark:bg-slate-900 shadow-xl shadow-cyan-500/10 ${screen.borderColor} ring-1 ring-cyan-500/50`
+                      : 'bg-slate-50 dark:bg-slate-950/70 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   {/* Active Screen Indicator Badge */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <IconComponent className={`w-5 h-5 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
-                      <span className="font-bold text-white text-sm sm:text-base">{screen.name}</span>
+                      <IconComponent className={`w-5 h-5 ${isActive ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400'}`} />
+                      <span className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">{screen.name}</span>
                     </div>
                     {isActive ? (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 animate-pulse">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/40 animate-pulse">
                         CURSOR ACTIVE
                       </span>
                     ) : (
-                      <span className="text-[11px] font-mono text-slate-500">Standby</span>
+                      <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">Standby</span>
                     )}
                   </div>
 
                   {/* Simulated Desktop Window */}
-                  <div className="relative rounded-lg bg-slate-950/90 border border-slate-800 p-3 h-32 flex flex-col justify-between overflow-hidden">
-                    <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
+                  <div className="relative rounded-lg bg-slate-100 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 p-3 h-32 flex flex-col justify-between overflow-hidden">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800/60">
                       <div className="flex gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-red-500/70" />
                         <span className="w-2 h-2 rounded-full bg-yellow-500/70" />
@@ -206,29 +206,29 @@ export const InteractiveCanvasDemo = () => {
                             duration: 2.2,
                             ease: 'easeInOut',
                           }}
-                          className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 shadow-lg text-xs font-mono"
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-cyan-500/20 border border-cyan-400/40 text-cyan-700 dark:text-cyan-300 shadow-md text-xs font-mono"
                         >
-                          <MousePointer2 className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400" />
+                          <MousePointer2 className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 fill-cyan-400" />
                           <span>Input Captured (0.8ms)</span>
                         </motion.div>
                       ) : (
-                        <div className="text-center text-slate-600 text-xs font-mono">
+                        <div className="text-center text-slate-400 dark:text-slate-600 text-xs font-mono">
                           Boundary ready for transition →
                         </div>
                       )}
                     </div>
 
                     {/* Taskbar / Dock indicator */}
-                    <div className="flex justify-center gap-2 pt-1.5 border-t border-slate-800/60">
-                      <div className="w-4 h-1.5 rounded-sm bg-slate-700" />
-                      <div className="w-4 h-1.5 rounded-sm bg-slate-700" />
+                    <div className="flex justify-center gap-2 pt-1.5 border-t border-slate-200 dark:border-slate-800/60">
+                      <div className="w-4 h-1.5 rounded-sm bg-slate-300 dark:bg-slate-700" />
+                      <div className="w-4 h-1.5 rounded-sm bg-slate-300 dark:bg-slate-700" />
                       <div className="w-4 h-1.5 rounded-sm bg-cyan-500/80" />
-                      <div className="w-4 h-1.5 rounded-sm bg-slate-700" />
+                      <div className="w-4 h-1.5 rounded-sm bg-slate-300 dark:bg-slate-700" />
                     </div>
                   </div>
 
                   {/* Metadata footer */}
-                  <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                  <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400">
                     <span>{screen.resolution}</span>
                     <span>{screen.ip}</span>
                   </div>
@@ -238,19 +238,19 @@ export const InteractiveCanvasDemo = () => {
           </div>
 
           {/* Android Companion Air Mouse Ribbon */}
-          <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50 dark:from-slate-900 dark:via-indigo-950/40 dark:to-slate-900 border border-indigo-200 dark:border-indigo-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+              <div className="p-2.5 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 dark:border-indigo-500/30">
                 <Smartphone className="w-5 h-5" />
               </div>
               <div>
-                <div className="font-semibold text-white text-sm flex items-center gap-2">
+                <div className="font-semibold text-slate-900 dark:text-white text-sm flex items-center gap-2">
                   <span>Android Companion Hub & 3D Gyro Air Mouse</span>
-                  <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-mono">
+                  <span className="px-2 py-0.5 rounded bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-[10px] font-mono">
                     Connected
                   </span>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Transform any Android phone into a multi-touch trackpad, gyro presenter, and encrypted clipboard bridge.
                 </p>
               </div>

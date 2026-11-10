@@ -1,8 +1,6 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Mouser.Desktop.ViewModels;
-using Mouser.Desktop.Views;
 
 namespace Mouser.Desktop;
 
@@ -17,9 +15,9 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow
+            desktop.MainWindow = new Mouser.UI.Views.MainWindow
             {
-                DataContext = new MainViewModel(),
+                DataContext = new Mouser.UI.ViewModels.MainViewModel(),
             };
         }
 

@@ -64,29 +64,29 @@ export const ComparisonTable = () => {
   ];
 
   return (
-    <section id="comparison" className="py-24 relative bg-slate-950">
+    <section id="comparison" className="py-24 relative bg-slate-100/60 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-3">
             <Sparkles className="w-3.5 h-3.5" />
             Clear Advantage
           </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+          <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             How Mouser Compares
           </h2>
-          <p className="mt-4 text-base sm:text-lg text-slate-300">
+          <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300">
             Why engineers, streamers, and multi-computer setups are switching to Mouser.
           </p>
         </div>
 
         {/* Comparison Table */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 overflow-hidden shadow-2xl backdrop-blur-md">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/60 overflow-hidden shadow-xl dark:shadow-2xl backdrop-blur-md">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-slate-950/80 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+            <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300">
+              <thead className="bg-slate-50 dark:bg-slate-950/80 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="py-4 px-6 font-semibold">Capability</th>
-                  <th className="py-4 px-6 font-bold text-cyan-400 bg-cyan-500/10 border-x border-cyan-500/20">
+                  <th className="py-4 px-6 font-bold text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-500/10 border-x border-cyan-200 dark:border-cyan-500/20">
                     Mouser (Ours)
                   </th>
                   <th className="py-4 px-6 font-semibold">Synergy 3</th>
@@ -95,15 +95,15 @@ export const ComparisonTable = () => {
                   <th className="py-4 px-6 font-semibold">Universal Control</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
                 {comparisons.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="py-4 px-6 font-medium text-white">{row.feature}</td>
+                  <tr key={idx} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                    <td className="py-4 px-6 font-medium text-slate-900 dark:text-white">{row.feature}</td>
                     
                     {/* Mouser Column */}
-                    <td className="py-4 px-6 bg-cyan-500/5 font-semibold text-cyan-300 border-x border-cyan-500/20">
+                    <td className="py-4 px-6 bg-cyan-50/50 dark:bg-cyan-500/5 font-semibold text-cyan-800 dark:text-cyan-300 border-x border-cyan-200 dark:border-cyan-500/20">
                       {typeof row.mouser === 'boolean' ? (
-                        <span className="flex items-center gap-1.5 text-cyan-400">
+                        <span className="flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400">
                           <Check className="w-4 h-4 stroke-[3]" /> Yes
                         </span>
                       ) : (
@@ -112,12 +112,12 @@ export const ComparisonTable = () => {
                     </td>
 
                     {/* Synergy Column */}
-                    <td className="py-4 px-6 text-slate-400">
+                    <td className="py-4 px-6 text-slate-500 dark:text-slate-400">
                       {typeof row.synergy === 'boolean' ? (
                         row.synergy ? (
-                          <Check className="w-4 h-4 text-emerald-400" />
+                          <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                         ) : (
-                          <X className="w-4 h-4 text-slate-600" />
+                          <X className="w-4 h-4 text-slate-400 dark:text-slate-600" />
                         )
                       ) : (
                         row.synergy
@@ -125,12 +125,12 @@ export const ComparisonTable = () => {
                     </td>
 
                     {/* Barrier Column */}
-                    <td className="py-4 px-6 text-slate-400">
+                    <td className="py-4 px-6 text-slate-500 dark:text-slate-400">
                       {typeof row.barrier === 'boolean' ? (
                         row.barrier ? (
-                          <Check className="w-4 h-4 text-emerald-400" />
+                          <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                         ) : (
-                          <X className="w-4 h-4 text-slate-600" />
+                          <X className="w-4 h-4 text-slate-400 dark:text-slate-600" />
                         )
                       ) : (
                         row.barrier
@@ -138,12 +138,12 @@ export const ComparisonTable = () => {
                     </td>
 
                     {/* ShareMouse Column */}
-                    <td className="py-4 px-6 text-slate-400">
+                    <td className="py-4 px-6 text-slate-500 dark:text-slate-400">
                       {typeof row.shareMouse === 'boolean' ? (
                         row.shareMouse ? (
-                          <Check className="w-4 h-4 text-emerald-400" />
+                          <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                         ) : (
-                          <X className="w-4 h-4 text-slate-600" />
+                          <X className="w-4 h-4 text-slate-400 dark:text-slate-600" />
                         )
                       ) : (
                         row.shareMouse
@@ -151,12 +151,12 @@ export const ComparisonTable = () => {
                     </td>
 
                     {/* Universal Control Column */}
-                    <td className="py-4 px-6 text-slate-400">
+                    <td className="py-4 px-6 text-slate-500 dark:text-slate-400">
                       {typeof row.universalControl === 'boolean' ? (
                         row.universalControl ? (
-                          <Check className="w-4 h-4 text-emerald-400" />
+                          <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                         ) : (
-                          <X className="w-4 h-4 text-slate-600" />
+                          <X className="w-4 h-4 text-slate-400 dark:text-slate-600" />
                         )
                       ) : (
                         row.universalControl

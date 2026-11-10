@@ -105,17 +105,17 @@ override fun onSensorChanged(event: SensorEvent?) {
   const current = architectureLayers[activeTab];
 
   return (
-    <section id="architecture" className="py-24 relative bg-slate-900/40 border-y border-slate-800/80">
+    <section id="architecture" className="py-24 relative bg-slate-50/60 dark:bg-slate-900/40 border-y border-slate-200 dark:border-slate-800/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-3">
             <Code2 className="w-3.5 h-3.5" />
             Under The Hood
           </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+          <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Engineered for Raw Performance
           </h2>
-          <p className="mt-4 text-base sm:text-lg text-slate-300">
+          <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300">
             A cohesive architecture combining managed .NET MVVM safety with uncompromised native C++ operating system hooks.
           </p>
         </div>
@@ -144,31 +144,31 @@ override fun onSensorChanged(event: SensorEvent?) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -16, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-            className="rounded-3xl bg-slate-950 border border-slate-800 p-6 sm:p-10 shadow-2xl"
+            className="rounded-3xl bg-white/95 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-6 sm:p-10 shadow-xl dark:shadow-2xl"
           >
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
               {/* Left: Architecture Points */}
               <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono text-cyan-400 mb-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono text-cyan-600 dark:text-cyan-400 mb-4">
                   <span>{current.badge}</span>
                 </div>
-                <h3 className="text-2xl sm:text-3xl font-extrabold text-white">{current.title}</h3>
-                <p className="mt-2 text-slate-400 text-sm sm:text-base leading-relaxed">
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">{current.title}</h3>
+                <p className="mt-2 text-slate-600 dark:text-slate-400 text-sm sm:text-base leading-relaxed">
                   {current.subtitle}
                 </p>
 
                 <div className="mt-6 space-y-3">
                   {current.points.map((pt, idx) => (
                     <div key={idx} className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-slate-300 leading-normal">{pt}</span>
+                      <CheckCircle2 className="w-5 h-5 text-cyan-500 dark:text-cyan-400 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm text-slate-700 dark:text-slate-300 leading-normal">{pt}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Right: Code Snippet Card */}
-              <div className="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-6 font-mono text-xs shadow-inner">
+              <div className="rounded-2xl bg-slate-900 dark:bg-slate-900/90 border border-slate-800 p-4 sm:p-6 font-mono text-xs shadow-inner">
                 <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 text-slate-400">
                   <div className="flex items-center gap-2">
                     <Terminal className="w-4 h-4 text-cyan-400" />

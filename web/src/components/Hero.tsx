@@ -95,16 +95,16 @@ export const Hero = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/30 text-xs sm:text-sm font-medium text-slate-300 shadow-lg shadow-cyan-500/10 mb-8 backdrop-blur-md"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-300/80 dark:border-cyan-500/30 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 shadow-md shadow-slate-200/50 dark:shadow-cyan-500/10 mb-8 backdrop-blur-md"
           >
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
             </span>
-            <span className="font-semibold text-cyan-400">{CURRENT_RELEASE_VERSION} Available</span>
-            <span className="text-slate-500">|</span>
-            <span className="text-slate-400">Virtual KVM & Universal Smart Clipboard</span>
-            <ChevronRight className="w-4 h-4 text-slate-500" />
+            <span className="font-semibold text-cyan-600 dark:text-cyan-400">{CURRENT_RELEASE_VERSION} Available</span>
+            <span className="text-slate-300 dark:text-slate-500">|</span>
+            <span className="text-slate-600 dark:text-slate-400">Virtual KVM & Universal Smart Clipboard</span>
+            <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
           </motion.div>
 
           {/* Main Headline */}
@@ -112,10 +112,10 @@ export const Hero = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-[1.12]"
+            className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.12]"
           >
             Glide Between Desktops.{' '}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-indigo-300 to-fuchsia-400">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-600 via-indigo-600 to-fuchsia-600 dark:from-cyan-400 dark:via-indigo-300 dark:to-fuchsia-400">
               Sync Clipboards Instantly.
             </span>{' '}
             Zero Hardware.
@@ -126,9 +126,9 @@ export const Hero = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="mt-6 text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed"
+            className="mt-6 text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed"
           >
-            Seamless mouse and keyboard roaming across <strong className="text-white">macOS, Windows, and Linux</strong> with <span className="text-cyan-400 font-medium">&lt;3ms latency</span>.
+            Seamless mouse and keyboard roaming across <strong className="text-slate-900 dark:text-white font-semibold">macOS, Windows, and Linux</strong> with <span className="text-cyan-600 dark:text-cyan-400 font-medium">&lt;3ms latency</span>.
             Plus end-to-end encrypted clipboard sync and a 3D Gyro Android companion air-mouse.
           </motion.p>
 
@@ -145,10 +145,10 @@ export const Hero = () => {
               className="w-full sm:w-auto relative group overflow-hidden rounded-xl p-[2px] shadow-2xl shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-indigo-500 to-fuchsia-500 animate-gradient" />
-              <div className="relative px-7 py-4 bg-slate-950 rounded-[10px] flex items-center justify-center gap-3 transition-colors group-hover:bg-slate-900/90">
+              <div className="relative px-7 py-4 bg-slate-900 dark:bg-slate-950 rounded-[10px] flex items-center justify-center gap-3 transition-colors group-hover:bg-slate-800 dark:group-hover:bg-slate-900/90">
                 <Download className="w-5 h-5 text-cyan-400 group-hover:animate-bounce" />
                 <div className="text-left">
-                  <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
+                  <div className="text-xs text-slate-300 dark:text-slate-400 uppercase tracking-wider font-semibold">
                     Download for {currentPlatform.name}
                   </div>
                   <div className="text-base font-bold text-white flex items-center gap-2">
@@ -164,10 +164,10 @@ export const Hero = () => {
             {/* Jump to All Downloads */}
             <a
               href="#downloads"
-              className="w-full sm:w-auto px-6 py-4 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 text-slate-200 hover:text-white font-semibold flex items-center justify-center gap-2 shadow-lg transition-all"
+              className="w-full sm:w-auto px-6 py-4 rounded-xl bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700/80 hover:border-slate-400 dark:hover:border-slate-600 text-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white font-semibold flex items-center justify-center gap-2 shadow-md dark:shadow-lg transition-all"
             >
               <span>Explore All Platforms</span>
-              <ArrowRight className="w-4 h-4 text-cyan-400" />
+              <ArrowRight className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
             </a>
           </motion.div>
 
@@ -178,15 +178,15 @@ export const Hero = () => {
             transition={{ duration: 0.6, delay: 0.4 }}
             className="mt-8 max-w-xl mx-auto"
           >
-            <div className="bg-slate-950/90 border border-slate-800/90 rounded-xl p-3 shadow-xl backdrop-blur-md">
+            <div className="bg-white/95 dark:bg-slate-950/90 border border-slate-200/90 dark:border-slate-800/90 rounded-xl p-3 shadow-lg dark:shadow-xl backdrop-blur-md">
               {/* Terminal Tabs */}
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2 mb-2 px-1">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-2 mb-2 px-1">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
                   <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
                   <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
                   <span className="ml-2 text-xs text-slate-500 font-mono flex items-center gap-1">
-                    <Terminal className="w-3.5 h-3.5 text-cyan-500" />
+                    <Terminal className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-500" />
                     Quick Terminal Install
                   </span>
                 </div>
@@ -198,28 +198,28 @@ export const Hero = () => {
                   ]}
                   activeId={selectedCliTab}
                   onChange={(tab) => setSelectedCliTab(tab)}
-                  className="p-1 bg-slate-900 border-slate-800"
-                  pillColor="from-slate-800 to-slate-700"
+                  className="p-1 bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                  pillColor="from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-700"
                   layoutId="cli-terminal-active-pill"
                 />
               </div>
 
               {/* Code command */}
               <div className="flex items-center justify-between px-2 py-1 font-mono text-xs sm:text-sm">
-                <div className="flex items-center gap-2 overflow-x-auto text-slate-300">
-                  <span className="text-cyan-500 select-none">$</span>
+                <div className="flex items-center gap-2 overflow-x-auto text-slate-800 dark:text-slate-300">
+                  <span className="text-cyan-600 dark:text-cyan-500 select-none">$</span>
                   <code>{cliCommands[selectedCliTab].cmd}</code>
                 </div>
                 <button
                   onClick={() =>
                     copyToClipboard(cliCommands[selectedCliTab].cmd, cliCommands[selectedCliTab].id)
                   }
-                  className="ml-3 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors flex-shrink-0"
+                  className="ml-3 p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors flex-shrink-0"
                   title="Copy command"
                   aria-label="Copy package manager command"
                 >
                   {copiedCmd === cliCommands[selectedCliTab].id ? (
-                    <Check className="w-4 h-4 text-emerald-400" />
+                    <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                   ) : (
                     <Copy className="w-4 h-4" />
                   )}
@@ -233,44 +233,44 @@ export const Hero = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="mt-14 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto pt-8 border-t border-slate-800/60"
+            className="mt-14 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto pt-8 border-t border-slate-200 dark:border-slate-800/60"
           >
-            <div className="flex flex-col items-center p-3 rounded-xl bg-slate-900/40 border border-slate-800/50">
-              <span className="text-2xl sm:text-3xl font-extrabold text-cyan-400 font-mono tracking-tight">
+            <div className="flex flex-col items-center p-3 rounded-xl bg-white/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/50 shadow-sm dark:shadow-none">
+              <span className="text-2xl sm:text-3xl font-extrabold text-cyan-600 dark:text-cyan-400 font-mono tracking-tight">
                 &lt; 2.8ms
               </span>
-              <span className="text-xs text-slate-400 mt-1 flex items-center gap-1 font-medium">
-                <Zap className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="text-xs text-slate-600 dark:text-slate-400 mt-1 flex items-center gap-1 font-medium">
+                <Zap className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                 LAN Input Lag
               </span>
             </div>
 
-            <div className="flex flex-col items-center p-3 rounded-xl bg-slate-900/40 border border-slate-800/50">
-              <span className="text-2xl sm:text-3xl font-extrabold text-indigo-400 font-mono tracking-tight">
+            <div className="flex flex-col items-center p-3 rounded-xl bg-white/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/50 shadow-sm dark:shadow-none">
+              <span className="text-2xl sm:text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 font-mono tracking-tight">
                 1,000 Hz
               </span>
-              <span className="text-xs text-slate-400 mt-1 flex items-center gap-1 font-medium">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="text-xs text-slate-600 dark:text-slate-400 mt-1 flex items-center gap-1 font-medium">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                 Mouse Smoothing
               </span>
             </div>
 
-            <div className="flex flex-col items-center p-3 rounded-xl bg-slate-900/40 border border-slate-800/50">
-              <span className="text-2xl sm:text-3xl font-extrabold text-fuchsia-400 font-mono tracking-tight">
+            <div className="flex flex-col items-center p-3 rounded-xl bg-white/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/50 shadow-sm dark:shadow-none">
+              <span className="text-2xl sm:text-3xl font-extrabold text-fuchsia-600 dark:text-fuchsia-400 font-mono tracking-tight">
                 AES-256
               </span>
-              <span className="text-xs text-slate-400 mt-1 flex items-center gap-1 font-medium">
-                <ShieldCheck className="w-3.5 h-3.5 text-fuchsia-400" />
+              <span className="text-xs text-slate-600 dark:text-slate-400 mt-1 flex items-center gap-1 font-medium">
+                <ShieldCheck className="w-3.5 h-3.5 text-fuchsia-600 dark:text-fuchsia-400" />
                 Zero-Knowledge E2EE
               </span>
             </div>
 
-            <div className="flex flex-col items-center p-3 rounded-xl bg-slate-900/40 border border-slate-800/50">
-              <span className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono tracking-tight">
+            <div className="flex flex-col items-center p-3 rounded-xl bg-white/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/50 shadow-sm dark:shadow-none">
+              <span className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono tracking-tight">
                 0 Bytes
               </span>
-              <span className="text-xs text-slate-400 mt-1 flex items-center gap-1 font-medium">
-                <Layers className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-xs text-slate-600 dark:text-slate-400 mt-1 flex items-center gap-1 font-medium">
+                <Layers className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 GC Allocation
               </span>
             </div>

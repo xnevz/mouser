@@ -38,7 +38,7 @@ export function StretchyPillTabs<T extends string>({
 
   return (
     <div
-      className={`relative inline-flex flex-wrap items-center justify-center p-1.5 rounded-full bg-slate-950/95 border border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.6)] backdrop-blur-xl ${className}`}
+      className={`relative inline-flex flex-wrap items-center justify-center p-1.5 rounded-full bg-slate-100/90 dark:bg-slate-950/95 border border-slate-300/80 dark:border-slate-800 shadow-md dark:shadow-[0_8px_30px_rgb(0,0,0,0.6)] backdrop-blur-xl transition-colors duration-200 ${className}`}
     >
       {tabs.map((tab) => {
         const isSelected = activeId === tab.id;
@@ -49,7 +49,9 @@ export function StretchyPillTabs<T extends string>({
             key={tab.id}
             onClick={() => onChange(tab.id)}
             className={`relative z-10 flex items-center gap-2 px-5 sm:px-7 py-2.5 rounded-full font-semibold text-xs sm:text-sm transition-colors duration-150 focus:outline-none select-none ${
-              isSelected ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+              isSelected
+                ? 'text-white'
+                : 'text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             {/* Pure Seamless Stretchy Pill - Critically Damped (Zero Sluggishness, Zero Bounce, Real Directional Stretch) */}
@@ -75,7 +77,7 @@ export function StretchyPillTabs<T extends string>({
               {Icon && (
                 <Icon
                   className={`w-4 h-4 transition-transform duration-150 ${
-                    isSelected ? 'text-white stroke-[2.5]' : 'text-slate-400'
+                    isSelected ? 'text-white stroke-[2.5]' : 'text-slate-500 dark:text-slate-400'
                   }`}
                 />
               )}
@@ -85,7 +87,7 @@ export function StretchyPillTabs<T extends string>({
                   className={`ml-1 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-mono font-bold ${
                     isSelected
                       ? 'bg-black/25 text-cyan-200 border border-white/20'
-                      : 'bg-slate-900 text-slate-400 border border-slate-800'
+                      : 'bg-slate-200 dark:bg-slate-900 text-slate-700 dark:text-slate-400 border border-slate-300 dark:border-slate-800'
                   }`}
                 >
                   {tab.badge}

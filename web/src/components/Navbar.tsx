@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MousePointer, GitBranch, Download, Menu, X, Sparkles } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -19,7 +20,7 @@ export const Navbar = () => {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? 'bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 shadow-lg shadow-black/40'
+          ? 'bg-white/85 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 shadow-md shadow-slate-200/50 dark:shadow-black/40'
           : 'bg-transparent border-b border-transparent'
       }`}
     >
@@ -28,20 +29,20 @@ export const Navbar = () => {
           {/* Logo & Brand */}
           <a href="#" className="flex items-center gap-3 group">
             <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-600 p-[1.5px] shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40 transition-shadow">
-              <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                <MousePointer className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
+              <div className="w-full h-full bg-white dark:bg-slate-950 rounded-[10px] flex items-center justify-center transition-colors">
+                <MousePointer className="w-5 h-5 text-cyan-500 dark:text-cyan-400 group-hover:scale-110 transition-transform" />
               </div>
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-xl tracking-tight text-white group-hover:text-cyan-300 transition-colors">
+                <span className="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition-colors">
                   Mouser
                 </span>
-                <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
                   v1.0-rc.3
                 </span>
               </div>
-              <span className="text-[11px] text-slate-400 font-mono hidden sm:block">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono hidden sm:block">
                 Virtual KVM & Smart Clipboard
               </span>
             </div>
@@ -51,48 +52,51 @@ export const Navbar = () => {
           <nav className="hidden md:flex items-center gap-8">
             <a
               href="#demo"
-              className="text-sm font-medium text-slate-300 hover:text-cyan-400 transition-colors flex items-center gap-1.5"
+              className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors flex items-center gap-1.5"
             >
-              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <Sparkles className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
               Interactive Demo
             </a>
             <a
               href="#downloads"
-              className="text-sm font-medium text-slate-300 hover:text-cyan-400 transition-colors"
+              className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
             >
               Downloads
             </a>
             <a
               href="#features"
-              className="text-sm font-medium text-slate-300 hover:text-cyan-400 transition-colors"
+              className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
             >
               Features
             </a>
             <a
               href="#architecture"
-              className="text-sm font-medium text-slate-300 hover:text-cyan-400 transition-colors"
+              className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
             >
               Architecture
             </a>
             <a
               href="#comparison"
-              className="text-sm font-medium text-slate-300 hover:text-cyan-400 transition-colors"
+              className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
             >
               Comparison
             </a>
           </nav>
 
-          {/* Action CTAs */}
+          {/* Action CTAs & Theme Toggle */}
           <div className="hidden sm:flex items-center gap-3">
+            {/* Theme Toggle Button */}
+            <ThemeToggle />
+
             <a
               href="https://github.com/mouser-org/mouser"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-300 bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 transition-all hover:text-white"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700/80 transition-all hover:text-slate-950 dark:hover:text-white"
             >
-              <GitBranch className="w-4 h-4 text-cyan-400" />
+              <GitBranch className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
               <span>GitHub</span>
-              <span className="text-xs bg-slate-800 px-1.5 py-0.5 rounded text-slate-400 font-mono">
+              <span className="text-xs bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400 font-mono">
                 ★ 2.4k
               </span>
             </a>
@@ -101,18 +105,19 @@ export const Navbar = () => {
               href="#downloads"
               className="relative inline-flex items-center justify-center p-0.5 overflow-hidden text-sm font-medium rounded-lg group bg-gradient-to-r from-cyan-500 to-indigo-600 group-hover:from-cyan-500 group-hover:to-indigo-600 hover:shadow-lg hover:shadow-cyan-500/25 transition-all"
             >
-              <span className="relative px-4 py-2 transition-all ease-in duration-75 bg-slate-950 rounded-[6px] group-hover:bg-opacity-0 flex items-center gap-2 text-white font-semibold">
+              <span className="relative px-4 py-2 transition-all ease-in duration-75 bg-slate-900 dark:bg-slate-950 rounded-[6px] group-hover:bg-opacity-0 flex items-center gap-2 text-white font-semibold">
                 <Download className="w-4 h-4 text-cyan-400 group-hover:text-white" />
                 <span>Get Mouser</span>
               </span>
             </a>
           </div>
 
-          {/* Mobile hamburger */}
+          {/* Mobile hamburger & Theme Toggle */}
           <div className="flex md:hidden items-center gap-2">
+            <ThemeToggle />
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 focus:outline-none"
+              className="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -123,39 +128,39 @@ export const Navbar = () => {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-slate-950/95 backdrop-blur-2xl border-b border-slate-800 px-4 pt-2 pb-6 space-y-3">
+        <div className="md:hidden bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl border-b border-slate-200 dark:border-slate-800 px-4 pt-2 pb-6 space-y-3">
           <a
             href="#demo"
             onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-cyan-400 hover:bg-slate-900"
+            className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-900"
           >
             Interactive Demo
           </a>
           <a
             href="#downloads"
             onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-cyan-400 hover:bg-slate-900"
+            className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-900"
           >
             Downloads & Installers
           </a>
           <a
             href="#features"
             onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-cyan-400 hover:bg-slate-900"
+            className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-900"
           >
             Features & Capabilities
           </a>
           <a
             href="#architecture"
             onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-cyan-400 hover:bg-slate-900"
+            className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-900"
           >
             Architecture
           </a>
           <a
             href="#comparison"
             onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-cyan-400 hover:bg-slate-900"
+            className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-900"
           >
             Feature Comparison
           </a>
@@ -173,3 +178,4 @@ export const Navbar = () => {
     </header>
   );
 };
+
