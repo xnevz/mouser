@@ -1,0 +1,81 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Mouser.UI.App"
+             xmlns:local="using:Mouser.UI"
+             RequestedThemeVariant="Dark">
+             <!-- Pure Dark Zinc/Slate macOS Aesthetic -->
+
+    <Application.DataTemplates>
+        <local:ViewLocator />
+    </Application.DataTemplates>
+
+    <Application.Styles>
+        <FluentTheme />
+        
+        <!-- Base Window and Controls Styling -->
+        <Style Selector="Window">
+            <Setter Property="Background" Value="#121214" />
+            <Setter Property="FontFamily" Value="SF Pro Display, -apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif" />
+        </Style>
+
+        <!-- Sidebar Navigation Buttons -->
+        <Style Selector="Button.nav-button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#a1a1aa" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+        </Style>
+        <Style Selector="Button.nav-button:pointerover">
+            <Setter Property="Background" Value="#1f1f23" />
+            <Setter Property="Foreground" Value="#f4f4f5" />
+        </Style>
+
+        <!-- Primary Accent Buttons -->
+        <Style Selector="Button.primary-btn">
+            <Setter Property="Background" Value="#3b82f6" />
+            <Setter Property="Foreground" Value="#ffffff" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.primary-btn:pointerover">
+            <Setter Property="Background" Value="#2563eb" />
+        </Style>
+
+        <!-- Secondary Surface Buttons -->
+        <Style Selector="Button.secondary-btn">
+            <Setter Property="Background" Value="#27272a" />
+            <Setter Property="Foreground" Value="#f4f4f5" />
+            <Setter Property="BorderBrush" Value="#3f3f46" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="FontWeight" Value="Medium" />
+        </Style>
+        <Style Selector="Button.secondary-btn:pointerover">
+            <Setter Property="Background" Value="#3f3f46" />
+            <Setter Property="BorderBrush" Value="#52525b" />
+        </Style>
+
+        <!-- Card Containers -->
+        <Style Selector="Border.glass-card">
+            <Setter Property="Background" Value="#18181b" />
+            <Setter Property="BorderBrush" Value="#27272a" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+
+        <!-- Status Pills -->
+        <Style Selector="Border.status-pill">
+            <Setter Property="Background" Value="#142e23" />
+            <Setter Property="BorderBrush" Value="#10b981" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Padding" Value="10,4" />
+        </Style>
+    </Application.Styles>
+</Application>

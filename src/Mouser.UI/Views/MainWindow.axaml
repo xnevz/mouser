@@ -1,0 +1,126 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Mouser.UI.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="720"
+        x:Class="Mouser.UI.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Mouser — Virtual KVM &amp; Smart Clipboard"
+        Width="1100" Height="720"
+        MinWidth="960" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="#121214">
+
+    <Grid ColumnDefinitions="240,*">
+        <!-- Sleek macOS Style Sidebar -->
+        <Border Grid.Column="0"
+                Background="#18181b"
+                BorderBrush="#27272a"
+                BorderThickness="0,0,1,0"
+                Padding="16">
+            <Grid RowDefinitions="Auto,*,Auto">
+                <!-- App Brand Header -->
+                <StackPanel Grid.Row="0" Spacing="6" Margin="4,8,4,24">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Border Grid.Column="0"
+                                Width="32" Height="32"
+                                CornerRadius="8"
+                                Background="#3b82f6"
+                                Margin="0,0,10,0">
+                            <TextBlock Text="M"
+                                       Foreground="#ffffff"
+                                       FontSize="18"
+                                       FontWeight="ExtraBold"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Mouser"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="#f4f4f5" />
+                            <TextBlock Text="Virtual KVM &amp; Clipboard"
+                                       FontSize="11"
+                                       Foreground="#71717a" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Navigation Tabs -->
+                <StackPanel Grid.Row="1" Spacing="6">
+                    <Button Classes="nav-button"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="DisplayMatrix">
+                        <Grid ColumnDefinitions="24,*,Auto">
+                            <TextBlock Grid.Column="0" Text="🖥" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Display Matrix" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Background="#142e23" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                <TextBlock Text="3" FontSize="10" FontWeight="Bold" Foreground="#10b981" />
+                            </Border>
+                        </Grid>
+                    </Button>
+
+                    <Button Classes="nav-button"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="SmartClipboard">
+                        <Grid ColumnDefinitions="24,*,Auto">
+                            <TextBlock Grid.Column="0" Text="📋" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Smart Clipboard" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Background="#261b40" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                <TextBlock Text="FTS5" FontSize="10" FontWeight="Bold" Foreground="#a855f7" />
+                            </Border>
+                        </Grid>
+                    </Button>
+
+                    <Button Classes="nav-button"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="AndroidRemote">
+                        <Grid ColumnDefinitions="24,*,Auto">
+                            <TextBlock Grid.Column="0" Text="📱" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Android Remote" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Background="#182747" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                <TextBlock Text="120Hz" FontSize="10" FontWeight="Bold" Foreground="#38bdf8" />
+                            </Border>
+                        </Grid>
+                    </Button>
+
+                    <Button Classes="nav-button"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="Settings">
+                        <Grid ColumnDefinitions="24,*">
+                            <TextBlock Grid.Column="0" Text="⚙" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Settings &amp; Security" Margin="6,0,0,0" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+
+                <!-- Sidebar Footer Status Pill -->
+                <Border Grid.Row="2"
+                        Background="#1f1f23"
+                        BorderBrush="#2e2e33"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="12,10">
+                    <StackPanel Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Ellipse Width="8" Height="8" Fill="#10b981" VerticalAlignment="Center" />
+                            <TextBlock Text="Mesh Active" FontSize="11" FontWeight="SemiBold" Foreground="#10b981" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding SystemStatusText}"
+                                   FontSize="10"
+                                   Foreground="#71717a"
+                                   TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Right Content Body: Active Page Content -->
+        <ContentControl Grid.Column="1"
+                        Content="{Binding CurrentPage}" />
+    </Grid>
+</Window>
+

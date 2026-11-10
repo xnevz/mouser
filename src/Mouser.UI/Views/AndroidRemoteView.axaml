@@ -1,0 +1,152 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Mouser.UI.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="Mouser.UI.Views.AndroidRemoteView"
+             x:DataType="vm:AndroidRemoteViewModel">
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="24">
+        <!-- Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,18">
+            <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Text="Android Remote Controller Hub" FontSize="20" FontWeight="Bold" Foreground="#f4f4f5" />
+                <TextBlock Text="Wireless trackpad, 3D gyro air-mouse presentation pointer, and media macro pad"
+                           FontSize="13" Foreground="#71717a" />
+            </StackPanel>
+
+            <Border Grid.Column="1" Classes="status-pill" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Ellipse Width="6" Height="6" Fill="#10b981" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding BatteryLevel, StringFormat='Phone Connected ({0})'}"
+                               FontSize="11" FontWeight="SemiBold" Foreground="#10b981" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Main Workspace: Device Diagnostics + Simulated Trackpad Area + Controls -->
+        <Grid Grid.Row="1" ColumnDefinitions="320,*">
+            <!-- Left Panel: Device Info & Calibration -->
+            <Border Grid.Column="0" Classes="glass-card" Padding="18" Margin="0,0,16,0">
+                <ScrollViewer>
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="Connected Device" FontSize="14" FontWeight="SemiBold" Foreground="#f4f4f5" />
+
+                        <!-- Device Info Box -->
+                        <Border Background="#1f1f23" BorderBrush="#2e2e33" BorderThickness="1" CornerRadius="8" Padding="12">
+                            <StackPanel Spacing="8">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <TextBlock Grid.Column="0" Text="📱 " FontSize="18" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding DeviceModel}" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
+                                        <TextBlock Text="{Binding IpAddress}" FontSize="11" Foreground="#71717a" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <Separator Background="#27272a" />
+
+                                <Grid ColumnDefinitions="*,*">
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Wi-Fi Ping" FontSize="11" Foreground="#71717a" />
+                                        <TextBlock Text="{Binding LatencyMs, StringFormat='{}{0} ms'}" FontWeight="Bold" Foreground="#10b981" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="Battery" FontSize="11" Foreground="#71717a" />
+                                        <TextBlock Text="{Binding BatteryLevel}" FontWeight="Bold" Foreground="#f4f4f5" />
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Separator Background="#27272a" />
+
+                        <!-- Sensitivity Sliders -->
+                        <TextBlock Text="Sensor Calibration" FontSize="12" FontWeight="SemiBold" Foreground="#a1a1aa" />
+                        <StackPanel Spacing="4">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Text="Pointer Sensitivity" FontSize="11" Foreground="#71717a" />
+                                <TextBlock Grid.Column="1" Text="{Binding TrackpadSensitivity, StringFormat='{}{0:F1}x'}" FontSize="11" Foreground="#a1a1aa" />
+                            </Grid>
+                            <Slider Value="{Binding TrackpadSensitivity}" Minimum="0.5" Maximum="3.0" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="4">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Text="Scroll Velocity" FontSize="11" Foreground="#71717a" />
+                                <TextBlock Grid.Column="1" Text="{Binding ScrollSpeed, StringFormat='{}{0:F1}x'}" FontSize="11" Foreground="#a1a1aa" />
+                            </Grid>
+                            <Slider Value="{Binding ScrollSpeed}" Minimum="0.5" Maximum="2.5" />
+                        </StackPanel>
+
+                        <Separator Background="#27272a" />
+
+                        <!-- Gyro Mode Toggle -->
+                        <Button Classes="secondary-btn" Command="{Binding ToggleGyroPointerCommand}" HorizontalAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+                                <TextBlock Text="🎯" FontSize="14" />
+                                <TextBlock Text="{Binding IsGyroPointerActive, Converter={x:Null}, StringFormat='Toggle 3D Air Mouse'}" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Right Panel: Interactive Trackpad & Macro Controller -->
+            <Grid Grid.Column="1" RowDefinitions="*,Auto">
+                <!-- Touchpad Simulation Card -->
+                <Border Grid.Row="0" Classes="glass-card" Margin="0,0,0,14" Padding="20">
+                    <Grid RowDefinitions="Auto,*,Auto">
+                        <TextBlock Grid.Row="0" Text="Virtual Multi-Touch Surface (120Hz UDP Stream)"
+                                   FontSize="13" FontWeight="SemiBold" Foreground="#a1a1aa" HorizontalAlignment="Center" />
+
+                        <!-- Tactile Surface Area -->
+                        <Border Grid.Row="1"
+                                Background="#141417"
+                                BorderBrush="#2e2e33"
+                                BorderThickness="2"
+                                CornerRadius="16"
+                                Margin="0,16">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10">
+                                <TextBlock Text="TOUCHPAD ZONE" FontSize="18" FontWeight="Bold" Foreground="#3f3f46" HorizontalAlignment="Center" />
+                                <TextBlock Text="1 Finger: Move Cursor &amp; Left Click" FontSize="12" Foreground="#52525b" HorizontalAlignment="Center" />
+                                <TextBlock Text="2 Fingers: Kinetic Scroll &amp; Right Click" FontSize="12" Foreground="#52525b" HorizontalAlignment="Center" />
+                                <TextBlock Text="Pinch: Zoom Desktop" FontSize="12" Foreground="#52525b" HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Grid.Row="2"
+                                   Text="{Binding LastInputEvent, StringFormat='Live Telemetry: {0}'}"
+                                   FontSize="11"
+                                   Foreground="#3b82f6"
+                                   HorizontalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <!-- Media Remote Bar -->
+                <Border Grid.Row="1" Classes="glass-card" Padding="14">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="Host Media Remote Controls" FontSize="12" FontWeight="SemiBold" Foreground="#d4d4d8" />
+                            <TextBlock Text="Dispatches global media keystrokes to active player" FontSize="11" Foreground="#71717a" />
+                        </StackPanel>
+
+                        <!-- Macro Buttons -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                            <Button Classes="secondary-btn" Command="{Binding SendMediaActionCommand}" CommandParameter="Previous" Content="⏮" Width="40" />
+                            <Button Classes="primary-btn" Command="{Binding SendMediaActionCommand}" CommandParameter="PlayPause" Content="⏯" Width="44" />
+                            <Button Classes="secondary-btn" Command="{Binding SendMediaActionCommand}" CommandParameter="Next" Content="⏭" Width="40" />
+                            <Button Classes="secondary-btn" Command="{Binding SendMediaActionCommand}" CommandParameter="VolumeDown" Content="🔉" Width="40" />
+                            <Button Classes="secondary-btn" Command="{Binding SendMediaActionCommand}" CommandParameter="VolumeUp" Content="🔊" Width="40" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Status Bottom Bar -->
+        <Border Grid.Row="2" Margin="0,14,0,0" Padding="12,8" Background="#18181b" CornerRadius="8" BorderBrush="#27272a" BorderThickness="1">
+            <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="#a1a1aa" VerticalAlignment="Center" />
+        </Border>
+    </Grid>
+</UserControl>
