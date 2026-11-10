@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Mouser.UI.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="640"
              x:Class="Mouser.UI.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
 
@@ -11,26 +11,31 @@
         <!-- Header -->
         <Grid Grid.Row="0" Margin="0,0,0,18">
             <StackPanel Spacing="4">
-                <TextBlock Text="Settings &amp; Security" FontSize="20" FontWeight="Bold" Foreground="#f4f4f5" />
-                <TextBlock Text="Configure networking, cryptographic pairing, screen edge sensitivity, and privacy filters"
-                           FontSize="13" Foreground="#71717a" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Settings &amp; Security" FontSize="20" FontWeight="Bold" Foreground="#f4f4f5" />
+                    <Border Background="#232533" CornerRadius="6" Padding="8,2" VerticalAlignment="Center">
+                        <TextBlock Text="Zero Cloud • E2EE" FontSize="11" FontWeight="SemiBold" Foreground="#10b981" />
+                    </Border>
+                </StackPanel>
+                <TextBlock Text="Configure networking, cryptographic pairing, screen edge transition sensitivity, and privacy shields"
+                           FontSize="13" Foreground="#94a3b8" />
             </StackPanel>
         </Grid>
 
         <!-- Main Settings Cards -->
         <ScrollViewer Grid.Row="1">
-            <StackPanel Spacing="16" MaxWidth="720" HorizontalAlignment="Left">
+            <StackPanel Spacing="16" MaxWidth="760" HorizontalAlignment="Left">
                 <!-- Section 1: Cryptographic Pairing & E2EE -->
                 <Border Classes="glass-card" Padding="20">
                     <StackPanel Spacing="14">
                         <TextBlock Text="Pairing &amp; End-to-End Encryption" FontSize="14" FontWeight="SemiBold" Foreground="#f4f4f5" />
                         <TextBlock Text="All peer-to-peer data (keystrokes, clipboard, file chunks) is encrypted via ChaCha20-Poly1305 with zero cloud telemetry."
-                                   FontSize="12" Foreground="#71717a" TextWrapping="Wrap" />
+                                   FontSize="12" Foreground="#94a3b8" TextWrapping="Wrap" />
 
                         <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="Active Cryptographic Pairing PIN" FontSize="11" Foreground="#71717a" />
-                                <TextBlock Text="{Binding PairingPin}" FontSize="24" FontWeight="Bold" Foreground="#3b82f6" Margin="0,4,0,0" />
+                                <TextBlock Text="Active Cryptographic Pairing PIN" FontSize="11" Foreground="#64748b" />
+                                <TextBlock Text="{Binding PairingPin}" FontSize="24" FontWeight="Bold" Foreground="#818cf8" Margin="0,4,0,0" />
                             </StackPanel>
 
                             <Button Grid.Column="1" Classes="secondary-btn" Command="{Binding RegeneratePinCommand}" VerticalAlignment="Center">
@@ -38,8 +43,8 @@
                             </Button>
                         </Grid>
 
-                        <Separator Background="#27272a" />
-                        <CheckBox Content="Enable strict End-to-End Encryption (E2EE)" IsChecked="{Binding EnableE2ee}" Foreground="#d4d4d8" FontSize="12" />
+                        <Separator Background="#272a38" />
+                        <CheckBox Content="Enable strict End-to-End Encryption (E2EE)" IsChecked="{Binding EnableE2ee}" Foreground="#cbd5e1" FontSize="12" />
                     </StackPanel>
                 </Border>
 
@@ -50,15 +55,15 @@
 
                         <StackPanel Spacing="6">
                             <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Text="Edge Friction / Resistance Delay" FontSize="11" Foreground="#71717a" />
-                                <TextBlock Grid.Column="1" Text="{Binding EdgeResistanceMs, StringFormat='{}{0} ms'}" FontSize="11" Foreground="#a1a1aa" />
+                                <TextBlock Grid.Column="0" Text="Edge Friction / Resistance Delay" FontSize="11" Foreground="#94a3b8" />
+                                <TextBlock Grid.Column="1" Text="{Binding EdgeResistanceMs, StringFormat='{}{0} ms'}" FontSize="11" Foreground="#cbd5e1" />
                             </Grid>
                             <Slider Value="{Binding EdgeResistanceMs}" Minimum="0" Maximum="500" />
-                            <TextBlock Text="Prevents accidental switching when targeting scrollbars, close buttons, or dock." FontSize="11" Foreground="#52525b" />
+                            <TextBlock Text="Prevents accidental switching when targeting scrollbars, close buttons, or dock." FontSize="11" Foreground="#64748b" />
                         </StackPanel>
 
-                        <Separator Background="#27272a" />
-                        <CheckBox Content="Synchronize display lock and screen sleep across devices" IsChecked="{Binding AutoLockScreens}" Foreground="#d4d4d8" FontSize="12" />
+                        <Separator Background="#272a38" />
+                        <CheckBox Content="Synchronize display lock and screen sleep across devices" IsChecked="{Binding AutoLockScreens}" Foreground="#cbd5e1" FontSize="12" />
                     </StackPanel>
                 </Border>
 
@@ -68,11 +73,11 @@
                         <TextBlock Text="Privacy &amp; Password Firewall" FontSize="14" FontWeight="SemiBold" Foreground="#f4f4f5" />
                         <CheckBox Content="Exclude password managers (1Password, Bitwarden, KeePassXC)"
                                   IsChecked="{Binding ExcludePasswordManagers}"
-                                  Foreground="#d4d4d8"
+                                  Foreground="#cbd5e1"
                                   FontSize="12" />
                         <CheckBox Content="Launch Mouser silently at system login"
                                   IsChecked="{Binding StartAtLogin}"
-                                  Foreground="#d4d4d8"
+                                  Foreground="#cbd5e1"
                                   FontSize="12" />
                     </StackPanel>
                 </Border>
@@ -80,8 +85,8 @@
         </ScrollViewer>
 
         <!-- Status Bottom Bar -->
-        <Border Grid.Row="2" Margin="0,14,0,0" Padding="12,8" Background="#18181b" CornerRadius="8" BorderBrush="#27272a" BorderThickness="1">
-            <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="#a1a1aa" VerticalAlignment="Center" />
+        <Border Grid.Row="2" Margin="0,14,0,0" Padding="12,8" Background="#14151d" CornerRadius="8" BorderBrush="#272a38" BorderThickness="1">
+            <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="#94a3b8" VerticalAlignment="Center" />
         </Border>
     </Grid>
 </UserControl>

@@ -3,7 +3,7 @@
              x:Class="Mouser.UI.App"
              xmlns:local="using:Mouser.UI"
              RequestedThemeVariant="Dark">
-             <!-- Pure Dark Zinc/Slate macOS Aesthetic -->
+             <!-- Refined Modern Dark Theme (UniClipboard & Linear Aesthetic) -->
 
     <Application.DataTemplates>
         <local:ViewLocator />
@@ -14,14 +14,14 @@
         
         <!-- Base Window and Controls Styling -->
         <Style Selector="Window">
-            <Setter Property="Background" Value="#121214" />
+            <Setter Property="Background" Value="#0c0d12" />
             <Setter Property="FontFamily" Value="SF Pro Display, -apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif" />
         </Style>
 
         <!-- Sidebar Navigation Buttons -->
         <Style Selector="Button.nav-button">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="#a1a1aa" />
+            <Setter Property="Foreground" Value="#94a3b8" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="12,10" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -30,52 +30,79 @@
             <Setter Property="FontWeight" Value="Medium" />
         </Style>
         <Style Selector="Button.nav-button:pointerover">
-            <Setter Property="Background" Value="#1f1f23" />
-            <Setter Property="Foreground" Value="#f4f4f5" />
+            <Setter Property="Background" Value="#1c1d28" />
+            <Setter Property="Foreground" Value="#ffffff" />
+        </Style>
+        <Style Selector="Button.nav-button:pressed">
+            <Setter Property="Background" Value="#252838" />
         </Style>
 
         <!-- Primary Accent Buttons -->
         <Style Selector="Button.primary-btn">
-            <Setter Property="Background" Value="#3b82f6" />
+            <Setter Property="Background" Value="#4f46e5" />
             <Setter Property="Foreground" Value="#ffffff" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="14,8" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="Button.primary-btn:pointerover">
-            <Setter Property="Background" Value="#2563eb" />
+            <Setter Property="Background" Value="#4338ca" />
+        </Style>
+        <Style Selector="Button.primary-btn:pressed">
+            <Setter Property="Background" Value="#3730a3" />
         </Style>
 
         <!-- Secondary Surface Buttons -->
         <Style Selector="Button.secondary-btn">
-            <Setter Property="Background" Value="#27272a" />
-            <Setter Property="Foreground" Value="#f4f4f5" />
-            <Setter Property="BorderBrush" Value="#3f3f46" />
+            <Setter Property="Background" Value="#181922" />
+            <Setter Property="Foreground" Value="#f1f5f9" />
+            <Setter Property="BorderBrush" Value="#2e3248" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="Padding" Value="12,7" />
             <Setter Property="FontWeight" Value="Medium" />
         </Style>
         <Style Selector="Button.secondary-btn:pointerover">
-            <Setter Property="Background" Value="#3f3f46" />
-            <Setter Property="BorderBrush" Value="#52525b" />
+            <Setter Property="Background" Value="#232535" />
+            <Setter Property="BorderBrush" Value="#3f4562" />
+            <Setter Property="Foreground" Value="#ffffff" />
+        </Style>
+        <Style Selector="Button.secondary-btn:pressed">
+            <Setter Property="Background" Value="#14151e" />
         </Style>
 
         <!-- Card Containers -->
         <Style Selector="Border.glass-card">
-            <Setter Property="Background" Value="#18181b" />
-            <Setter Property="BorderBrush" Value="#27272a" />
+            <Setter Property="Background" Value="#13141d" />
+            <Setter Property="BorderBrush" Value="#262938" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="12" />
         </Style>
 
         <!-- Status Pills -->
         <Style Selector="Border.status-pill">
-            <Setter Property="Background" Value="#142e23" />
+            <Setter Property="Background" Value="#11261d" />
             <Setter Property="BorderBrush" Value="#10b981" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="16" />
             <Setter Property="Padding" Value="10,4" />
+        </Style>
+
+        <!-- Modern Input Controls -->
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="#161722" />
+            <Setter Property="Foreground" Value="#f8fafc" />
+            <Setter Property="BorderBrush" Value="#272a38" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="SelectionBrush" Value="#4f46e5" />
+        </Style>
+        <Style Selector="TextBox:focus">
+            <Setter Property="BorderBrush" Value="#6366f1" />
+        </Style>
+
+        <Style Selector="CheckBox">
+            <Setter Property="Foreground" Value="#cbd5e1" />
+            <Setter Property="FontSize" Value="12" />
         </Style>
     </Application.Styles>
 </Application>

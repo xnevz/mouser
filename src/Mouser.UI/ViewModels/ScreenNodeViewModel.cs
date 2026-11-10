@@ -5,6 +5,9 @@ namespace Mouser.UI.ViewModels;
 public partial class ScreenNodeViewModel : ViewModelBase
 {
     [ObservableProperty]
+    private string _letter = "A";
+
+    [ObservableProperty]
     private string _hostname = "Desktop";
 
     [ObservableProperty]
@@ -35,8 +38,11 @@ public partial class ScreenNodeViewModel : ViewModelBase
     private bool _isActive = true;
 
     [ObservableProperty]
+    private bool _isDragging;
+
+    [ObservableProperty]
     private string _ipAddress = "127.0.0.1";
 
-    public string BadgeColor => IsLocal ? "#3b82f6" : "#10b981";
-    public string RoleText => IsLocal ? "This Mac (Host)" : "Remote Screen";
+    public string BadgeColor => IsLocal ? "#6366f1" : "#10b981";
+    public string RoleText => IsLocal ? "Host Screen" : "Remote Client";
 }

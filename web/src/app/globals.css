@@ -12,6 +12,13 @@ body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
+/* Hide native OS cursor on desktop pointer devices to use our custom reactive cyber cursor */
+@media (pointer: fine) {
+  html, body, button, a, input, select, textarea, [role="button"] {
+    cursor: none !important;
+  }
+}
+
 /* Custom glowing effects */
 .glow-cyan {
   box-shadow: 0 0 50px -10px rgba(6, 182, 212, 0.25);

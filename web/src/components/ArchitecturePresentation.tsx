@@ -131,7 +131,8 @@ override fun onSensorChanged(event: SensorEvent?) {
             ]}
             activeId={activeTab}
             onChange={(id) => setActiveTab(id as 'mvvm' | 'native' | 'net' | 'mobile')}
-            pillColor="from-indigo-600 via-purple-600 to-cyan-500"
+            pillColor="from-cyan-500 via-indigo-500 to-blue-600"
+            layoutId="architecture-active-pill"
           />
         </div>
 

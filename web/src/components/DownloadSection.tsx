@@ -72,7 +72,8 @@ export const DownloadSection = () => {
             tabs={platformTabs}
             activeId={selectedPlatform}
             onChange={(id) => setSelectedPlatform(id)}
-            pillColor="from-cyan-500 via-indigo-500 to-fuchsia-600"
+            pillColor="from-cyan-500 via-indigo-500 to-blue-600"
+            layoutId="platform-download-active-pill"
           />
         </div>
 

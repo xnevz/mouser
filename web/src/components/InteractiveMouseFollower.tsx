@@ -5,23 +5,25 @@ import { motion, useSpring, useMotionValue } from 'framer-motion';
 
 export const InteractiveMouseFollower = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const [isClicking, setIsClicking] = useState(false);
 
-  // Exact client cursor coordinates
-  const mouseX = useMotionValue(-200);
-  const mouseY = useMotionValue(-200);
+  // Exact raw client cursor coordinates (zero lag for the focal cursor tip)
+  const mouseX = useMotionValue(-100);
+  const mouseY = useMotionValue(-100);
 
-  // Snappy responsive spring for center focal ring
-  const centerSpring = { damping: 28, stiffness: 450, mass: 0.1 };
-  const cursorX = useSpring(mouseX, centerSpring);
-  const cursorY = useSpring(mouseY, centerSpring);
+  // Smooth elastic trailing halo ring
+  const ringSpring = { damping: 26, stiffness: 420, mass: 0.15 };
+  const ringX = useSpring(mouseX, ringSpring);
+  const ringY = useSpring(mouseY, ringSpring);
 
-  // Fluid ambient bloom trailing with gentle inertia
-  const bloomSpring = { damping: 32, stiffness: 140, mass: 0.6 };
+  // Fluid ambient bloom trailing with gentle atmosphere
+  const bloomSpring = { damping: 32, stiffness: 120, mass: 0.8 };
   const ambientX = useSpring(mouseX, bloomSpring);
   const ambientY = useSpring(mouseY, bloomSpring);
 
   useEffect(() => {
-    // Only activate for real mouse / fine pointer devices
+    // Only activate for desktop mouse / fine pointer devices
     const isPointerFine = window.matchMedia('(pointer: fine)').matches;
     if (!isPointerFine) return;
 
@@ -29,17 +31,29 @@ export const InteractiveMouseFollower = () => {
       mouseX.set(e.clientX);
       mouseY.set(e.clientY);
       if (!isVisible) setIsVisible(true);
+
+      // Check if hovering over clickable elements
+      const target = e.target as HTMLElement | null;
+      if (target && target.closest('a, button, [role="button"], input, select, textarea')) {
+        setIsHovering(true);
+      } else {
+        setIsHovering(false);
+      }
     };
 
-    const handleMouseLeave = () => {
-      setIsVisible(false);
-    };
+    const handleMouseDown = () => setIsClicking(true);
+    const handleMouseUp = () => setIsClicking(false);
+    const handleMouseLeave = () => setIsVisible(false);
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('mouseleave', handleMouseLeave);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, [mouseX, mouseY, isVisible]);
@@ -47,26 +61,39 @@ export const InteractiveMouseFollower = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-30 overflow-hidden">
-      {/* Outer ambient glow mesh orb - positioned absolutely at top-0 left-0 with centered translation */}
+    <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden select-none">
+      {/* 1. Ambient Glow Bloom */}
       <motion.div
         style={{
           x: ambientX,
           y: ambientY,
         }}
-        className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] rounded-full bg-gradient-to-tr from-cyan-500/15 via-indigo-500/12 to-fuchsia-500/10 blur-[90px]"
+        className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-[380px] h-[380px] rounded-full bg-gradient-to-tr from-cyan-500/15 via-indigo-500/10 to-fuchsia-500/8 blur-[85px]"
       />
 
-      {/* High-precision interactive cursor halo - perfectly centered right under the mouse tip */}
+      {/* 2. Elastic Trailing Halo Ring (expands on hover, compresses on click) */}
       <motion.div
         style={{
-          x: cursorX,
-          y: cursorY,
+          x: ringX,
+          y: ringY,
         }}
-        className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full border border-cyan-400/40 bg-cyan-400/5 shadow-[0_0_20px_rgba(6,182,212,0.35)] backdrop-blur-[1px] flex items-center justify-center"
-      >
-        <div className="w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_#22d3ee]" />
-      </motion.div>
+        animate={{
+          scale: isClicking ? 0.75 : isHovering ? 1.5 : 1,
+          borderColor: isHovering ? 'rgba(6, 182, 212, 0.8)' : 'rgba(6, 182, 212, 0.4)',
+          backgroundColor: isHovering ? 'rgba(6, 182, 212, 0.12)' : 'rgba(6, 182, 212, 0.04)',
+        }}
+        transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+        className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full border border-cyan-400/40 backdrop-blur-[1px] shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center justify-center"
+      />
+
+      {/* 3. High-Precision Cursor Focal Tip (zero lag, exactly where mouse is) */}
+      <motion.div
+        style={{
+          x: mouseX,
+          y: mouseY,
+        }}
+        className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-cyan-300 shadow-[0_0_10px_#22d3ee,0_0_20px_#06b6d4]"
+      />
     </div>
   );
 };

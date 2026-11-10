@@ -1,4 +1,6 @@
+using System;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -15,6 +17,15 @@ public partial class MonitorLayoutViewModel : ViewModelBase
     [ObservableProperty]
     private ScreenNodeViewModel? _selectedScreen;
 
+    [ObservableProperty]
+    private bool _showScreenLetters = true;
+
+    [ObservableProperty]
+    private bool _isDraggingAnyScreen;
+
+    [ObservableProperty]
+    private bool _isIdentifyingDisplays;
+
     public ObservableCollection<ScreenNodeViewModel> Screens { get; } = new();
 
     public MonitorLayoutViewModel()
@@ -22,6 +33,7 @@ public partial class MonitorLayoutViewModel : ViewModelBase
         // Default connected screen nodes for the visual canvas
         var macScreen = new ScreenNodeViewModel
         {
+            Letter = "A",
             Hostname = "MacBook Pro 16\"",
             OsType = "macOS",
             Resolution = "3456 × 2234 (Retina)",
@@ -36,6 +48,7 @@ public partial class MonitorLayoutViewModel : ViewModelBase
 
         var winScreen = new ScreenNodeViewModel
         {
+            Letter = "B",
             Hostname = "Windows Workstation",
             OsType = "Windows 11",
             Resolution = "3840 × 2160 (4K UHD)",
@@ -49,6 +62,7 @@ public partial class MonitorLayoutViewModel : ViewModelBase
 
         var linScreen = new ScreenNodeViewModel
         {
+            Letter = "C",
             Hostname = "Linux ThinkPad",
             OsType = "Linux (Wayland)",
             Resolution = "1920 × 1080 (FHD)",
@@ -77,6 +91,25 @@ public partial class MonitorLayoutViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void ToggleScreenLetters()
+    {
+        ShowScreenLetters = !ShowScreenLetters;
+        StatusMessage = ShowScreenLetters
+            ? "Screen identifier letters (A, B, C) enabled"
+            : "Screen identifier letters hidden";
+    }
+
+    [RelayCommand]
+    private async Task IdentifyDisplays()
+    {
+        IsIdentifyingDisplays = true;
+        StatusMessage = "Identifying displays: Screen A (Mac), Screen B (Windows), Screen C (Linux)";
+        await Task.Delay(2500);
+        IsIdentifyingDisplays = false;
+        StatusMessage = $"KVM Active — {Screens.Count} Screens Connected";
+    }
+
+    [RelayCommand]
     private void AutoArrangeScreens()
     {
         double currentX = 50;
@@ -86,6 +119,7 @@ public partial class MonitorLayoutViewModel : ViewModelBase
             screen.PositionY = 120;
             currentX += screen.DisplayWidth + 24;
         }
+        StatusMessage = "Screens auto-arranged horizontally side-by-side";
     }
 
     [RelayCommand]
@@ -97,5 +131,69 @@ public partial class MonitorLayoutViewModel : ViewModelBase
             s.IsSelected = (s == screen);
         }
         SelectedScreen = screen;
+    }
+
+    public void UpdateScreenPosition(ScreenNodeViewModel screen, double newX, double newY, bool enableSnapping = true)
+    {
+        const double canvasWidth = 1000;
+        const double canvasHeight = 600;
+        const double snapDistance = 16.0;
+
+        double targetX = newX;
+        double targetY = newY;
+
+        if (enableSnapping)
+        {
+            foreach (var other in Screens)
+            {
+                if (other == screen) continue;
+
+                // Horizontal docking: dock to right edge of other
+                if (Math.Abs(targetX - (other.PositionX + other.DisplayWidth)) < snapDistance)
+                {
+                    targetX = other.PositionX + other.DisplayWidth;
+                }
+                // Horizontal docking: dock to left edge of other
+                else if (Math.Abs((targetX + screen.DisplayWidth) - other.PositionX) < snapDistance)
+                {
+                    targetX = other.PositionX - screen.DisplayWidth;
+                }
+                // Horizontal alignment: align left edges
+                else if (Math.Abs(targetX - other.PositionX) < snapDistance)
+                {
+                    targetX = other.PositionX;
+                }
+
+                // Vertical alignment: align top edges
+                if (Math.Abs(targetY - other.PositionY) < snapDistance)
+                {
+                    targetY = other.PositionY;
+                }
+                // Vertical alignment: align bottom edges
+                else if (Math.Abs((targetY + screen.DisplayHeight) - (other.PositionY + other.DisplayHeight)) < snapDistance)
+                {
+                    targetY = other.PositionY + other.DisplayHeight - screen.DisplayHeight;
+                }
+                // Vertical docking: dock to bottom edge of other
+                else if (Math.Abs(targetY - (other.PositionY + other.DisplayHeight)) < snapDistance)
+                {
+                    targetY = other.PositionY + other.DisplayHeight;
+                }
+                // Vertical docking: dock to top edge of other
+                else if (Math.Abs((targetY + screen.DisplayHeight) - other.PositionY) < snapDistance)
+                {
+                    targetY = other.PositionY - screen.DisplayHeight;
+                }
+            }
+        }
+
+        // Clamp inside canvas boundary
+        double maxX = Math.Max(0, canvasWidth - screen.DisplayWidth);
+        double maxY = Math.Max(0, canvasHeight - screen.DisplayHeight);
+
+        screen.PositionX = Math.Clamp(Math.Round(targetX), 0, maxX);
+        screen.PositionY = Math.Clamp(Math.Round(targetY), 0, maxY);
+
+        StatusMessage = $"Screen {screen.Letter} ({screen.Hostname}) positioned at ({screen.PositionX:0}, {screen.PositionY:0})";
     }
 }

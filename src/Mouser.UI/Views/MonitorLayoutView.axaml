@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Mouser.UI.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="640"
              x:Class="Mouser.UI.Views.MonitorLayoutView"
              x:DataType="vm:MonitorLayoutViewModel">
 
@@ -11,41 +11,70 @@
         <!-- Header Toolbar -->
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,18">
             <StackPanel Grid.Column="0" Spacing="4">
-                <TextBlock Text="Display Matrix" FontSize="20" FontWeight="Bold" Foreground="#f4f4f5" />
-                <TextBlock Text="Arrange physical screens to match your desk layout for seamless mouse hopping"
-                           FontSize="13" Foreground="#71717a" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Display Arrangement" FontSize="20" FontWeight="Bold" Foreground="#f4f4f5" />
+                    <Border Background="#232533" CornerRadius="6" Padding="8,2" VerticalAlignment="Center">
+                        <TextBlock Text="Drag &amp; Drop Enabled" FontSize="11" FontWeight="SemiBold" Foreground="#818cf8" />
+                    </Border>
+                </StackPanel>
+                <TextBlock Text="Drag and drop monitors to match your physical desk layout. Mouse crosses adjacent borders seamlessly."
+                           FontSize="13" Foreground="#94a3b8" />
             </StackPanel>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <Button Classes="secondary-btn" Command="{Binding AutoArrangeScreensCommand}">
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <!-- Toggle Screen Letters Button -->
+                <Button Classes="secondary-btn" Command="{Binding ToggleScreenLettersCommand}" ToolTip.Tip="Show or hide screen identifier letters (A, B, C)">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <TextBlock Text="⊞" FontSize="14" />
+                        <TextBlock Text="🔤" FontSize="13" />
+                        <TextBlock Text="{Binding ShowScreenLetters, Converter={x:Null}, StringFormat='Letters: {0}'}" />
+                    </StackPanel>
+                </Button>
+
+                <!-- Identify Displays Button -->
+                <Button Classes="secondary-btn" Command="{Binding IdentifyDisplaysCommand}" ToolTip.Tip="Flash identifier letters on all monitors">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="🎯" FontSize="13" />
+                        <TextBlock Text="Identify" />
+                    </StackPanel>
+                </Button>
+
+                <!-- Auto Arrange Button -->
+                <Button Classes="secondary-btn" Command="{Binding AutoArrangeScreensCommand}" ToolTip.Tip="Align monitors side-by-side automatically">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="⊞" FontSize="13" />
                         <TextBlock Text="Auto-Arrange" />
                     </StackPanel>
                 </Button>
 
+                <!-- Sharing Toggle Button -->
                 <Button Classes="primary-btn" Command="{Binding ToggleSharingCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <TextBlock Text="⇄" FontSize="14" />
+                        <TextBlock Text="⇄" FontSize="13" />
                         <TextBlock Text="{Binding IsSharingActive, Converter={x:Null}, StringFormat='Toggle Sharing'}" />
                     </StackPanel>
                 </Button>
             </StackPanel>
         </Grid>
 
-        <!-- Main Workspace Grid: Canvas + Detail Sidebar -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,260">
-            <!-- Visual Monitor Canvas Card -->
+        <!-- Main Workspace Grid: Drag Canvas + Display Inspector Sidebar -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,280">
+            <!-- Visual Monitor Drag-and-Drop Canvas Card -->
             <Border Grid.Column="0" Classes="glass-card" Margin="0,0,16,0" ClipToBounds="True">
                 <Grid>
-                    <!-- Background Grid Pattern Guide -->
-                    <Border Background="#151518" Opacity="0.8" />
+                    <!-- Subtle Spatial Canvas Background Grid -->
+                    <Border Background="#0f1015" />
 
-                    <!-- Screen Canvas -->
+                    <!-- Canvas Drag Area Hint -->
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16,0,0" Opacity="0.4" IsHitTestVisible="False">
+                        <TextBlock Text="↔ Drag monitors to reposition • Magnetic snapping will align edges automatically"
+                                   FontSize="12" Foreground="#94a3b8" HorizontalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- Interactive Drag-and-Drop Canvas -->
                     <ItemsControl ItemsSource="{Binding Screens}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <Canvas Width="1000" Height="600" Background="Transparent" />
+                                <Canvas x:Name="ScreenCanvas" Width="1000" Height="600" Background="Transparent" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
 
@@ -58,123 +87,164 @@
 
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="vm:ScreenNodeViewModel">
-                                <Button Background="Transparent"
-                                        Padding="0"
-                                        BorderThickness="0"
-                                        Command="{Binding $parent[UserControl].((vm:MonitorLayoutViewModel)DataContext).SelectScreenCommand}"
-                                        CommandParameter="{Binding}">
-                                    <Border Width="{Binding DisplayWidth}"
-                                            Height="{Binding DisplayHeight}"
-                                            Background="#222226"
-                                            BorderBrush="{Binding IsSelected, Converter={x:Null}, StringFormat='#3b82f6'}"
-                                            BorderThickness="2"
-                                            CornerRadius="10"
-                                            BoxShadow="0 8 24 0 #40000000">
-                                        <Grid RowDefinitions="Auto,*,Auto" Margin="14">
-                                            <!-- Screen Header: OS Badge & Indicator -->
-                                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Column="0"
-                                                           Text="{Binding Hostname}"
-                                                           FontWeight="SemiBold"
-                                                           FontSize="13"
-                                                           Foreground="#ffffff"
-                                                           TextTrimming="CharacterEllipsis" />
-                                                <Border Grid.Column="1"
-                                                        Background="{Binding BadgeColor}"
-                                                        CornerRadius="4"
-                                                        Padding="6,2">
-                                                    <TextBlock Text="{Binding OsType}"
-                                                               FontSize="10"
-                                                               FontWeight="Bold"
-                                                               Foreground="#ffffff" />
-                                                </Border>
-                                            </Grid>
+                                <Border Width="{Binding DisplayWidth}"
+                                        Height="{Binding DisplayHeight}"
+                                        Background="#1c1d26"
+                                        BorderBrush="{Binding IsSelected, Converter={x:Null}, StringFormat='#6366f1'}"
+                                        BorderThickness="2"
+                                        CornerRadius="12"
+                                        BoxShadow="0 10 28 0 #50000000"
+                                        Cursor="Hand"
+                                        PointerPressed="OnScreenPointerPressed"
+                                        PointerMoved="OnScreenPointerMoved"
+                                        PointerReleased="OnScreenPointerReleased"
+                                        PointerCaptureLost="OnScreenPointerCaptureLost">
+                                    <Grid RowDefinitions="Auto,*,Auto" Margin="14">
+                                        <!-- Screen Header: Identification Letter + Hostname + OS Badge -->
+                                        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+                                            <!-- Screen Letter Pill Badge -->
+                                            <Border Grid.Column="0"
+                                                   Background="#4f46e5"
+                                                   CornerRadius="6"
+                                                   Padding="7,2"
+                                                   Margin="0,0,8,0">
+                                               <TextBlock Text="{Binding Letter, StringFormat='Screen {0}'}"
+                                                          FontSize="11"
+                                                          FontWeight="Bold"
+                                                          Foreground="#ffffff" />
+                                            </Border>
 
-                                            <!-- Screen Body: Resolution & Monitor Icon -->
-                                            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4">
-                                                <TextBlock Text="🖥" FontSize="26" HorizontalAlignment="Center" Opacity="0.85" />
-                                                <TextBlock Text="{Binding Resolution}"
-                                                           FontSize="11"
-                                                           Foreground="#a1a1aa"
-                                                           HorizontalAlignment="Center" />
-                                            </StackPanel>
+                                            <!-- Hostname -->
+                                            <TextBlock Grid.Column="1"
+                                                      Text="{Binding Hostname}"
+                                                      FontWeight="SemiBold"
+                                                      FontSize="12"
+                                                      Foreground="#f4f4f5"
+                                                      TextTrimming="CharacterEllipsis"
+                                                      VerticalAlignment="Center" />
 
-                                            <!-- Screen Footer: Role Tag -->
-                                            <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Column="0"
-                                                           Text="{Binding RoleText}"
-                                                           FontSize="11"
-                                                           Foreground="#71717a" />
-                                                <TextBlock Grid.Column="1"
-                                                           Text="{Binding IpAddress}"
-                                                           FontSize="10"
-                                                           Foreground="#52525b" />
-                                            </Grid>
+                                            <!-- OS Badge -->
+                                            <Border Grid.Column="2"
+                                                   Background="{Binding BadgeColor}"
+                                                   CornerRadius="4"
+                                                   Padding="6,2">
+                                               <TextBlock Text="{Binding OsType}"
+                                                          FontSize="10"
+                                                          FontWeight="Bold"
+                                                          Foreground="#ffffff" />
+                                            </Border>
                                         </Grid>
-                                    </Border>
-                                </Button>
+
+                                        <!-- Screen Center Body: Prominent Identifier Letter Watermark / Resolution -->
+                                        <Grid Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                            <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                               <!-- Prominent Letter Badge displayed when enabled or dragging -->
+                                               <Border Width="52" Height="52"
+                                                       CornerRadius="26"
+                                                       Background="#2e3248"
+                                                       BorderBrush="#6366f1"
+                                                       BorderThickness="2"
+                                                       HorizontalAlignment="Center">
+                                                   <TextBlock Text="{Binding Letter}"
+                                                              FontSize="28"
+                                                              FontWeight="ExtraBold"
+                                                              Foreground="#ffffff"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center" />
+                                               </Border>
+
+                                               <!-- Resolution Tag -->
+                                               <TextBlock Text="{Binding Resolution}"
+                                                          FontSize="11"
+                                                          Foreground="#94a3b8"
+                                                          HorizontalAlignment="Center" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Screen Footer: Role Tag & IP -->
+                                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
+                                            <TextBlock Grid.Column="0"
+                                                      Text="{Binding RoleText}"
+                                                      FontSize="11"
+                                                      Foreground="#a1a1aa" />
+                                            <TextBlock Grid.Column="1"
+                                                      Text="{Binding IpAddress}"
+                                                      FontSize="10"
+                                                      Foreground="#64748b" />
+                                        </Grid>
+                                    </Grid>
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </Grid>
             </Border>
 
-            <!-- Screen Details Sidebar Panel -->
+            <!-- Screen Details & Behavior Sidebar (NO Matrix Coordinates) -->
             <Border Grid.Column="1" Classes="glass-card" Padding="18">
                 <ScrollViewer>
                     <StackPanel Spacing="16">
-                        <TextBlock Text="Selected Display" FontSize="14" FontWeight="SemiBold" Foreground="#f4f4f5" />
-
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Display Name" FontSize="11" Foreground="#71717a" />
-                            <TextBox Text="{Binding SelectedScreen.Hostname, FallbackValue='None'}"
-                                     Background="#222226"
-                                     Foreground="#f4f4f5"
-                                     BorderBrush="#3f3f46"
-                                     CornerRadius="6" />
-                        </StackPanel>
-
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Native Resolution" FontSize="11" Foreground="#71717a" />
-                            <TextBox Text="{Binding SelectedScreen.Resolution, FallbackValue='-'}"
-                                     IsReadOnly="True"
-                                     Background="#1c1c1f"
-                                     Foreground="#a1a1aa"
-                                     BorderBrush="#2e2e33"
-                                     CornerRadius="6" />
-                        </StackPanel>
-
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="IP Address &amp; Port" FontSize="11" Foreground="#71717a" />
-                            <TextBox Text="{Binding SelectedScreen.IpAddress, FallbackValue='-'}"
-                                     IsReadOnly="True"
-                                     Background="#1c1c1f"
-                                     Foreground="#a1a1aa"
-                                     BorderBrush="#2e2e33"
-                                     CornerRadius="6" />
-                        </StackPanel>
-
-                        <Separator Background="#27272a" Margin="0,4" />
-
-                        <TextBlock Text="Matrix Coordinates" FontSize="12" FontWeight="SemiBold" Foreground="#a1a1aa" />
-                        <Grid ColumnDefinitions="*,*">
-                            <StackPanel Grid.Column="0" Margin="0,0,6,0" Spacing="4">
-                                <TextBlock Text="Pos X" FontSize="11" Foreground="#71717a" />
-                                <NumericUpDown Value="{Binding SelectedScreen.PositionX}"
-                                               Minimum="0" Maximum="2000" Increment="10"
-                                               Background="#222226" Foreground="#f4f4f5" CornerRadius="6" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="1" Margin="6,0,0,0" Spacing="4">
-                                <TextBlock Text="Pos Y" FontSize="11" Foreground="#71717a" />
-                                <NumericUpDown Value="{Binding SelectedScreen.PositionY}"
-                                               Minimum="0" Maximum="2000" Increment="10"
-                                               Background="#222226" Foreground="#f4f4f5" CornerRadius="6" />
-                            </StackPanel>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="Selected Display" FontSize="14" FontWeight="SemiBold" Foreground="#f4f4f5" VerticalAlignment="Center" />
+                            <Border Grid.Column="1" Background="#4f46e5" CornerRadius="6" Padding="8,2">
+                                <TextBlock Text="{Binding SelectedScreen.Letter, StringFormat='Display {0}', FallbackValue='Display A'}"
+                                           FontSize="11" FontWeight="Bold" Foreground="#ffffff" />
+                            </Border>
                         </Grid>
 
-                        <Separator Background="#27272a" Margin="0,4" />
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Display Name" FontSize="11" Foreground="#94a3b8" />
+                            <TextBox Text="{Binding SelectedScreen.Hostname, FallbackValue='None'}"
+                                     Background="#181922"
+                                     Foreground="#f4f4f5"
+                                     BorderBrush="#32364a"
+                                     CornerRadius="6" />
+                        </StackPanel>
 
-                        <TextBlock Text="Switching Options" FontSize="12" FontWeight="SemiBold" Foreground="#a1a1aa" />
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Native Resolution" FontSize="11" Foreground="#94a3b8" />
+                            <TextBox Text="{Binding SelectedScreen.Resolution, FallbackValue='-'}"
+                                     IsReadOnly="True"
+                                     Background="#14141c"
+                                     Foreground="#94a3b8"
+                                     BorderBrush="#272a38"
+                                     CornerRadius="6" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="IP Address &amp; Network" FontSize="11" Foreground="#94a3b8" />
+                            <TextBox Text="{Binding SelectedScreen.IpAddress, FallbackValue='-'}"
+                                     IsReadOnly="True"
+                                     Background="#14141c"
+                                     Foreground="#94a3b8"
+                                     BorderBrush="#272a38"
+                                     CornerRadius="6" />
+                        </StackPanel>
+
+                        <Separator Background="#272a38" Margin="0,4" />
+
+                        <!-- Display Identification & Letters Control -->
+                        <TextBlock Text="Screen Identification" FontSize="12" FontWeight="SemiBold" Foreground="#cbd5e1" />
+                        <CheckBox Content="Show Letters on Monitors (A, B, C)"
+                                  IsChecked="{Binding ShowScreenLetters}"
+                                  Foreground="#d4d4d8"
+                                  FontSize="12" />
+
+                        <Button Classes="secondary-btn" Command="{Binding IdentifyDisplaysCommand}" HorizontalAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
+                                <TextBlock Text="🎯" FontSize="12" />
+                                <TextBlock Text="Identify All Displays" FontSize="12" />
+                            </StackPanel>
+                        </Button>
+
+                        <Separator Background="#272a38" Margin="0,4" />
+
+                        <!-- Switching & Border Navigation Options -->
+                        <TextBlock Text="Seamless Edge Hopping" FontSize="12" FontWeight="SemiBold" Foreground="#cbd5e1" />
+                        <CheckBox Content="Magnetic Edge Snapping"
+                                  IsChecked="True"
+                                  Foreground="#d4d4d8"
+                                  FontSize="12" />
                         <CheckBox Content="Sticky Corner Resistance"
                                   IsChecked="True"
                                   Foreground="#d4d4d8"
@@ -189,14 +259,14 @@
         </Grid>
 
         <!-- Status Bottom Bar -->
-        <Border Grid.Row="2" Margin="0,14,0,0" Padding="12,8" Background="#18181b" CornerRadius="8" BorderBrush="#27272a" BorderThickness="1">
+        <Border Grid.Row="2" Margin="0,14,0,0" Padding="14,10" Background="#14151d" CornerRadius="8" BorderBrush="#272a38" BorderThickness="1">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
                     <Ellipse Width="8" Height="8" Fill="{Binding IsSharingActive, Converter={x:Null}, StringFormat='#10b981'}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="#a1a1aa" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="#94a3b8" VerticalAlignment="Center" />
                 </StackPanel>
 
-                <TextBlock Grid.Column="2" Text="Zero-Lag LAN Engine: &lt;2ms" FontSize="11" Foreground="#52525b" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="Direct LAN Mesh • Zero-Lag Latency (&lt;2ms)" FontSize="11" Foreground="#64748b" VerticalAlignment="Center" />
             </Grid>
         </Border>
     </Grid>

@@ -129,4 +129,86 @@ public class ViewModelTests
         vm.ToggleGyroPointerCommand.Execute(null);
         Assert.False(vm.IsGyroPointerActive);
     }
+
+    [Fact]
+    public void MonitorLayoutViewModel_ScreensHaveIdentifierLetters()
+    {
+        var vm = new MonitorLayoutViewModel();
+        Assert.Equal("A", vm.Screens[0].Letter);
+        Assert.Equal("B", vm.Screens[1].Letter);
+        Assert.Equal("C", vm.Screens[2].Letter);
+
+        Assert.True(vm.ShowScreenLetters);
+        vm.ToggleScreenLettersCommand.Execute(null);
+        Assert.False(vm.ShowScreenLetters);
+        vm.ToggleScreenLettersCommand.Execute(null);
+        Assert.True(vm.ShowScreenLetters);
+    }
+
+    [Fact]
+    public void MonitorLayoutViewModel_UpdateScreenPosition_DragsAndClampsCorrectly()
+    {
+        var vm = new MonitorLayoutViewModel();
+        var screen = vm.Screens[0];
+
+        // Drag to free position without snapping
+        vm.UpdateScreenPosition(screen, 200, 250, enableSnapping: false);
+        Assert.Equal(200, screen.PositionX);
+        Assert.Equal(250, screen.PositionY);
+
+        // Clamping to canvas bounds (canvas 1000 x 600)
+        vm.UpdateScreenPosition(screen, -100, 1500, enableSnapping: false);
+        Assert.Equal(0, screen.PositionX);
+        Assert.Equal(600 - screen.DisplayHeight, screen.PositionY);
+    }
+
+    [Fact]
+    public void MonitorLayoutViewModel_UpdateScreenPosition_SnapsToAdjacentScreen()
+    {
+        var vm = new MonitorLayoutViewModel();
+        var screenA = vm.Screens[0]; // width: 260
+        screenA.PositionX = 100;
+        screenA.PositionY = 100;
+
+        var screenB = vm.Screens[1];
+        // Position screenB close to screenA's right edge (100 + 260 = 360, close at 365)
+        vm.UpdateScreenPosition(screenB, 365, 105, enableSnapping: true);
+
+        // Should snap X to 360 and Y to 100 (aligned top edge)
+        Assert.Equal(360, screenB.PositionX);
+        Assert.Equal(100, screenB.PositionY);
+    }
+
+    [Fact]
+    public void ClipboardHistoryViewModel_UniClipboard_FeaturesWork()
+    {
+        var vm = new ClipboardHistoryViewModel();
+        Assert.True(vm.AllCount > 0);
+        Assert.True(vm.StarredCount > 0);
+
+        // Test Star toggling
+        var clip = vm.FilteredClips.First(c => !c.IsPinned);
+        int initialStarred = vm.StarredCount;
+        vm.ToggleStarCommand.Execute(clip);
+        Assert.True(clip.IsPinned);
+        Assert.Equal(initialStarred + 1, vm.StarredCount);
+
+        // Test Library filter: Starred
+        vm.SetLibraryCommand.Execute("Starred");
+        Assert.All(vm.FilteredClips, c => Assert.True(c.IsPinned));
+
+        // Test Device filter
+        vm.SetLibraryCommand.Execute("All");
+        vm.SetDeviceFilterCommand.Execute("Android");
+        Assert.All(vm.FilteredClips, c => Assert.Contains("Android", c.SourceDevice));
+
+        // Test Send to Device command
+        vm.SendToDeviceCommand.Execute("Windows Workstation");
+        Assert.Contains("Dispatched", vm.StatusMessage);
+
+        // Test metadata properties
+        Assert.NotEmpty(clip.Sha256Checksum);
+        Assert.True(clip.ByteCount > 0);
+        Assert.NotEmpty(clip.FormattedSize);
+    }
 }
