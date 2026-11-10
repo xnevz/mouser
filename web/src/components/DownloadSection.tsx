@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Download,
   Terminal,
@@ -74,9 +75,9 @@ export const DownloadSection = () => {
           </p>
         </div>
 
-        {/* Platform Selector Tabs */}
-        <div className="flex justify-center mb-10">
-          <div className="inline-flex flex-wrap items-center justify-center gap-2 p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl backdrop-blur-md">
+        {/* Platform Selector Tabs - Animated Bubbly Moving Pill with Full Corner Radius */}
+        <div className="flex justify-center mb-12">
+          <div className="relative inline-flex flex-wrap items-center justify-center p-2 rounded-full bg-slate-900/90 border border-slate-800 shadow-2xl backdrop-blur-xl">
             {platformKeys.map((pId) => {
               const platform = PLATFORM_RELEASES[pId];
               const isSelected = selectedPlatform === pId;
@@ -86,25 +87,49 @@ export const DownloadSection = () => {
                 <button
                   key={pId}
                   onClick={() => setSelectedPlatform(pId)}
-                  className={`flex items-center gap-2.5 px-4 sm:px-6 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 ${
-                    isSelected
-                      ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/20 font-semibold'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  className={`relative z-10 flex items-center gap-2.5 px-5 sm:px-7 py-3 rounded-full font-semibold text-sm transition-colors duration-200 focus:outline-none select-none ${
+                    isSelected ? 'text-white' : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{platform.name}</span>
+                  {/* Bubbly Sliding Animated Pill */}
+                  {isSelected && (
+                    <motion.div
+                      layoutId="bubbly-active-platform-pill"
+                      transition={{
+                        type: 'spring',
+                        stiffness: 420,
+                        damping: 24,
+                        mass: 0.8,
+                      }}
+                      className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 shadow-xl shadow-cyan-500/30"
+                    >
+                      <div className="absolute inset-0 rounded-full bg-white/10 backdrop-blur-xs" />
+                    </motion.div>
+                  )}
+
+                  <span className="relative z-20 flex items-center gap-2">
+                    <Icon className={`w-4 h-4 transition-transform duration-200 ${isSelected ? 'scale-110' : ''}`} />
+                    <span>{platform.name}</span>
+                  </span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Selected Platform Detailed Card */}
-        <div className="rounded-3xl bg-slate-900/80 border border-slate-800/90 p-6 sm:p-10 shadow-2xl backdrop-blur-xl relative overflow-hidden">
-          {/* Subtle background glow */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 blur-[100px] pointer-events-none rounded-full" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500/10 blur-[100px] pointer-events-none rounded-full" />
+        {/* Selected Platform Detailed Card with Bouncy Switch Transitions */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={selectedPlatform}
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            className="rounded-3xl bg-slate-900/80 border border-slate-800/90 p-6 sm:p-10 shadow-2xl backdrop-blur-xl relative overflow-hidden"
+          >
+            {/* Subtle background glow */}
+            <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 blur-[100px] pointer-events-none rounded-full" />
+            <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500/10 blur-[100px] pointer-events-none rounded-full" />
 
           {/* Platform Header Info */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-slate-800">
@@ -253,7 +278,8 @@ export const DownloadSection = () => {
               ))}
             </ul>
           </div>
-        </div>
+        </motion.div>
+        </AnimatePresence>
 
         {/* SHA-256 Checksum Modal */}
         {activeChecksumModal && (

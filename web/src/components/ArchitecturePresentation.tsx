@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Cpu,
   Layers,
@@ -118,9 +119,9 @@ override fun onSensorChanged(event: SensorEvent?) {
           </p>
         </div>
 
-        {/* Tab Buttons */}
-        <div className="flex justify-center mb-10">
-          <div className="inline-flex flex-wrap items-center justify-center gap-2 p-1.5 rounded-2xl bg-slate-950/80 border border-slate-800">
+        {/* Tab Buttons with Bubbly Moving Indicator */}
+        <div className="flex justify-center mb-12">
+          <div className="relative inline-flex flex-wrap items-center justify-center p-2 rounded-full bg-slate-950/90 border border-slate-800 shadow-2xl backdrop-blur-xl">
             {(
               [
                 { id: 'mvvm', label: '1. UI & MVVM Layer', icon: Layers },
@@ -135,14 +136,26 @@ override fun onSensorChanged(event: SensorEvent?) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all ${
-                    isSelected
-                      ? 'bg-slate-800 text-cyan-400 font-bold border border-slate-700 shadow-lg'
-                      : 'text-slate-400 hover:text-slate-200'
+                  className={`relative z-10 flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-full font-semibold text-xs sm:text-sm transition-colors duration-200 focus:outline-none select-none ${
+                    isSelected ? 'text-white' : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
+                  {isSelected && (
+                    <motion.div
+                      layoutId="bubbly-active-architecture-tab"
+                      transition={{
+                        type: 'spring',
+                        stiffness: 420,
+                        damping: 24,
+                        mass: 0.8,
+                      }}
+                      className="absolute inset-0 rounded-full bg-slate-800 border border-slate-700/80 shadow-lg shadow-black/50"
+                    />
+                  )}
+                  <span className="relative z-20 flex items-center gap-2">
+                    <Icon className={`w-4 h-4 transition-transform duration-200 ${isSelected ? 'text-cyan-400 scale-110' : ''}`} />
+                    <span>{tab.label}</span>
+                  </span>
                 </button>
               );
             })}
@@ -150,45 +163,54 @@ override fun onSensorChanged(event: SensorEvent?) {
         </div>
 
         {/* Tab Content Presentation */}
-        <div className="rounded-3xl bg-slate-950 border border-slate-800 p-6 sm:p-10 shadow-2xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            {/* Left: Architecture Points */}
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono text-cyan-400 mb-4">
-                <span>{current.badge}</span>
-              </div>
-              <h3 className="text-2xl sm:text-3xl font-extrabold text-white">{current.title}</h3>
-              <p className="mt-2 text-slate-400 text-sm sm:text-base leading-relaxed">
-                {current.subtitle}
-              </p>
-
-              <div className="mt-6 space-y-3">
-                {current.points.map((pt, idx) => (
-                  <div key={idx} className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-                    <span className="text-sm text-slate-300 leading-normal">{pt}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right: Code Snippet Card */}
-            <div className="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-6 font-mono text-xs shadow-inner">
-              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 text-slate-400">
-                <div className="flex items-center gap-2">
-                  <Terminal className="w-4 h-4 text-cyan-400" />
-                  <span className="text-[11px]">Source Architecture Preview</span>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            className="rounded-3xl bg-slate-950 border border-slate-800 p-6 sm:p-10 shadow-2xl"
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              {/* Left: Architecture Points */}
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono text-cyan-400 mb-4">
+                  <span>{current.badge}</span>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">
-                  Read Only
-                </span>
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-white">{current.title}</h3>
+                <p className="mt-2 text-slate-400 text-sm sm:text-base leading-relaxed">
+                  {current.subtitle}
+                </p>
+
+                <div className="mt-6 space-y-3">
+                  {current.points.map((pt, idx) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm text-slate-300 leading-normal">{pt}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <pre className="overflow-x-auto text-slate-300 leading-relaxed font-mono text-xs sm:text-[13px]">
-                <code>{current.codeSnippet}</code>
-              </pre>
+
+              {/* Right: Code Snippet Card */}
+              <div className="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-6 font-mono text-xs shadow-inner">
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <Terminal className="w-4 h-4 text-cyan-400" />
+                    <span className="text-[11px]">Source Architecture Preview</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">
+                    Read Only
+                  </span>
+                </div>
+                <pre className="overflow-x-auto text-slate-300 leading-relaxed font-mono text-xs sm:text-[13px]">
+                  <code>{current.codeSnippet}</code>
+                </pre>
+              </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </section>
   );

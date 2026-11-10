@@ -189,20 +189,32 @@ export const Hero = () => {
                     Quick Terminal Install
                   </span>
                 </div>
-                <div className="flex items-center gap-1">
-                  {(['brew', 'winget', 'flatpak'] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setSelectedCliTab(tab)}
-                      className={`text-xs px-2 py-0.5 rounded transition-colors ${
-                        selectedCliTab === tab
-                          ? 'bg-slate-800 text-cyan-400 font-semibold border border-slate-700'
-                          : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-full border border-slate-800">
+                  {(['brew', 'winget', 'flatpak'] as const).map((tab) => {
+                    const isTabActive = selectedCliTab === tab;
+                    return (
+                      <button
+                        key={tab}
+                        onClick={() => setSelectedCliTab(tab)}
+                        className={`relative z-10 text-xs px-3 py-1 rounded-full font-semibold transition-colors focus:outline-none select-none ${
+                          isTabActive ? 'text-cyan-300' : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {isTabActive && (
+                          <motion.div
+                            layoutId="bubbly-active-cli-tab"
+                            transition={{
+                              type: 'spring',
+                              stiffness: 420,
+                              damping: 24,
+                            }}
+                            className="absolute inset-0 rounded-full bg-slate-800 border border-slate-700 shadow"
+                          />
+                        )}
+                        <span className="relative z-20">{tab}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
