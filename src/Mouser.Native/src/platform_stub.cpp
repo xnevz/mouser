@@ -42,6 +42,28 @@ void mouser_inject_key(uint32_t keyCode, uint8_t modifiers, bool isDown) {
     (void)keyCode; (void)modifiers; (void)isDown;
 }
 
+static bool g_stubInputRedirected = false;
+static int32_t g_stubCursorX = 0;
+static int32_t g_stubCursorY = 0;
+
+void mouser_set_input_redirection(bool enabled) {
+    g_stubInputRedirected = enabled;
+}
+
+bool mouser_is_input_redirected(void) {
+    return g_stubInputRedirected;
+}
+
+void mouser_get_cursor_position(int32_t *outX, int32_t *outY) {
+    if (outX) *outX = g_stubCursorX;
+    if (outY) *outY = g_stubCursorY;
+}
+
+void mouser_set_cursor_position(int32_t x, int32_t y) {
+    g_stubCursorX = x;
+    g_stubCursorY = y;
+}
+
 } // extern "C"
 
 #endif // !__APPLE__

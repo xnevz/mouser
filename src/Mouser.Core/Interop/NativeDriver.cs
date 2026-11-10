@@ -48,4 +48,17 @@ public static partial class NativeDriver
 
     [LibraryImport(LibraryName, EntryPoint = "mouser_inject_key")]
     public static partial void InjectKey(uint keyCode, byte modifiers, [MarshalAs(UnmanagedType.Bool)] bool isDown);
+
+    [LibraryImport(LibraryName, EntryPoint = "mouser_set_input_redirection")]
+    public static partial void SetInputRedirection([MarshalAs(UnmanagedType.Bool)] bool enabled);
+
+    [LibraryImport(LibraryName, EntryPoint = "mouser_is_input_redirected")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool IsInputRedirected();
+
+    [LibraryImport(LibraryName, EntryPoint = "mouser_get_cursor_position")]
+    public static partial void GetCursorPosition(out int x, out int y);
+
+    [LibraryImport(LibraryName, EntryPoint = "mouser_set_cursor_position")]
+    public static partial void SetCursorPosition(int x, int y);
 }

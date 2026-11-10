@@ -26,6 +26,12 @@ void mouser_inject_mouse_delta(int16_t dx, int16_t dy);
 void mouser_inject_mouse_button(uint8_t button, bool isDown);
 void mouser_inject_key(uint32_t keyCode, uint8_t modifiers, bool isDown);
 
+// Input Redirection & Virtual KVM APIs
+void mouser_set_input_redirection(bool enabled);
+bool mouser_is_input_redirected(void);
+void mouser_get_cursor_position(int32_t *outX, int32_t *outY);
+void mouser_set_cursor_position(int32_t x, int32_t y);
+
 // Diagnostic & Version APIs
 uint32_t mouser_get_native_version(void);
 int32_t mouser_native_ping(int32_t value);

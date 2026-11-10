@@ -9,8 +9,41 @@ static CFRunLoopSourceRef g_runLoopSource = NULL;
 static NativeMouseMoveCallback g_mouseMoveCallback = NULL;
 static NativeMouseButtonCallback g_mouseButtonCallback = NULL;
 static NativeKeyCallback g_keyCallback = NULL;
+static bool g_isInputRedirected = false;
 
 static CGEventRef EventTapCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon) {
+    if (g_isInputRedirected) {
+        // When input is redirected to a remote machine, swallow/suppress local events
+        // and forward them to the callback handlers for network transmission.
+        if (type == kCGEventMouseMoved && g_mouseMoveCallback) {
+            int64_t dx = CGEventGetIntegerValueField(event, kCGMouseEventDeltaX);
+            int64_t dy = CGEventGetIntegerValueField(event, kCGMouseEventDeltaY);
+            g_mouseMoveCallback((int16_t)dx, (int16_t)dy);
+            return NULL; // Suppress local cursor movement
+        } else if ((type == kCGEventLeftMouseDown || type == kCGEventLeftMouseUp) && g_mouseButtonCallback) {
+            bool isDown = (type == kCGEventLeftMouseDown);
+            g_mouseButtonCallback(1, isDown);
+            return NULL; // Suppress local click
+        } else if ((type == kCGEventRightMouseDown || type == kCGEventRightMouseUp) && g_mouseButtonCallback) {
+            bool isDown = (type == kCGEventRightMouseDown);
+            g_mouseButtonCallback(2, isDown);
+            return NULL; // Suppress local right click
+        } else if ((type == kCGEventKeyDown || type == kCGEventKeyUp) && g_keyCallback) {
+            int64_t keycode = CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
+            CGEventFlags flags = CGEventGetFlags(event);
+            uint8_t modifiers = 0;
+            if (flags & kCGEventFlagMaskCommand) modifiers |= 0x01;
+            if (flags & kCGEventFlagMaskShift) modifiers |= 0x02;
+            if (flags & kCGEventFlagMaskControl) modifiers |= 0x04;
+            if (flags & kCGEventFlagMaskAlternate) modifiers |= 0x08;
+            bool isDown = (type == kCGEventKeyDown);
+            g_keyCallback((uint32_t)keycode, modifiers, isDown);
+            return NULL; // Suppress local keypress
+        }
+        return NULL;
+    }
+
+    // Normal non-redirected local execution: monitor events without suppression
     if (type == kCGEventMouseMoved && g_mouseMoveCallback) {
         int64_t dx = CGEventGetIntegerValueField(event, kCGMouseEventDeltaX);
         int64_t dy = CGEventGetIntegerValueField(event, kCGMouseEventDeltaY);
@@ -76,7 +109,7 @@ int32_t mouser_init_input_capture(NativeMouseMoveCallback onMove,
     g_eventTap = CGEventTapCreate(
         kCGHIDEventTap,
         kCGHeadInsertEventTap,
-        kCGEventTapOptionListenOnly,
+        kCGEventTapOptionDefault,
         mask,
         EventTapCallback,
         NULL
@@ -173,6 +206,33 @@ void mouser_inject_key(uint32_t keyCode, uint8_t modifiers, bool isDown) {
         CGEventPost(kCGHIDEventTap, keyEv);
         CFRelease(keyEv);
     }
+}
+
+void mouser_set_input_redirection(bool enabled) {
+    g_isInputRedirected = enabled;
+}
+
+bool mouser_is_input_redirected(void) {
+    return g_isInputRedirected;
+}
+
+void mouser_get_cursor_position(int32_t *outX, int32_t *outY) {
+    if (!outX || !outY) return;
+    CGEventRef ev = CGEventCreate(NULL);
+    if (ev) {
+        CGPoint pt = CGEventGetLocation(ev);
+        *outX = (int32_t)pt.x;
+        *outY = (int32_t)pt.y;
+        CFRelease(ev);
+    } else {
+        *outX = 0;
+        *outY = 0;
+    }
+}
+
+void mouser_set_cursor_position(int32_t x, int32_t y) {
+    CGPoint pt = CGPointMake((CGFloat)x, (CGFloat)y);
+    CGWarpMouseCursorPosition(pt);
 }
 
 } // extern "C"
