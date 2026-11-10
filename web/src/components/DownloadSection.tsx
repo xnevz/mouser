@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { PLATFORM_RELEASES, RELEASE_DATE } from '@/data/releases';
 import { PlatformId, DownloadArtifact } from '@/types/download';
+import { StretchyPillTabs, TabOption } from '@/components/StretchyPillTabs';
 
 export const DownloadSection = () => {
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformId>('macos');
@@ -26,7 +27,6 @@ export const DownloadSection = () => {
   const [copiedPkgCmd, setCopiedPkgCmd] = useState<string | null>(null);
   const [activeChecksumModal, setActiveChecksumModal] = useState<DownloadArtifact | null>(null);
 
-  const platformKeys: PlatformId[] = ['macos', 'windows', 'linux', 'android', 'ios'];
   const currentData = PLATFORM_RELEASES[selectedPlatform];
 
   const handleCopySha = (sha: string) => {
@@ -41,29 +41,20 @@ export const DownloadSection = () => {
     setTimeout(() => setCopiedPkgCmd(null), 2500);
   };
 
-  const getPlatformIcon = (id: PlatformId) => {
-    switch (id) {
-      case 'macos':
-        return Laptop;
-      case 'windows':
-        return Monitor;
-      case 'linux':
-        return TerminalIcon;
-      case 'android':
-        return Smartphone;
-      case 'ios':
-        return Tablet;
-      default:
-        return Laptop;
-    }
-  };
+  const platformTabs: TabOption<PlatformId>[] = [
+    { id: 'macos', label: 'macOS', icon: Laptop, badge: 'Apple Silicon / Intel' },
+    { id: 'windows', label: 'Windows', icon: Monitor, badge: 'MSI x64 / ARM64' },
+    { id: 'linux', label: 'Linux', icon: TerminalIcon, badge: 'AppImage / deb' },
+    { id: 'android', label: 'Android', icon: Smartphone, badge: 'Companion APK' },
+    { id: 'ios', label: 'iOS / iPadOS', icon: Tablet, badge: 'TestFlight' },
+  ];
 
   return (
-    <section id="downloads" className="py-24 relative bg-radial-gradient">
+    <section id="downloads" className="py-24 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
             <Download className="w-3.5 h-3.5" />
             Universal Multi-Platform Binaries
           </div>
@@ -75,46 +66,14 @@ export const DownloadSection = () => {
           </p>
         </div>
 
-        {/* Platform Selector Tabs - Animated Bubbly Moving Pill with Full Corner Radius */}
+        {/* Elastic Stretchy Tabs with Full Corner Radius */}
         <div className="flex justify-center mb-12">
-          <div className="relative inline-flex flex-wrap items-center justify-center p-2 rounded-full bg-slate-900/90 border border-slate-800 shadow-2xl backdrop-blur-xl">
-            {platformKeys.map((pId) => {
-              const platform = PLATFORM_RELEASES[pId];
-              const isSelected = selectedPlatform === pId;
-              const Icon = getPlatformIcon(pId);
-
-              return (
-                <button
-                  key={pId}
-                  onClick={() => setSelectedPlatform(pId)}
-                  className={`relative z-10 flex items-center gap-2.5 px-5 sm:px-7 py-3 rounded-full font-semibold text-sm transition-colors duration-200 focus:outline-none select-none ${
-                    isSelected ? 'text-white' : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {/* Bubbly Sliding Animated Pill */}
-                  {isSelected && (
-                    <motion.div
-                      layoutId="bubbly-active-platform-pill"
-                      transition={{
-                        type: 'spring',
-                        stiffness: 420,
-                        damping: 24,
-                        mass: 0.8,
-                      }}
-                      className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 shadow-xl shadow-cyan-500/30"
-                    >
-                      <div className="absolute inset-0 rounded-full bg-white/10 backdrop-blur-xs" />
-                    </motion.div>
-                  )}
-
-                  <span className="relative z-20 flex items-center gap-2">
-                    <Icon className={`w-4 h-4 transition-transform duration-200 ${isSelected ? 'scale-110' : ''}`} />
-                    <span>{platform.name}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <StretchyPillTabs
+            tabs={platformTabs}
+            activeId={selectedPlatform}
+            onChange={(id) => setSelectedPlatform(id)}
+            pillColor="from-cyan-500 via-indigo-500 to-fuchsia-600"
+          />
         </div>
 
         {/* Selected Platform Detailed Card with Bouncy Switch Transitions */}
@@ -125,7 +84,7 @@ export const DownloadSection = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -16, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-            className="rounded-3xl bg-slate-900/80 border border-slate-800/90 p-6 sm:p-10 shadow-2xl backdrop-blur-xl relative overflow-hidden"
+            className="rounded-3xl bg-slate-900/90 border border-slate-800 p-6 sm:p-10 shadow-2xl backdrop-blur-2xl relative overflow-hidden"
           >
             {/* Subtle background glow */}
             <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 blur-[100px] pointer-events-none rounded-full" />

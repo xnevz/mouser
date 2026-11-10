@@ -11,6 +11,7 @@ import {
   Code2,
   Terminal,
 } from 'lucide-react';
+import { StretchyPillTabs } from '@/components/StretchyPillTabs';
 
 export const ArchitecturePresentation = () => {
   const [activeTab, setActiveTab] = useState<'mvvm' | 'native' | 'net' | 'mobile'>('mvvm');
@@ -119,47 +120,19 @@ override fun onSensorChanged(event: SensorEvent?) {
           </p>
         </div>
 
-        {/* Tab Buttons with Bubbly Moving Indicator */}
+        {/* Stretchy Elastic Tab Buttons */}
         <div className="flex justify-center mb-12">
-          <div className="relative inline-flex flex-wrap items-center justify-center p-2 rounded-full bg-slate-950/90 border border-slate-800 shadow-2xl backdrop-blur-xl">
-            {(
-              [
-                { id: 'mvvm', label: '1. UI & MVVM Layer', icon: Layers },
-                { id: 'native', label: '2. Native C++ Drivers', icon: Cpu },
-                { id: 'net', label: '3. Zero-Alloc UDP', icon: Network },
-                { id: 'mobile', label: '4. Android Mobile', icon: Smartphone },
-              ] as const
-            ).map((tab) => {
-              const Icon = tab.icon;
-              const isSelected = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative z-10 flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-full font-semibold text-xs sm:text-sm transition-colors duration-200 focus:outline-none select-none ${
-                    isSelected ? 'text-white' : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {isSelected && (
-                    <motion.div
-                      layoutId="bubbly-active-architecture-tab"
-                      transition={{
-                        type: 'spring',
-                        stiffness: 420,
-                        damping: 24,
-                        mass: 0.8,
-                      }}
-                      className="absolute inset-0 rounded-full bg-slate-800 border border-slate-700/80 shadow-lg shadow-black/50"
-                    />
-                  )}
-                  <span className="relative z-20 flex items-center gap-2">
-                    <Icon className={`w-4 h-4 transition-transform duration-200 ${isSelected ? 'text-cyan-400 scale-110' : ''}`} />
-                    <span>{tab.label}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <StretchyPillTabs
+            tabs={[
+              { id: 'mvvm', label: '1. UI & MVVM Layer', icon: Layers },
+              { id: 'native', label: '2. Native C++ Drivers', icon: Cpu },
+              { id: 'net', label: '3. Zero-Alloc UDP', icon: Network },
+              { id: 'mobile', label: '4. Android Mobile', icon: Smartphone },
+            ]}
+            activeId={activeTab}
+            onChange={(id) => setActiveTab(id as 'mvvm' | 'native' | 'net' | 'mobile')}
+            pillColor="from-indigo-600 via-purple-600 to-cyan-500"
+          />
         </div>
 
         {/* Tab Content Presentation */}

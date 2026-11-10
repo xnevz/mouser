@@ -6,22 +6,22 @@ import { motion, useSpring, useMotionValue } from 'framer-motion';
 export const InteractiveMouseFollower = () => {
   const [isVisible, setIsVisible] = useState(false);
 
-  // High precision mouse coordinates
-  const mouseX = useMotionValue(-100);
-  const mouseY = useMotionValue(-100);
+  // Exact client cursor coordinates
+  const mouseX = useMotionValue(-200);
+  const mouseY = useMotionValue(-200);
 
-  // Smooth bouncy spring physics
-  const springConfig = { damping: 25, stiffness: 220, mass: 0.5 };
-  const smoothX = useSpring(mouseX, springConfig);
-  const smoothY = useSpring(mouseY, springConfig);
+  // Snappy responsive spring for center focal ring
+  const centerSpring = { damping: 28, stiffness: 450, mass: 0.1 };
+  const cursorX = useSpring(mouseX, centerSpring);
+  const cursorY = useSpring(mouseY, centerSpring);
 
-  // Secondary trailer orb with more inertia
-  const trailerConfig = { damping: 35, stiffness: 120, mass: 1.2 };
-  const trailerX = useSpring(mouseX, trailerConfig);
-  const trailerY = useSpring(mouseY, trailerConfig);
+  // Fluid ambient bloom trailing with gentle inertia
+  const bloomSpring = { damping: 32, stiffness: 140, mass: 0.6 };
+  const ambientX = useSpring(mouseX, bloomSpring);
+  const ambientY = useSpring(mouseY, bloomSpring);
 
   useEffect(() => {
-    // Only track if on fine pointer device (desktop mouse)
+    // Only activate for real mouse / fine pointer devices
     const isPointerFine = window.matchMedia('(pointer: fine)').matches;
     if (!isPointerFine) return;
 
@@ -35,7 +35,7 @@ export const InteractiveMouseFollower = () => {
       setIsVisible(false);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
     document.addEventListener('mouseleave', handleMouseLeave);
 
     return () => {
@@ -47,28 +47,26 @@ export const InteractiveMouseFollower = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden transition-opacity duration-500">
-      {/* Outer ambient gradient bloom */}
+    <div className="pointer-events-none fixed inset-0 z-30 overflow-hidden">
+      {/* Outer ambient glow mesh orb - positioned absolutely at top-0 left-0 with centered translation */}
       <motion.div
         style={{
-          x: trailerX,
-          y: trailerY,
-          translateX: '-50%',
-          translateY: '-50%',
+          x: ambientX,
+          y: ambientY,
         }}
-        className="w-[360px] h-[360px] rounded-full bg-gradient-to-tr from-cyan-500/12 via-indigo-500/10 to-fuchsia-500/8 blur-[80px]"
+        className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] rounded-full bg-gradient-to-tr from-cyan-500/15 via-indigo-500/12 to-fuchsia-500/10 blur-[90px]"
       />
 
-      {/* Inner sharp focal aura */}
+      {/* High-precision interactive cursor halo - perfectly centered right under the mouse tip */}
       <motion.div
         style={{
-          x: smoothX,
-          y: smoothY,
-          translateX: '-50%',
-          translateY: '-50%',
+          x: cursorX,
+          y: cursorY,
         }}
-        className="w-10 h-10 rounded-full border border-cyan-400/30 bg-cyan-400/10 backdrop-blur-[2px] shadow-lg shadow-cyan-500/20"
-      />
+        className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full border border-cyan-400/40 bg-cyan-400/5 shadow-[0_0_20px_rgba(6,182,212,0.35)] backdrop-blur-[1px] flex items-center justify-center"
+      >
+        <div className="w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_#22d3ee]" />
+      </motion.div>
     </div>
   );
 };
