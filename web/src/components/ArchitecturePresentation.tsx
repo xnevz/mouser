@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   Cpu,
   Layers,
@@ -10,8 +9,6 @@ import {
   CheckCircle2,
   Code2,
   Terminal,
-  ShieldAlert,
-  ArrowRight
 } from 'lucide-react';
 
 export const ArchitecturePresentation = () => {

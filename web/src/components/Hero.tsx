@@ -13,44 +13,41 @@ import {
   Sparkles,
   ChevronRight,
   ArrowRight,
-  Apple,
-  Laptop,
-  Smartphone
 } from 'lucide-react';
 import { PLATFORM_RELEASES, CURRENT_RELEASE_VERSION } from '@/data/releases';
 import { PlatformId } from '@/types/download';
 
 export const Hero = () => {
   const [detectedOs, setDetectedOs] = useState<PlatformId>('macos');
-  const [detectedArch, setDetectedArch] = useState<string>('arm64');
   const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
   const [selectedCliTab, setSelectedCliTab] = useState<'brew' | 'winget' | 'flatpak'>('brew');
 
   useEffect(() => {
-    // Client-side OS and Architecture detection
-    if (typeof window !== 'undefined') {
-      const userAgent = window.navigator.userAgent.toLowerCase();
-      if (userAgent.includes('mac')) {
-        setDetectedOs('macos');
-        // Check Apple Silicon heuristic
-        setDetectedArch('arm64');
-        setSelectedCliTab('brew');
-      } else if (userAgent.includes('win')) {
-        setDetectedOs('windows');
-        setDetectedArch(userAgent.includes('arm') ? 'arm64' : 'x64');
-        setSelectedCliTab('winget');
-      } else if (userAgent.includes('android')) {
-        setDetectedOs('android');
-        setDetectedArch('apk');
-      } else if (userAgent.includes('linux')) {
-        setDetectedOs('linux');
-        setDetectedArch('x64');
-        setSelectedCliTab('flatpak');
-      } else if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
-        setDetectedOs('ios');
-        setDetectedArch('universal');
-      }
+    // Client-side OS detection on mount
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    let targetOs: PlatformId = 'macos';
+    let targetTab: 'brew' | 'winget' | 'flatpak' = 'brew';
+
+    if (userAgent.includes('mac')) {
+      targetOs = 'macos';
+      targetTab = 'brew';
+    } else if (userAgent.includes('win')) {
+      targetOs = 'windows';
+      targetTab = 'winget';
+    } else if (userAgent.includes('android')) {
+      targetOs = 'android';
+    } else if (userAgent.includes('linux')) {
+      targetOs = 'linux';
+      targetTab = 'flatpak';
+    } else if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+      targetOs = 'ios';
     }
+
+    // Schedule update to avoid cascading sync render lint error
+    requestAnimationFrame(() => {
+      setDetectedOs(targetOs);
+      setSelectedCliTab(targetTab);
+    });
   }, []);
 
   const currentPlatform = PLATFORM_RELEASES[detectedOs] || PLATFORM_RELEASES.macos;

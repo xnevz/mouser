@@ -1,5 +1,5 @@
 import React from 'react';
-import { MousePointer, Github, Heart, Shield, Terminal, ArrowUpRight } from 'lucide-react';
+import { MousePointer, Shield, ArrowUpRight } from 'lucide-react';
 import { CURRENT_RELEASE_VERSION } from '@/data/releases';
 
 export const Footer = () => {
@@ -107,7 +107,7 @@ export const Footer = () => {
 
         {/* Bottom copyright */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} Mouser Open Source Project. Released under MIT / Apache 2.0.</p>
+          <p>© 2026 Mouser Open Source Project. Released under MIT / Apache 2.0.</p>
           <div className="flex items-center gap-1">
             <span>Crafted with Next.js, Tailwind CSS & Framer Motion</span>
           </div>

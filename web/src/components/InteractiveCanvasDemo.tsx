@@ -1,19 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MousePointer2,
   Laptop,
   Monitor,
   Smartphone,
-  Cpu,
-  Wifi,
   Shield,
   Activity,
   Play,
   Pause,
-  RefreshCw,
   Copy,
   CheckCheck
 } from 'lucide-react';
@@ -31,10 +28,9 @@ interface ScreenNode {
 
 export const InteractiveCanvasDemo = () => {
   const [activeScreenIndex, setActiveScreenIndex] = useState(0);
-  const [cursorPos, setCursorPos] = useState({ x: 120, y: 140 });
   const [isPlaying, setIsPlaying] = useState(true);
   const [packetsCount, setPacketsCount] = useState(14820);
-  const [copiedItem, setCopiedItem] = useState<string>('git clone https://github.com/mouser-org/mouser');
+  const copiedItem = 'git clone https://github.com/mouser-org/mouser';
   const [showClipboardToast, setShowClipboardToast] = useState(false);
 
   const screens: ScreenNode[] = [

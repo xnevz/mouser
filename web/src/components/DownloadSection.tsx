@@ -1,14 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   Download,
   Terminal,
   ShieldCheck,
   Check,
   Copy,
-  ExternalLink,
   Laptop,
   Monitor,
   Terminal as TerminalIcon,
@@ -16,11 +14,9 @@ import {
   Tablet,
   FileCheck,
   Info,
-  ChevronDown,
-  Sparkles,
   Key
 } from 'lucide-react';
-import { PLATFORM_RELEASES, CURRENT_RELEASE_VERSION, RELEASE_DATE } from '@/data/releases';
+import { PLATFORM_RELEASES, RELEASE_DATE } from '@/data/releases';
 import { PlatformId, DownloadArtifact } from '@/types/download';
 
 export const DownloadSection = () => {

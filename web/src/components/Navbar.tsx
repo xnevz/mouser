@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MousePointer, Github, Download, Menu, X, Sparkles, Terminal } from 'lucide-react';
+import { MousePointer, GitBranch, Download, Menu, X, Sparkles } from 'lucide-react';
 
 export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -90,7 +90,7 @@ export const Navbar = () => {
               rel="noreferrer"
               className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-300 bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 transition-all hover:text-white"
             >
-              <Github className="w-4 h-4" />
+              <GitBranch className="w-4 h-4 text-cyan-400" />
               <span>GitHub</span>
               <span className="text-xs bg-slate-800 px-1.5 py-0.5 rounded text-slate-400 font-mono">
                 ★ 2.4k

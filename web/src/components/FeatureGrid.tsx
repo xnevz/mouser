@@ -6,15 +6,10 @@ import {
   MousePointer2,
   ClipboardCopy,
   Smartphone,
-  Shield,
   Zap,
   FolderSync,
-  Layers,
-  Sliders,
   Sparkles,
   Lock,
-  Globe2,
-  Cpu
 } from 'lucide-react';
 
 export const FeatureGrid = () => {
