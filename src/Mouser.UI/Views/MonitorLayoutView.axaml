@@ -71,7 +71,14 @@
                     </StackPanel>
 
                     <!-- Interactive Drag-and-Drop Canvas -->
-                    <ItemsControl ItemsSource="{Binding Screens}">
+                    <ItemsControl x:Name="ScreensItemsControl" ItemsSource="{Binding Screens}">
+                        <ItemsControl.Styles>
+                            <Style Selector="ItemsControl ContentPresenter" x:DataType="vm:ScreenNodeViewModel">
+                                <Setter Property="Canvas.Left" Value="{Binding PositionX}" />
+                                <Setter Property="Canvas.Top" Value="{Binding PositionY}" />
+                            </Style>
+                        </ItemsControl.Styles>
+
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <Canvas x:Name="ScreenCanvas" Width="1000" Height="600" Background="Transparent" />

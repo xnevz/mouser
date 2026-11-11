@@ -144,47 +144,74 @@ public partial class MonitorLayoutViewModel : ViewModelBase
 
         if (enableSnapping)
         {
+            double bestXDiff = snapDistance;
+            double bestYDiff = snapDistance;
+            double snappedX = targetX;
+            double snappedY = targetY;
+
             foreach (var other in Screens)
             {
                 if (other == screen) continue;
 
                 // Horizontal docking: dock to right edge of other
-                if (Math.Abs(targetX - (other.PositionX + other.DisplayWidth)) < snapDistance)
+                double diffRight = Math.Abs(targetX - (other.PositionX + other.DisplayWidth));
+                if (diffRight < bestXDiff)
                 {
-                    targetX = other.PositionX + other.DisplayWidth;
+                    bestXDiff = diffRight;
+                    snappedX = other.PositionX + other.DisplayWidth;
                 }
+
                 // Horizontal docking: dock to left edge of other
-                else if (Math.Abs((targetX + screen.DisplayWidth) - other.PositionX) < snapDistance)
+                double diffLeft = Math.Abs((targetX + screen.DisplayWidth) - other.PositionX);
+                if (diffLeft < bestXDiff)
                 {
-                    targetX = other.PositionX - screen.DisplayWidth;
+                    bestXDiff = diffLeft;
+                    snappedX = other.PositionX - screen.DisplayWidth;
                 }
+
                 // Horizontal alignment: align left edges
-                else if (Math.Abs(targetX - other.PositionX) < snapDistance)
+                double diffAlignX = Math.Abs(targetX - other.PositionX);
+                if (diffAlignX < bestXDiff)
                 {
-                    targetX = other.PositionX;
+                    bestXDiff = diffAlignX;
+                    snappedX = other.PositionX;
                 }
 
                 // Vertical alignment: align top edges
-                if (Math.Abs(targetY - other.PositionY) < snapDistance)
+                double diffTop = Math.Abs(targetY - other.PositionY);
+                if (diffTop < bestYDiff)
                 {
-                    targetY = other.PositionY;
+                    bestYDiff = diffTop;
+                    snappedY = other.PositionY;
                 }
+
                 // Vertical alignment: align bottom edges
-                else if (Math.Abs((targetY + screen.DisplayHeight) - (other.PositionY + other.DisplayHeight)) < snapDistance)
+                double diffBottom = Math.Abs((targetY + screen.DisplayHeight) - (other.PositionY + other.DisplayHeight));
+                if (diffBottom < bestYDiff)
                 {
-                    targetY = other.PositionY + other.DisplayHeight - screen.DisplayHeight;
+                    bestYDiff = diffBottom;
+                    snappedY = other.PositionY + other.DisplayHeight - screen.DisplayHeight;
                 }
+
                 // Vertical docking: dock to bottom edge of other
-                else if (Math.Abs(targetY - (other.PositionY + other.DisplayHeight)) < snapDistance)
+                double diffDockBottom = Math.Abs(targetY - (other.PositionY + other.DisplayHeight));
+                if (diffDockBottom < bestYDiff)
                 {
-                    targetY = other.PositionY + other.DisplayHeight;
+                    bestYDiff = diffDockBottom;
+                    snappedY = other.PositionY + other.DisplayHeight;
                 }
+
                 // Vertical docking: dock to top edge of other
-                else if (Math.Abs((targetY + screen.DisplayHeight) - other.PositionY) < snapDistance)
+                double diffDockTop = Math.Abs((targetY + screen.DisplayHeight) - other.PositionY);
+                if (diffDockTop < bestYDiff)
                 {
-                    targetY = other.PositionY - screen.DisplayHeight;
+                    bestYDiff = diffDockTop;
+                    snappedY = other.PositionY - screen.DisplayHeight;
                 }
             }
+
+            targetX = snappedX;
+            targetY = snappedY;
         }
 
         // Clamp inside canvas boundary

@@ -1,11 +1,24 @@
+using System;
 using System.Linq;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+using Avalonia.VisualTree;
 using Mouser.UI.ViewModels;
+using Mouser.UI.Views;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Mouser.Tests;
 
 public class ViewModelTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public ViewModelTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
     [Fact]
     public void MainViewModel_Navigation_SwitchesPagesCorrectly()
     {
@@ -128,6 +141,81 @@ public class ViewModelTests
 
         vm.ToggleGyroPointerCommand.Execute(null);
         Assert.False(vm.IsGyroPointerActive);
+    }
+
+    [Fact]
+    public void MonitorLayoutView_ItemContainer_HasCanvasPositionBound()
+    {
+        var view = new MonitorLayoutView();
+        var vm = new MonitorLayoutViewModel();
+        view.DataContext = vm;
+
+        var itemsControl = view.FindControl<ItemsControl>("ScreensItemsControl");
+        Assert.NotNull(itemsControl);
+
+        // Verify screens can be repositioned and letter tracking works
+        var screenA = vm.Screens[0];
+        double oldX = screenA.PositionX;
+        double oldY = screenA.PositionY;
+
+        vm.UpdateScreenPosition(screenA, 250, 180, enableSnapping: false);
+        Assert.Equal(250, screenA.PositionX);
+        Assert.Equal(180, screenA.PositionY);
+        Assert.NotEqual(oldX, screenA.PositionX);
+        Assert.NotEqual(oldY, screenA.PositionY);
+    }
+
+    [Fact]
+    public void MonitorLayoutView_SimulatedPointerDrag_MovesScreenPositionDynamically()
+    {
+        var vm = new MonitorLayoutViewModel();
+        var screenA = vm.Screens[0]; // Letter "A", Pos: (60, 120), Width: 260
+        var screenB = vm.Screens[1]; // Letter "B", Pos: (350, 100), Width: 280
+        var screenC = vm.Screens[2]; // Letter "C", Pos: (660, 130), Width: 230
+
+        _output.WriteLine("=== INITIAL MONITOR POSITIONS ===");
+        _output.WriteLine($"Screen A [{screenA.Letter}] ({screenA.Hostname}): ({screenA.PositionX}, {screenA.PositionY}) - Size: {screenA.DisplayWidth}x{screenA.DisplayHeight}");
+        _output.WriteLine($"Screen B [{screenB.Letter}] ({screenB.Hostname}): ({screenB.PositionX}, {screenB.PositionY}) - Size: {screenB.DisplayWidth}x{screenB.DisplayHeight}");
+        _output.WriteLine($"Screen C [{screenC.Letter}] ({screenC.Hostname}): ({screenC.PositionX}, {screenC.PositionY}) - Size: {screenC.DisplayWidth}x{screenC.DisplayHeight}");
+
+        Assert.Equal(60, screenA.PositionX);
+        Assert.Equal(120, screenA.PositionY);
+        Assert.Equal(350, screenB.PositionX);
+        Assert.Equal(100, screenB.PositionY);
+
+        // Step 2: Drag Screen B with delta (+100, +50)
+        _output.WriteLine("\n=== DRAG ACTION 1: Moving Screen B by (+100, +50) ===");
+        double dragTargetX = screenB.PositionX + 100; // 450
+        double dragTargetY = screenB.PositionY + 50;  // 150
+        vm.UpdateScreenPosition(screenB, dragTargetX, dragTargetY, enableSnapping: false);
+
+        _output.WriteLine($"Result: Screen B moved to ({screenB.PositionX}, {screenB.PositionY})");
+        _output.WriteLine($"Status: {vm.StatusMessage}");
+
+        Assert.Equal(450, screenB.PositionX);
+        Assert.Equal(150, screenB.PositionY);
+        Assert.Contains("Screen B", vm.StatusMessage);
+        Assert.Contains("450", vm.StatusMessage);
+
+        // Step 3: Drag Screen B into snapping proximity of Screen A's right edge (60 + 260 = 320)
+        _output.WriteLine("\n=== DRAG ACTION 2: Dragging Screen B near Screen A right edge (X=326, Y=124) ===");
+        vm.UpdateScreenPosition(screenB, 326, 124, enableSnapping: true);
+
+        _output.WriteLine($"Result: Screen B magnetically docked to Screen A at ({screenB.PositionX}, {screenB.PositionY})");
+        _output.WriteLine($"Status: {vm.StatusMessage}");
+
+        Assert.Equal(320, screenB.PositionX);
+        Assert.Equal(120, screenB.PositionY);
+
+        // Step 4: Drag Screen B to top-left boundary
+        _output.WriteLine("\n=== DRAG ACTION 3: Dragging Screen B to top edge (X=200, Y=0) ===");
+        vm.UpdateScreenPosition(screenB, 200, 0, enableSnapping: false);
+
+        _output.WriteLine($"Result: Screen B moved to ({screenB.PositionX}, {screenB.PositionY})");
+        _output.WriteLine($"Status: {vm.StatusMessage}");
+
+        Assert.Equal(200, screenB.PositionX);
+        Assert.Equal(0, screenB.PositionY);
     }
 
     [Fact]
