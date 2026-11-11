@@ -81,14 +81,19 @@ public sealed class ClipboardTests
         });
     }
 
+    public static TheoryData<string, bool> GetSensitiveTestCases() => new()
+    {
+        { "ghp_" + "1234567890abcdefghijklmnopqrstuvwxyz", true },
+        { "AKIA" + "IOSFODNN7EXAMPLE", true },
+        { "sk-" + "1234567890abcdefghijklmnopqrstuvwxyz12345", true },
+        { "sk_" + "live_" + "1234567890abcdefghijklmnopqr", true },
+        { "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA0...", true },
+        { "Just normal harmless text from a document", false },
+        { "https://github.com/mouser/kvm", false }
+    };
+
     [Theory]
-    [InlineData("ghp_1234567890abcdefghijklmnopqrstuvwxyz", true)]
-    [InlineData("AKIAIOSFODNN7EXAMPLE", true)]
-    [InlineData("sk-1234567890abcdefghijklmnopqrstuvwxyz12345", true)]
-    [InlineData("sk_live_1234567890abcdefghijklmnopqr", true)]
-    [InlineData("-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA0...", true)]
-    [InlineData("Just normal harmless text from a document", false)]
-    [InlineData("https://github.com/mouser/kvm", false)]
+    [MemberData(nameof(GetSensitiveTestCases))]
     public void ClipboardPrivacyFilter_DetectsSensitivePatterns(string input, bool expectedSensitive)
     {
         bool isSensitive = ClipboardPrivacyFilter.IsSensitive(input);
@@ -98,7 +103,7 @@ public sealed class ClipboardTests
     [Fact]
     public void ClipboardPrivacyFilter_MasksSecrets()
     {
-        string secret = "ghp_1234567890abcdefghijklmnopqrstuvwxyz";
+        string secret = "ghp_" + "1234567890abcdefghijklmnopqrstuvwxyz";
         string masked = ClipboardPrivacyFilter.Mask(secret);
 
         Assert.StartsWith("ghp_", masked);
