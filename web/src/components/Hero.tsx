@@ -142,18 +142,18 @@ export const Hero = () => {
             {/* Auto-detected Primary Download Button */}
             <a
               href={primaryDownload.downloadUrl}
-              className="w-full sm:w-auto relative group overflow-hidden rounded-xl p-[2px] shadow-2xl shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+              className="w-full sm:w-auto relative group overflow-hidden rounded-2xl p-[2px] shadow-xl shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-indigo-500 to-fuchsia-500 animate-gradient" />
-              <div className="relative px-7 py-4 bg-slate-900 dark:bg-slate-950 rounded-[10px] flex items-center justify-center gap-3 transition-colors group-hover:bg-slate-800 dark:group-hover:bg-slate-900/90">
-                <Download className="w-5 h-5 text-cyan-400 group-hover:animate-bounce" />
+              <div className="relative px-7 py-4 bg-gradient-to-r from-cyan-600 via-indigo-600 to-fuchsia-600 dark:bg-slate-950 rounded-[14px] flex items-center justify-center gap-3 transition-colors group-hover:bg-opacity-95 dark:group-hover:bg-slate-900/90">
+                <Download className="w-5 h-5 text-white dark:text-cyan-400 group-hover:animate-bounce" />
                 <div className="text-left">
-                  <div className="text-xs text-slate-300 dark:text-slate-400 uppercase tracking-wider font-semibold">
+                  <div className="text-xs text-cyan-100 dark:text-slate-400 uppercase tracking-wider font-semibold">
                     Download for {currentPlatform.name}
                   </div>
                   <div className="text-base font-bold text-white flex items-center gap-2">
                     <span>{primaryDownload.archLabel}</span>
-                    <span className="text-xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                    <span className="text-xs px-2 py-0.5 rounded bg-white/20 dark:bg-cyan-500/20 text-white dark:text-cyan-300 border border-white/30 dark:border-cyan-500/30">
                       {primaryDownload.size}
                     </span>
                   </div>
@@ -199,7 +199,7 @@ export const Hero = () => {
                   activeId={selectedCliTab}
                   onChange={(tab) => setSelectedCliTab(tab)}
                   className="p-1 bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                  pillColor="from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-700"
+                  pillColor="from-cyan-600 to-indigo-600 dark:from-slate-800 dark:to-slate-700"
                   layoutId="cli-terminal-active-pill"
                 />
               </div>

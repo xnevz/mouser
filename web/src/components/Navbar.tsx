@@ -103,10 +103,10 @@ export const Navbar = () => {
 
             <a
               href="#downloads"
-              className="relative inline-flex items-center justify-center p-0.5 overflow-hidden text-sm font-medium rounded-lg group bg-gradient-to-r from-cyan-500 to-indigo-600 group-hover:from-cyan-500 group-hover:to-indigo-600 hover:shadow-lg hover:shadow-cyan-500/25 transition-all"
+              className="relative inline-flex items-center justify-center p-0.5 overflow-hidden text-sm font-semibold rounded-xl group bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 shadow-md shadow-cyan-500/20 hover:shadow-cyan-500/35 transition-all transform hover:-translate-y-0.5"
             >
-              <span className="relative px-4 py-2 transition-all ease-in duration-75 bg-slate-900 dark:bg-slate-950 rounded-[6px] group-hover:bg-opacity-0 flex items-center gap-2 text-white font-semibold">
-                <Download className="w-4 h-4 text-cyan-400 group-hover:text-white" />
+              <span className="relative px-4 py-2 transition-all ease-in duration-75 bg-gradient-to-r from-cyan-600 to-indigo-600 dark:bg-slate-950 rounded-[10px] group-hover:bg-opacity-90 dark:group-hover:bg-slate-900 flex items-center gap-2 text-white font-semibold">
+                <Download className="w-4 h-4 text-white dark:text-cyan-400 group-hover:text-white" />
                 <span>Get Mouser</span>
               </span>
             </a>

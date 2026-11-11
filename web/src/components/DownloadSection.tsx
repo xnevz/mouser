@@ -120,7 +120,7 @@ export const DownloadSection = () => {
               >
                 <Download className="w-4 h-4" />
                 <span>Download Primary Installer</span>
-                <span className="text-xs bg-slate-950/40 px-2 py-0.5 rounded font-mono">
+                <span className="text-xs bg-white/20 text-white border border-white/25 px-2 py-0.5 rounded font-mono">
                   {currentData.primaryArtifact.size}
                 </span>
               </a>

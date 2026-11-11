@@ -274,20 +274,20 @@ export const InteractiveCanvasDemo = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="fixed bottom-8 right-8 z-50 p-4 rounded-xl bg-slate-900 border border-cyan-500/50 shadow-2xl shadow-cyan-500/20 max-w-sm"
+              className="fixed bottom-8 right-8 z-50 p-4 rounded-xl bg-white dark:bg-slate-900 border border-cyan-500/50 shadow-2xl shadow-cyan-500/20 max-w-sm"
             >
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-400">
+                <div className="p-2 rounded-lg bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400">
                   <CheckCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                     <span>Clipboard Synchronized Instantly</span>
                   </div>
-                  <p className="text-[11px] text-slate-300 mt-1 font-mono break-all bg-slate-950 p-1.5 rounded border border-slate-800">
+                  <p className="text-[11px] text-slate-800 dark:text-slate-300 mt-1 font-mono break-all bg-slate-100 dark:bg-slate-950 p-1.5 rounded border border-slate-200 dark:border-slate-800">
                     {copiedItem}
                   </p>
-                  <span className="text-[10px] text-cyan-400 mt-1 block">
+                  <span className="text-[10px] text-cyan-600 dark:text-cyan-400 mt-1 block font-medium">
                     Synced across macOS, Windows, Linux & Android in 1.4ms
                   </span>
                 </div>

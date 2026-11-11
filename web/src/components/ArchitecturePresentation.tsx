@@ -168,17 +168,19 @@ override fun onSensorChanged(event: SensorEvent?) {
               </div>
 
               {/* Right: Code Snippet Card */}
-              <div className="rounded-2xl bg-slate-900 dark:bg-slate-900/90 border border-slate-800 p-4 sm:p-6 font-mono text-xs shadow-inner">
-                <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 text-slate-400">
+              <div className="rounded-2xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-4 sm:p-6 font-mono text-xs shadow-sm dark:shadow-inner transition-colors">
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
                   <div className="flex items-center gap-2">
-                    <Terminal className="w-4 h-4 text-cyan-400" />
-                    <span className="text-[11px]">Source Architecture Preview</span>
+                    <Terminal className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                    <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                      Source Architecture Preview
+                    </span>
                   </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">
                     Read Only
                   </span>
                 </div>
-                <pre className="overflow-x-auto text-slate-300 leading-relaxed font-mono text-xs sm:text-[13px]">
+                <pre className="overflow-x-auto text-slate-800 dark:text-slate-200 leading-relaxed font-mono text-xs sm:text-[13px]">
                   <code>{current.codeSnippet}</code>
                 </pre>
               </div>
