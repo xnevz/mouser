@@ -27,13 +27,13 @@
         
         <!-- Base Window and Controls Styling -->
         <Style Selector="Window">
-            <Setter Property="Background" Value="#0c0d12" />
+            <Setter Property="Background" Value="{DynamicResource BgApp}" />
         </Style>
 
         <!-- Sidebar Navigation Buttons -->
         <Style Selector="Button.nav-button">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="#94a3b8" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="12,10" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -42,20 +42,20 @@
             <Setter Property="FontWeight" Value="Medium" />
         </Style>
         <Style Selector="Button.nav-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#1c1d28" />
-            <Setter Property="Foreground" Value="#ffffff" />
+            <Setter Property="Background" Value="{DynamicResource BgHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
         <Style Selector="Button.nav-button:pressed /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#252838" />
+            <Setter Property="Background" Value="{DynamicResource BgPressed}" />
         </Style>
         <Style Selector="Button.nav-button.active /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#1f2133" />
-            <Setter Property="Foreground" Value="#ffffff" />
-            <Setter Property="BorderBrush" Value="#4f46e5" />
+            <Setter Property="Background" Value="{DynamicResource BgActive}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
             <Setter Property="BorderThickness" Value="2,0,0,0" />
         </Style>
         <Style Selector="Border.nav-badge">
-            <Setter Property="Background" Value="#1c2030" />
+            <Setter Property="Background" Value="{DynamicResource BadgeBg}" />
             <Setter Property="CornerRadius" Value="10" />
             <Setter Property="Padding" Value="7,1" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -69,46 +69,46 @@
         <Style Selector="TextBlock.page-title">
             <Setter Property="FontSize" Value="20" />
             <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="Foreground" Value="#f4f4f5" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
         <Style Selector="TextBlock.page-subtitle">
             <Setter Property="FontSize" Value="13" />
-            <Setter Property="Foreground" Value="#94a3b8" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <Style Selector="TextBlock.section-title">
             <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#f4f4f5" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
         <Style Selector="TextBlock.label">
             <Setter Property="FontSize" Value="11" />
-            <Setter Property="Foreground" Value="#94a3b8" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
         </Style>
         <Style Selector="TextBlock.hint">
             <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="#94a3b8" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
 
         <!-- Inline banners -->
         <Style Selector="Border.banner-error">
-            <Setter Property="Background" Value="#2a1218" />
-            <Setter Property="BorderBrush" Value="#f43f5e" />
+            <Setter Property="Background" Value="{DynamicResource BannerErrorBg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="12,9" />
         </Style>
         <Style Selector="Border.banner-warning">
-            <Setter Property="Background" Value="#2a2112" />
-            <Setter Property="BorderBrush" Value="#f59e0b" />
+            <Setter Property="Background" Value="{DynamicResource BannerWarningBg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Warning}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="12,9" />
         </Style>
         <Style Selector="Border.banner-info">
-            <Setter Property="Background" Value="#141a2e" />
-            <Setter Property="BorderBrush" Value="#3b4a7a" />
+            <Setter Property="Background" Value="{DynamicResource BannerInfoBg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BannerInfoBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="12,9" />
@@ -116,50 +116,50 @@
 
         <!-- Primary Accent Buttons -->
         <Style Selector="Button.primary-btn">
-            <Setter Property="Background" Value="#4f46e5" />
-            <Setter Property="Foreground" Value="#ffffff" />
+            <Setter Property="Background" Value="{DynamicResource Accent}" />
+            <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="14,8" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="Button.primary-btn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#4338ca" />
+            <Setter Property="Background" Value="{DynamicResource AccentHover}" />
         </Style>
         <Style Selector="Button.primary-btn:pressed /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#3730a3" />
+            <Setter Property="Background" Value="{DynamicResource AccentPressed}" />
         </Style>
 
         <!-- Secondary Surface Buttons -->
         <Style Selector="Button.secondary-btn">
-            <Setter Property="Background" Value="#181922" />
-            <Setter Property="Foreground" Value="#f1f5f9" />
-            <Setter Property="BorderBrush" Value="#2e3248" />
+            <Setter Property="Background" Value="{DynamicResource BgRaised}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="12,7" />
             <Setter Property="FontWeight" Value="Medium" />
         </Style>
         <Style Selector="Button.secondary-btn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#232535" />
-            <Setter Property="BorderBrush" Value="#3f4562" />
-            <Setter Property="Foreground" Value="#ffffff" />
+            <Setter Property="Background" Value="{DynamicResource BgHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
         <Style Selector="Button.secondary-btn:pressed /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#14151e" />
+            <Setter Property="Background" Value="{DynamicResource BgPressed}" />
         </Style>
 
         <!-- Card Containers -->
         <Style Selector="Border.glass-card">
-            <Setter Property="Background" Value="#13141d" />
-            <Setter Property="BorderBrush" Value="#262938" />
+            <Setter Property="Background" Value="{DynamicResource BgSurface}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="12" />
         </Style>
 
         <!-- Status Pills -->
         <Style Selector="Border.status-pill">
-            <Setter Property="Background" Value="#11261d" />
-            <Setter Property="BorderBrush" Value="#10b981" />
+            <Setter Property="Background" Value="{DynamicResource PillBg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Success}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="16" />
             <Setter Property="Padding" Value="10,4" />
@@ -167,18 +167,18 @@
 
         <!-- Modern Input Controls -->
         <Style Selector="TextBox">
-            <Setter Property="Background" Value="#161722" />
-            <Setter Property="Foreground" Value="#f8fafc" />
-            <Setter Property="BorderBrush" Value="#272a38" />
+            <Setter Property="Background" Value="{DynamicResource BgInput}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
             <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="SelectionBrush" Value="#4f46e5" />
+            <Setter Property="SelectionBrush" Value="{DynamicResource Accent}" />
         </Style>
         <Style Selector="TextBox:focus">
-            <Setter Property="BorderBrush" Value="#6366f1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentSoft}" />
         </Style>
 
         <Style Selector="CheckBox">
-            <Setter Property="Foreground" Value="#cbd5e1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="FontSize" Value="12" />
         </Style>
     </Application.Styles>
