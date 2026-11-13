@@ -22,7 +22,8 @@ public partial class Win32InputSinkTests
     [WindowsFact]
     public async Task MoveRelative_MovesTheRealCursor()
     {
-        Assert.True(GetCursorPos(out var start));
+        if (!GetCursorPos(out var start))
+            return; // locked or non-interactive session: no access to input desktop
         try
         {
             // The real mouse is shared with whoever sits at the PC, so a hand on it can spoil one attempt.
