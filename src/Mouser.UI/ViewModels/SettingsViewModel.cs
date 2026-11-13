@@ -16,6 +16,8 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _clipboardSyncEnabled;
     [ObservableProperty] private int _clipboardRetentionDays;
     [ObservableProperty] private bool _startAtLogin;
+    [ObservableProperty] private bool _closeToTray;
+    [ObservableProperty] private bool _minimizeToTray;
     [ObservableProperty] private string _theme;
     [ObservableProperty] private string? _statusMessage;
 
@@ -34,6 +36,8 @@ public partial class SettingsViewModel : ViewModelBase
         _clipboardSyncEnabled = s.ClipboardSyncEnabled;
         _clipboardRetentionDays = s.ClipboardRetentionDays;
         _startAtLogin = s.StartAtLogin;
+        _closeToTray = s.CloseToTray;
+        _minimizeToTray = s.MinimizeToTray;
         _theme = s.Theme;
     }
 
@@ -46,6 +50,8 @@ public partial class SettingsViewModel : ViewModelBase
     partial void OnClipboardHistoryEnabledChanged(bool value) => Save(s => s.ClipboardHistoryEnabled = value);
     partial void OnSkipSensitiveClipsChanged(bool value) => Save(s => s.SkipSensitiveClips = value);
     partial void OnClipboardSyncEnabledChanged(bool value) => Save(s => s.ClipboardSyncEnabled = value);
+    partial void OnCloseToTrayChanged(bool value) => Save(s => s.CloseToTray = value);
+    partial void OnMinimizeToTrayChanged(bool value) => Save(s => s.MinimizeToTray = value);
 
     partial void OnClipboardRetentionDaysChanged(int value)
     {

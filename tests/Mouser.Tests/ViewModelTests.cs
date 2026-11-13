@@ -360,6 +360,40 @@ public class ViewModelTests
     }
 
     [Fact]
+    public async Task PauseClipboard_DoesNotCapture()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        var history = app.Main.ClipboardHistory;
+        await history.InitializeAsync();
+        app.Clipboard.Text = "hello";
+        history.IsPaused = true;
+        Assert.False(await history.PollClipboardAsync());
+        Assert.Empty(history.FilteredClips);
+
+        history.IsPaused = false;
+        Assert.True(await history.PollClipboardAsync());
+        Assert.Single(history.FilteredClips);
+        Assert.Equal("hello", history.FilteredClips[0].Content);
+    }
+
+    [Fact]
+    public async Task TraySettings_DefaultOnAndPersist()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        Assert.True(app.Settings.Current.CloseToTray);
+        Assert.True(app.Settings.Current.MinimizeToTray);
+
+        app.Main.Settings.CloseToTray = false;
+        app.Main.Settings.MinimizeToTray = false;
+
+        var reloaded = new SettingsStore(app.Settings.FilePath).Current;
+        Assert.False(reloaded.CloseToTray);
+        Assert.False(reloaded.MinimizeToTray);
+    }
+
+    [Fact]
     public void Views_LoadTheirXaml()
     {
         Assert.NotNull(new MonitorLayoutView());

@@ -21,6 +21,12 @@ public partial class App : Application
     private DispatcherTimer? _refreshTimer;
     private IDisposable? _hotkey;
     private QuickPasteWindow? _quickPaste;
+    private MainWindow? _window;
+    private bool _quitting;
+    private NativeMenuItem? _pauseSharingItem;
+    private NativeMenuItem? _pauseClipboardItem;
+    private MainViewModel? _mainViewModel;
+    private SettingsStore? _settings;
 
     public override void Initialize()
     {
@@ -48,6 +54,48 @@ public partial class App : Application
             var window = new MainWindow { DataContext = vm };
             if (dataDir != null) window.Title = $"Mouser ({Path.GetFileName(Path.GetFullPath(dataDir))})";
             desktop.MainWindow = window;
+
+            _settings = settings;
+            _mainViewModel = vm;
+            _window = window;
+
+            window.Closing += (_, e) =>
+            {
+                if (_quitting || e.CloseReason == WindowCloseReason.OSShutdown || !_settings.Current.CloseToTray) return;
+                e.Cancel = true;
+                window.Hide();
+            };
+
+            window.PropertyChanged += (_, e) =>
+            {
+                if (e.Property == Window.WindowStateProperty && window.WindowState == WindowState.Minimized
+                    && _settings.Current.MinimizeToTray && !_quitting)
+                    window.Hide();
+            };
+
+            var trayIcons = TrayIcon.GetIcons(this);
+            if (trayIcons != null && trayIcons.Count > 0 && trayIcons[0].Menu is { } menu)
+            {
+                foreach (var item in menu.Items.OfType<NativeMenuItem>())
+                {
+                    if (item.Header == "Pause sharing")
+                    {
+                        _pauseSharingItem = item;
+                        item.IsChecked = _settings.Current.PauseSharing;
+                        if (_settings.Current.PauseSharing)
+                        {
+                            _host.SetKvmEnabled(false);
+                            vm.MonitorLayout.IsKvmEnabled = false;
+                        }
+                    }
+                    else if (item.Header == "Pause clipboard")
+                    {
+                        _pauseClipboardItem = item;
+                        item.IsChecked = _settings.Current.PauseClipboard;
+                        vm.ClipboardHistory.IsPaused = _settings.Current.PauseClipboard;
+                    }
+                }
+            }
 
             window.Opened += async (_, _) =>
             {
@@ -145,5 +193,42 @@ public partial class App : Application
                 s.Bounds.Width, s.Bounds.Height, s.Scaling, s.IsPrimary))
             .ToList();
         vm.MonitorLayout.SetDisplays(displays);
+    }
+
+    private void ShowMainWindow()
+    {
+        if (_window == null) return;
+        _window.Show();
+        if (_window.WindowState == WindowState.Minimized)
+            _window.WindowState = WindowState.Normal;
+        _window.Activate();
+    }
+
+    private void OnTrayClicked(object? sender, EventArgs e) => ShowMainWindow();
+    private void OnTrayOpen(object? sender, EventArgs e) => ShowMainWindow();
+
+    private void OnTrayPauseSharing(object? sender, EventArgs e)
+    {
+        if (_settings == null || _host == null || _mainViewModel == null) return;
+        bool paused = _pauseSharingItem?.IsChecked ?? !_settings.Current.PauseSharing;
+        _settings.Current.PauseSharing = paused;
+        _settings.Save();
+        _host.SetKvmEnabled(!paused);
+        Dispatcher.UIThread.Post(() => _mainViewModel.MonitorLayout.IsKvmEnabled = !paused);
+    }
+
+    private void OnTrayPauseClipboard(object? sender, EventArgs e)
+    {
+        if (_settings == null || _mainViewModel == null) return;
+        bool paused = _pauseClipboardItem?.IsChecked ?? !_settings.Current.PauseClipboard;
+        _settings.Current.PauseClipboard = paused;
+        _settings.Save();
+        _mainViewModel.ClipboardHistory.IsPaused = paused;
+    }
+
+    private void OnTrayQuit(object? sender, EventArgs e)
+    {
+        _quitting = true;
+        (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown();
     }
 }

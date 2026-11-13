@@ -23,6 +23,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     private bool _isPolling;
 
     [ObservableProperty] private string _searchQuery = string.Empty;
+    [ObservableProperty] private bool _isPaused;
     [ObservableProperty] private string _selectedLibrary = "All";   // All, Starred
     [ObservableProperty] private string _selectedFilter = "All";    // All, Text, Link, Code
     [ObservableProperty] private ClipboardItemViewModel? _selectedClip;
@@ -57,7 +58,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     /// <summary>Reads the system clipboard and records new text. Returns true when a clip was added.</summary>
     public async Task<bool> PollClipboardAsync()
     {
-        if (_clipboard == null || _isPolling) return false;
+        if (IsPaused || _clipboard == null || _isPolling) return false;
         _isPolling = true;
         try
         {

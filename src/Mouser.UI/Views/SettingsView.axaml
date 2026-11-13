@@ -49,6 +49,26 @@
                 </StackPanel>
             </Border>
 
+            <Border Classes="glass-card" Padding="20">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="section-title" Text="Window &amp; Tray" />
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Keep running in the tray when I close the window" />
+                            <TextBlock Classes="hint" Text="Closing the window keeps sharing, clipboard and remote input active in the background." />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding CloseToTray}" OnContent="" OffContent="" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Hide to the tray when I minimize the window" />
+                            <TextBlock Classes="hint" Text="Minimizing hides Mouser to the tray without leaving a taskbar button." />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding MinimizeToTray}" OnContent="" OffContent="" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <Border Classes="glass-card" Padding="20" IsVisible="{Binding IsStartAtLoginSupported}">
                 <StackPanel Spacing="10">
                     <TextBlock Classes="section-title" Text="Startup" />

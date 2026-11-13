@@ -182,4 +182,20 @@
             <Setter Property="FontSize" Value="12" />
         </Style>
     </Application.Styles>
+
+    <TrayIcon.Icons>
+        <TrayIcons>
+            <TrayIcon Icon="/Assets/avalonia-logo.ico" ToolTipText="Mouser" Clicked="OnTrayClicked">
+                <TrayIcon.Menu>
+                    <NativeMenu>
+                        <NativeMenuItem Header="Open Mouser" Click="OnTrayOpen" />
+                        <NativeMenuItem Header="Pause sharing" ToggleType="CheckBox" Click="OnTrayPauseSharing" />
+                        <NativeMenuItem Header="Pause clipboard" ToggleType="CheckBox" Click="OnTrayPauseClipboard" />
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Header="Quit" Click="OnTrayQuit" />
+                    </NativeMenu>
+                </TrayIcon.Menu>
+            </TrayIcon>
+        </TrayIcons>
+    </TrayIcon.Icons>
 </Application>

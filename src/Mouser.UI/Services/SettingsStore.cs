@@ -22,6 +22,11 @@ public sealed class AppSettings
     public bool StartAtLogin { get; set; }
     public string Theme { get; set; } = "System";
 
+    public bool CloseToTray { get; set; } = true;
+    public bool MinimizeToTray { get; set; } = true;
+    public bool PauseSharing { get; set; }
+    public bool PauseClipboard { get; set; }
+
     /// <summary>Send copied text to paired computers and accept theirs.</summary>
     public bool ClipboardSyncEnabled { get; set; } = true;
 
