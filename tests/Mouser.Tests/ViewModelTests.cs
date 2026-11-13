@@ -475,6 +475,21 @@ public class ViewModelTests
     }
 
     [Fact]
+    public void DeviceName_SettingPersistsAndFallbackToMachineName()
+    {
+        var app = new AppFixture();
+        Assert.Equal(Environment.MachineName, app.Settings.Current.DeviceName);
+
+        app.Main.Settings.DeviceName = "Laptop-Pro";
+        var reloaded = new SettingsStore(app.Settings.FilePath).Current;
+        Assert.Equal("Laptop-Pro", reloaded.DeviceName);
+
+        app.Main.Settings.DeviceName = "   ";
+        var emptyReloaded = new SettingsStore(app.Settings.FilePath).Current;
+        Assert.Equal(Environment.MachineName, emptyReloaded.DeviceName);
+    }
+
+    [Fact]
     public void ToastService_WhenAppNullOrDisabled_DoesNotThrow()
     {
         ToastService.Show("Title", "Body");

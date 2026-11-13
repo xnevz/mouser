@@ -60,6 +60,14 @@ public sealed class PeerDiscoveryService : IDisposable
         }
     }
 
+    public void UpdateHostname(string hostname)
+    {
+        lock (_localPeerInfo)
+        {
+            _localPeerInfo.Hostname = hostname;
+        }
+    }
+
     public void Start()
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);

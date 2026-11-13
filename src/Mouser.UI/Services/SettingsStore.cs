@@ -13,6 +13,7 @@ namespace Mouser.UI.Services;
 public sealed class AppSettings
 {
     public string DeviceId { get; set; } = Guid.NewGuid().ToString("N");
+    public string DeviceName { get; set; } = Environment.MachineName;
     public int PairingPin { get; set; } = PairingGate.GeneratePin();
     public int InputPort { get; set; } = InputInjectionService.DefaultPort;
     public bool AcceptRemoteInput { get; set; } = true;
@@ -80,6 +81,7 @@ public sealed class SettingsStore
         {
             var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath), JsonOptions) ?? new AppSettings();
             settings.Peers ??= new();
+            if (string.IsNullOrWhiteSpace(settings.DeviceName)) settings.DeviceName = Environment.MachineName;
             if (settings.PairingPin is < 0 or > 999_999) settings.PairingPin = PairingGate.GeneratePin();
             if (settings.InputPort is < 1 or > 65535) settings.InputPort = InputInjectionService.DefaultPort;
             if (settings.ClipboardRetentionDays < 1) settings.ClipboardRetentionDays = 30;

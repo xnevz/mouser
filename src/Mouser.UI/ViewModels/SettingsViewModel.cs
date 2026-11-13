@@ -20,6 +20,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _minimizeToTray;
     [ObservableProperty] private bool _notifications;
     [ObservableProperty] private string _theme;
+    [ObservableProperty] private string _deviceName;
     [ObservableProperty] private string? _statusMessage;
 
     public bool IsStartAtLoginSupported => StartupRegistration.IsSupported;
@@ -41,6 +42,22 @@ public partial class SettingsViewModel : ViewModelBase
         _minimizeToTray = s.MinimizeToTray;
         _notifications = s.Notifications;
         _theme = s.Theme;
+        _deviceName = s.DeviceName;
+    }
+
+    partial void OnDeviceNameChanged(string value)
+    {
+        var trimmed = value?.Trim() ?? string.Empty;
+        if (trimmed.Length is >= 1 and <= 32)
+        {
+            Save(s => s.DeviceName = trimmed);
+            _host.RestartDiscovery();
+        }
+        else if (string.IsNullOrWhiteSpace(value))
+        {
+            Save(s => s.DeviceName = Environment.MachineName);
+            _host.RestartDiscovery();
+        }
     }
 
     partial void OnThemeChanged(string value)

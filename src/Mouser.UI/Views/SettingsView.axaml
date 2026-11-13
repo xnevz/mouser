@@ -16,6 +16,13 @@
                     <TextBlock Classes="section-title" Text="Appearance" />
                     <TextBlock Classes="hint" Text="System follows your Windows setting." />
                     <ComboBox ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" Width="160" />
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Device name" />
+                            <TextBlock Classes="hint" Text="Name other Mouser devices see on the local network." />
+                        </StackPanel>
+                        <TextBox Grid.Column="1" Text="{Binding DeviceName}" Width="200" />
+                    </Grid>
                 </StackPanel>
             </Border>
 

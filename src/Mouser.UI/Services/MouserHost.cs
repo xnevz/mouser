@@ -57,6 +57,8 @@ public sealed class MouserHost : IDisposable
     public bool CanInject => _sink.IsSupported;
     public bool CanShareInput => Kvm != null;
 
+    public string DeviceName => _settings.Current.DeviceName;
+
     public IReadOnlyCollection<DiscoveredPeer> Peers =>
         Discovery?.ActivePeers ?? (IReadOnlyCollection<DiscoveredPeer>)Array.Empty<DiscoveredPeer>();
 
@@ -104,7 +106,7 @@ public sealed class MouserHost : IDisposable
 
         try
         {
-            Discovery = new PeerDiscoveryService(_settings.Current.DeviceId, Environment.MachineName,
+            Discovery = new PeerDiscoveryService(_settings.Current.DeviceId, _settings.Current.DeviceName,
                 OsName, Input.BoundPort, controlPort: Transfer?.BoundPort ?? 0, _discoveryPort);
             if (_desktop is { } d) Discovery.UpdateLocalScreen((int)d.X, (int)d.Y, (int)d.Width, (int)d.Height);
             Discovery.Start();
@@ -116,6 +118,8 @@ public sealed class MouserHost : IDisposable
             DiscoveryError = $"Other devices can't find this PC automatically ({e.Message}). Enter its address manually.";
         }
     }
+
+    public void RestartDiscovery() => Discovery?.UpdateHostname(_settings.Current.DeviceName);
 
     private PeerTransferService? CreateTransfer(int port)
     {
