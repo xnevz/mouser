@@ -66,6 +66,13 @@
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1" IsChecked="{Binding MinimizeToTray}" OnContent="" OffContent="" />
                     </Grid>
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Show notifications" />
+                            <TextBlock Classes="hint" Text="Show in-app toasts when clips or files arrive or when switching screens." />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding Notifications}" OnContent="" OffContent="" />
+                    </Grid>
                 </StackPanel>
             </Border>
 

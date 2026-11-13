@@ -394,6 +394,30 @@ public class ViewModelTests
     }
 
     [Fact]
+    public async Task NotificationSetting_DefaultsOnAndPersists()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        Assert.True(app.Settings.Current.Notifications);
+
+        app.Main.Settings.Notifications = false;
+
+        var reloaded = new SettingsStore(app.Settings.FilePath).Current;
+        Assert.False(reloaded.Notifications);
+    }
+
+    [Fact]
+    public void ToastService_WhenAppNullOrDisabled_DoesNotThrow()
+    {
+        ToastService.Show("Title", "Body");
+        var store = new SettingsStore(Path.Combine(Path.GetTempPath(), "toast_test_" + Guid.NewGuid().ToString("N") + ".json"));
+        store.Current.Notifications = false;
+        ToastService.Initialize(store);
+        ToastService.Show("Title", "Body");
+        Assert.Empty(ToastService.ActiveToasts);
+    }
+
+    [Fact]
     public void Views_LoadTheirXaml()
     {
         Assert.NotNull(new MonitorLayoutView());

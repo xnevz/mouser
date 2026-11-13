@@ -1,0 +1,16 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Mouser.UI.Views.ToastWindow"
+        Title="Notification"
+        Width="320" SizeToContent="Height"
+        WindowDecorations="None" CanResize="False" ShowInTaskbar="False" Topmost="True"
+        ShowActivated="False"
+        Background="{DynamicResource BgSurface}">
+
+    <Border BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="12" Padding="14">
+        <StackPanel Spacing="4">
+            <TextBlock x:Name="TitleText" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+            <TextBlock x:Name="BodyText" Classes="hint" TextWrapping="Wrap" />
+        </StackPanel>
+    </Border>
+</Window>

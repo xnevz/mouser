@@ -23,6 +23,7 @@ public partial class App : Application
     private QuickPasteWindow? _quickPaste;
     private MainWindow? _window;
     private bool _quitting;
+    private bool _hasShownTrayToast;
     private NativeMenuItem? _pauseSharingItem;
     private NativeMenuItem? _pauseClipboardItem;
     private MainViewModel? _mainViewModel;
@@ -55,38 +56,66 @@ public partial class App : Application
 
             var settings = new SettingsStore(dataDir == null ? null : Path.Combine(Path.GetFullPath(dataDir), "settings.json"));
             ThemeService.Apply(settings.Current.Theme);
+            ToastService.Initialize(settings);
             _host = new MouserHost(settings, InputSinks.CreateForCurrentPlatform(), InputCaptures.CreateForCurrentPlatform());
             _host.Restart();
             _clipboardStorage = new ClipboardStorageService(Path.Combine(settings.DataDirectory, "clipboard.db"));
 
             var vm = new MainViewModel(_host, settings, _clipboardStorage);
-            if (_host.Kvm != null) _host.Kvm.StateChanged += () => Dispatcher.UIThread.Post(vm.Refresh);
-            _host.ClipReceived += (from, clip) => Dispatcher.UIThread.Post(() => _ = vm.ClipboardHistory.ApplyRemoteClipAsync(from, clip));
-            _host.FileReceived += (from, path) => Dispatcher.UIThread.Post(() =>
-                vm.MonitorLayout.TransferStatus = $"Received {Path.GetFileName(path)} from {from}. Saved in {Path.GetDirectoryName(path)}.");
             var window = new MainWindow { DataContext = vm };
             if (dataDir != null) window.Title = $"Mouser ({Path.GetFileName(Path.GetFullPath(dataDir))})";
             desktop.MainWindow = window;
-
-            if (Environment.GetCommandLineArgs().Contains("--minimized") && settings.Current.CloseToTray)
-                window.Opened += (_, _) => window.Hide();
 
             _settings = settings;
             _mainViewModel = vm;
             _window = window;
 
+            if (_host.Kvm != null)
+            {
+                _host.Kvm.StateChanged += () => Dispatcher.UIThread.Post(() =>
+                {
+                    vm.Refresh();
+                    if (_window != null && _window.IsVisible && _window.IsActive) return;
+                    string? peer = _host.Kvm.ActivePeerName;
+                    if (!string.IsNullOrEmpty(peer))
+                        ToastService.Show($"Controlling {peer}", "Cursor is on the other computer");
+                    else
+                        ToastService.Show("Back on this computer", "Cursor returned to this screen");
+                });
+            }
+
+            _host.ClipReceived += (from, clip) => Dispatcher.UIThread.Post(() =>
+            {
+                _ = vm.ClipboardHistory.ApplyRemoteClipAsync(from, clip);
+                if (_window == null || !_window.IsVisible || !_window.IsActive)
+                {
+                    string snippet = clip.TextContent.Length > 60 ? clip.TextContent[..60] + "…" : clip.TextContent;
+                    ToastService.Show($"Clip from {from}", snippet);
+                }
+            });
+
+            _host.FileReceived += (from, path) => Dispatcher.UIThread.Post(() =>
+            {
+                vm.MonitorLayout.TransferStatus = $"Received {Path.GetFileName(path)} from {from}. Saved in {Path.GetDirectoryName(path)}.";
+                if (_window == null || !_window.IsVisible || !_window.IsActive)
+                    ToastService.Show($"File from {from}", Path.GetFileName(path));
+            });
+
+            if (Environment.GetCommandLineArgs().Contains("--minimized") && settings.Current.CloseToTray)
+                window.Opened += (_, _) => HideToTray(window);
+
             window.Closing += (_, e) =>
             {
                 if (_quitting || e.CloseReason == WindowCloseReason.OSShutdown || !_settings.Current.CloseToTray) return;
                 e.Cancel = true;
-                window.Hide();
+                HideToTray(window);
             };
 
             window.PropertyChanged += (_, e) =>
             {
                 if (e.Property == Window.WindowStateProperty && window.WindowState == WindowState.Minimized
                     && _settings.Current.MinimizeToTray && !_quitting)
-                    window.Hide();
+                    HideToTray(window);
             };
 
             var trayIcons = TrayIcon.GetIcons(this);
@@ -219,6 +248,16 @@ public partial class App : Application
         if (_window.WindowState == WindowState.Minimized)
             _window.WindowState = WindowState.Normal;
         _window.Activate();
+    }
+
+    private void HideToTray(Window window)
+    {
+        window.Hide();
+        if (!_hasShownTrayToast)
+        {
+            _hasShownTrayToast = true;
+            ToastService.Show("Mouser is still running", "Mouser is still running in the tray.");
+        }
     }
 
     private void OnTrayClicked(object? sender, EventArgs e) => ShowMainWindow();

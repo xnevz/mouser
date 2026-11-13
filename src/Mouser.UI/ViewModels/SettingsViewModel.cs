@@ -18,6 +18,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _startAtLogin;
     [ObservableProperty] private bool _closeToTray;
     [ObservableProperty] private bool _minimizeToTray;
+    [ObservableProperty] private bool _notifications;
     [ObservableProperty] private string _theme;
     [ObservableProperty] private string? _statusMessage;
 
@@ -38,6 +39,7 @@ public partial class SettingsViewModel : ViewModelBase
         _startAtLogin = s.StartAtLogin;
         _closeToTray = s.CloseToTray;
         _minimizeToTray = s.MinimizeToTray;
+        _notifications = s.Notifications;
         _theme = s.Theme;
     }
 
@@ -52,6 +54,7 @@ public partial class SettingsViewModel : ViewModelBase
     partial void OnClipboardSyncEnabledChanged(bool value) => Save(s => s.ClipboardSyncEnabled = value);
     partial void OnCloseToTrayChanged(bool value) => Save(s => s.CloseToTray = value);
     partial void OnMinimizeToTrayChanged(bool value) => Save(s => s.MinimizeToTray = value);
+    partial void OnNotificationsChanged(bool value) => Save(s => s.Notifications = value);
 
     partial void OnClipboardRetentionDaysChanged(int value)
     {

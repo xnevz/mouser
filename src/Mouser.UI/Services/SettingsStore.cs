@@ -26,6 +26,7 @@ public sealed class AppSettings
     public bool MinimizeToTray { get; set; } = true;
     public bool PauseSharing { get; set; }
     public bool PauseClipboard { get; set; }
+    public bool Notifications { get; set; } = true;
 
     /// <summary>Send copied text to paired computers and accept theirs.</summary>
     public bool ClipboardSyncEnabled { get; set; } = true;
