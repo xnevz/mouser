@@ -97,7 +97,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | :-: | :-: | :--- | :--- | :-: |
 | ✅ | B1 | Sidebar device list (view model) | A9 | S |
 | ✅ | B2 | New sidebar (All items, Pinned, Devices, Settings, Ctrl+,) | B1 | M |
-| ⬜ | B3 | Clipboard filters: device and time | A9 | M |
+| ✅ | B3 | Clipboard filters: device and time | A9 | M |
 | ⬜ | B4 | Day headers in the list | B3 | S |
 | ⬜ | B5 | Clipboard page layout (search, chips, grouped list) | B3, B4 | L |
 | ⬜ | B6 | Detail pane (actions, metadata cards) | B5 | M |
@@ -270,3 +270,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - A12: Created ToastWindow and ToastService with stacking and 4-second dismiss; wired notification setting in SettingsStore, SettingsViewModel, and SettingsView; connected clip, file, KVM state, and first hide-to-tray toasts in App.axaml.cs; added 2 unit tests (138 passing).
 - B1: Added SidebarDeviceViewModel and Devices collection/OnlineDeviceCount to MainViewModel with RefreshDevices in-place updates; added unit test Sidebar_ListsPairedPhoneAsOnline (139 passing).
 - B2: Updated sidebar with All items, Pinned, Devices list, Add a phone, Manage devices, Settings (with Ctrl+, shortcut); added ShowLibrary command in MainViewModel; added unit test ShowLibrary_NavigatesToClipboardAndSetsLibrary (140 passing).
+- B3: Added CreatedTime property to ClipboardPayload, device and time filter options to ClipboardHistoryViewModel with PopulateDeviceOptions and ReloadAsync filtering; added unit tests ClipboardFilter_ByDevice and ClipboardFilter_ByTime (142 passing).
