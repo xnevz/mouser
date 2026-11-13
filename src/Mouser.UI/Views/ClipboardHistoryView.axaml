@@ -103,29 +103,45 @@
 
             <!-- Detail -->
             <Border Grid.Column="2" Classes="glass-card" Padding="16">
-                <Grid RowDefinitions="Auto,*,Auto,Auto">
-                    <TextBlock Grid.Row="0" Classes="section-title" Margin="0,0,0,10" TextTrimming="CharacterEllipsis"
-                               Text="{Binding SelectedClip.PreviewTitle, FallbackValue='No clip selected'}" />
+                <Grid>
+                    <!-- Detail content when selected -->
+                    <Grid RowDefinitions="Auto,*,Auto"
+                          IsVisible="{Binding SelectedClip, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <!-- Action buttons row at the top -->
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
+                            <Button Classes="primary-btn" Content="Copy" Command="{Binding CopyClipCommand}" CommandParameter="{Binding SelectedClip}" />
+                            <Button Classes="secondary-btn" Command="{Binding ToggleStarCommand}" CommandParameter="{Binding SelectedClip}"
+                                    Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}" />
+                            <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}" />
+                        </StackPanel>
 
-                    <TextBox Grid.Row="1" Text="{Binding SelectedClip.Content, Mode=OneWay, FallbackValue=''}"
-                             IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
-                             FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12"
-                             VerticalContentAlignment="Top" />
+                        <!-- Preview -->
+                        <TextBox Grid.Row="1" Text="{Binding SelectedClip.Content, Mode=OneWay, FallbackValue=''}"
+                                 IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
+                                 FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12"
+                                 VerticalContentAlignment="Top" />
 
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,12,0,10"
-                                IsVisible="{Binding SelectedClip, Converter={x:Static ObjectConverters.IsNotNull}}">
-                        <Button Classes="primary-btn" Content="Copy" Command="{Binding CopyClipCommand}" CommandParameter="{Binding SelectedClip}" />
-                        <Button Classes="secondary-btn" Command="{Binding ToggleStarCommand}" CommandParameter="{Binding SelectedClip}"
-                                Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}" />
-                        <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}" />
+                        <!-- Metadata card under preview -->
+                        <Border Grid.Row="2" Margin="0,10,0,0" Padding="12,10" Background="{DynamicResource BgRaised}"
+                                BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="label" Text="METADATA" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" />
+                                <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextSecondary}">
+                                    <Run Text="Type: " /><Run Text="{Binding SelectedClip.ContentType}" /><Run Text=" · Source: " /><Run Text="{Binding SelectedClip.SourceDevice}" /><Run Text=" · Copied: " /><Run Text="{Binding SelectedClip.FormattedTime}" />
+                                </TextBlock>
+                                <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextMuted}">
+                                    <Run Text="{Binding SelectedClip.LineCount}" /><Run Text=" lines · " /><Run Text="{Binding SelectedClip.WordCount}" /><Run Text=" words · " /><Run Text="{Binding SelectedClip.CharCount, StringFormat='{}{0:N0}'}" /><Run Text=" characters" />
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Centered empty state hint when no clip is selected -->
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="6"
+                                IsVisible="{Binding SelectedClip, Converter={x:Static ObjectConverters.IsNull}}">
+                        <TextBlock Classes="section-title" Text="Nothing selected." HorizontalAlignment="Center" TextAlignment="Center" />
+                        <TextBlock Classes="hint" Text="Pick a clip on the left to read and copy it." HorizontalAlignment="Center" TextAlignment="Center" />
                     </StackPanel>
-
-                    <TextBlock Grid.Row="3" Classes="label"
-                               IsVisible="{Binding SelectedClip, Converter={x:Static ObjectConverters.IsNotNull}}">
-                        <Run Text="{Binding SelectedClip.CharCount, FallbackValue=0}" /><Run Text=" characters • " />
-                        <Run Text="{Binding SelectedClip.WordCount, FallbackValue=0}" /><Run Text=" words • " />
-                        <Run Text="{Binding SelectedClip.LineCount, FallbackValue=0}" /><Run Text=" lines" />
-                    </TextBlock>
                 </Grid>
             </Border>
         </Grid>

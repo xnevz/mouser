@@ -561,4 +561,19 @@ public class ViewModelTests
         await history.ReloadAsync();
         Assert.Equal(2, history.FilteredClips.Count);
     }
+
+    [Fact]
+    public async Task ClipboardHistory_DetailPaneSelection()
+    {
+        await using var app = new AppFixture();
+        var history = app.Main.ClipboardHistory;
+        await history.InitializeAsync();
+        await history.CaptureAsync("test detail clip");
+
+        Assert.NotNull(history.SelectedClip);
+        Assert.Equal("test detail clip", history.SelectedClip.Content);
+
+        history.SelectedClip = null;
+        Assert.Null(history.SelectedClip);
+    }
 }
