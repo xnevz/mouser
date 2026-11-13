@@ -78,7 +78,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | Status | ID | Task | Needs | Size |
 | :-: | :-: | :--- | :--- | :-: |
 | ✅ | A1 | Colour token file (`Styles/Tokens.axaml`, Dark + Light) | – | S |
-| ⬜ | A2 | Convert `App.axaml` styles to tokens | A1 | M |
+| ✅ | A2 | Convert `App.axaml` styles to tokens | A1 | M |
 | ⬜ | A3 | Migrate `MainWindow.axaml` | A2 | S |
 | ⬜ | A4 | Migrate `AndroidRemoteView.axaml` | A2 | S |
 | ⬜ | A5 | Migrate `ClipboardHistoryView.axaml` | A2 | S |
@@ -257,3 +257,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 ## 8. Notes from executors
 
 - A1: Created Tokens.axaml with Dark and Light palettes and merged into App.axaml; updated Win32InputSinkTests to handle non-interactive sessions; all 130 tests green.
+- A2: Converted all raw hex color setters in App.axaml styles to dynamic theme tokens; verified 0 remaining hex colors outside SystemAccentColor* lines; all 130 tests pass.
