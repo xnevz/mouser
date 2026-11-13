@@ -8,4 +8,11 @@ public partial class ClipboardHistoryView : UserControl
     {
         InitializeComponent();
     }
+
+    public void FocusSearch()
+    {
+        var box = this.FindControl<TextBox>("SearchBox");
+        box?.Focus();
+        box?.SelectAll();
+    }
 }

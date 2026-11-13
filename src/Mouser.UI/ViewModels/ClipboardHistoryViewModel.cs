@@ -26,7 +26,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     [ObservableProperty] private string _searchQuery = string.Empty;
     [ObservableProperty] private bool _isPaused;
     [ObservableProperty] private string _selectedLibrary = "All";   // All, Starred
-    [ObservableProperty] private string _selectedFilter = "All";    // All, Text, Link, Code
+    [ObservableProperty] private string _selectedFilter = "All types";    // All types, Text, Link, Code
     [ObservableProperty] private ClipboardItemViewModel? _selectedClip;
     [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private int _allCount;
@@ -35,6 +35,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     /// <summary>Shown when the global quick-paste hotkey is available.</summary>
     [ObservableProperty] private string? _quickPasteHint;
 
+    public static string[] TypeOptions { get; } = { "All types", "Text", "Link", "Code" };
     public static string[] TimeOptions { get; } = { "Any time", "Today", "Yesterday", "Last 7 days", "Last 30 days" };
     public ObservableCollection<string> DeviceOptions { get; } = new() { "All devices" };
     [ObservableProperty] private string _selectedDevice = "All devices";
@@ -208,7 +209,10 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
 
         var items = results.AsEnumerable();
         if (SelectedLibrary == "Starred") items = items.Where(c => c.IsFavorite);
-        if (Enum.TryParse<ClipboardContentType>(SelectedFilter, out var kind)) items = items.Where(c => c.ContentType == kind);
+        if (SelectedFilter != "All types" && SelectedFilter != "All")
+        {
+            if (Enum.TryParse<ClipboardContentType>(SelectedFilter, out var kind)) items = items.Where(c => c.ContentType == kind);
+        }
         if (SelectedDevice != "All devices") items = items.Where(c => c.SourceDevice == SelectedDevice);
         var now = DateTime.Now.Date;
         items = SelectedTime switch

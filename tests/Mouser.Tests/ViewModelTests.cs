@@ -135,6 +135,17 @@ public class ViewModelTests
     }
 
     [Fact]
+    public void FocusSearch_NavigatesAndFiresEvent()
+    {
+        var app = new AppFixture();
+        bool fired = false;
+        app.Main.FocusSearchRequested += () => fired = true;
+        app.Main.FocusSearchCommand.Execute(null);
+        Assert.True(fired);
+        Assert.Same(app.Main.ClipboardHistory, app.Main.CurrentPage);
+    }
+
+    [Fact]
     public async Task PhoneRemote_NewPinUnpairsPhonesAndIsSaved()
     {
         await using var app = new AppFixture();

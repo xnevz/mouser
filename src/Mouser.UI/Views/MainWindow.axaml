@@ -15,6 +15,7 @@
 
     <Window.KeyBindings>
         <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding NavigateCommand}" CommandParameter="Settings" />
+        <KeyBinding Gesture="Ctrl+F" Command="{Binding FocusSearchCommand}" />
     </Window.KeyBindings>
 
     <Grid ColumnDefinitions="232,*">
@@ -117,6 +118,6 @@
             </Grid>
         </Border>
 
-        <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" />
+        <ContentControl x:Name="PageContent" Grid.Column="1" Content="{Binding CurrentPage}" />
     </Grid>
 </Window>

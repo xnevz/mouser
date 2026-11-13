@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -193,5 +194,14 @@ public partial class MainViewModel : ViewModelBase
     {
         Navigate("SmartClipboard");
         ClipboardHistory.SetLibraryCommand.Execute(library);
+    }
+
+    public event Action? FocusSearchRequested;
+    [RelayCommand]
+    private void FocusSearch()
+    {
+        if (CurrentTab != NavigationTab.SmartClipboard)
+            Navigate("SmartClipboard");
+        FocusSearchRequested?.Invoke();
     }
 }
