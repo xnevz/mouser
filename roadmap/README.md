@@ -1,5 +1,12 @@
 # Mouser: Roadmap & Status
 
+> **Start here:** the live checklist (done / not done, every task with its dependencies) is
+> [../ROADMAP.md](../ROADMAP.md). Step-by-step task cards for a junior or small AI model are in
+> [tasks/](./tasks/) and the rules they must follow are in [AGENT_GUIDE.md](./AGENT_GUIDE.md).
+> Task files: [A](./tasks/A-foundation.md) theme/tray · [B](./tasks/B-shell.md) new shell ·
+> [C](./tasks/C-lock.md) app lock · [D](./tasks/D-clipboard.md) clipboard · [E](./tasks/E-kvm.md) mouse and keyboard ·
+> [F+G](./tasks/F-security-and-phone.md) security and phone · [H+Q](./tasks/H-platform-and-quality.md) platform and quality.
+
 The phase documents in this folder are the original design notes. This page is the **source of truth for
 what actually works**; the phase documents describe intent and may mention things that were never built.
 

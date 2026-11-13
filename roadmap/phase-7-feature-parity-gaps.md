@@ -7,6 +7,9 @@ anything I could not run (macOS, Android on a device) is marked *unverified*.
 Windows Win+V, Paste and Maccy for the clipboard-manager half. The original
 [feature matrix](../SYSTEM_DESIGN_AND_ROADMAP.md) is the promise; this page is the distance to it.
 
+> **Status tracking moved:** the checkboxes in section 4 are the *feature wish list*. The live status and the
+> executable step-by-step tasks are in [../ROADMAP.md](../ROADMAP.md) and [tasks/](./tasks/). Update the board, not this list.
+
 **macOS is parked for now.** macOS findings in this analysis are kept, and every macOS-only work item is in
 [backlog-macos.md](./backlog-macos.md). Sections 4–6 below are the Windows + Android plan.
 
