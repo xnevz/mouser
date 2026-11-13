@@ -101,7 +101,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | B4 | Day headers in the list | B3 | S |
 | ✅ | B5 | Clipboard page layout (search, chips, grouped list) | B3, B4 | L |
 | ✅ | B6 | Detail pane (actions, metadata cards) | B5 | M |
-| ⬜ | B7 | Editable device name | A9 | S |
+| ✅ | B7 | Editable device name | A9 | S |
 | ⬜ | B8 | Devices view model | B1, B7 | M |
 | ⬜ | B9 | Devices page + navigation switch (clipboard becomes the home page) | B2, B8 | L |
 | ⬜ | B10 | Add computer by IP/name (unicast beacons) | B9 | L |
@@ -274,3 +274,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - B4: Added TimestampLocal, DayLabel, ShowDayHeader, and DayCount to ClipboardItemViewModel; computed day headers and item counts per section in ClipboardHistoryViewModel.ReloadAsync(); added unit test ClipboardHistory_ComputesDayHeadersAndCounts (143 passing).
 - B5: Updated ClipboardHistoryView with search row (including Clear history button), filter dropdown chips (Type, Device, Time), and day headers in list cards; wired Ctrl+F hotkey to focus search via MainViewModel and MainWindow; added unit test FocusSearch_NavigatesAndFiresEvent (144 passing).
 - B6: Updated ClipboardHistoryView detail pane with top action buttons (Copy, Star, Delete), monospace text preview, metadata card, and empty state; added unit test ClipboardHistory_DetailPaneSelection (145 passing).
+- B7: Added editable DeviceName setting defaulting to Environment.MachineName, broadcast hostname update via PeerDiscoveryService and MouserHost, wired DeviceName setting row in SettingsView and SettingsViewModel; added unit test DeviceName_SettingPersistsAndFallbackToMachineName (146 passing).
