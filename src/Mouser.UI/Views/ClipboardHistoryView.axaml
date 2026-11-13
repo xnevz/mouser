@@ -16,12 +16,12 @@
             <Setter Property="Background" Value="Transparent" />
         </Style>
         <Style Selector="ListBox.clips ListBoxItem:selected Border.clip-card">
-            <Setter Property="BorderBrush" Value="#6366f1" />
-            <Setter Property="Background" Value="#1a1b28" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentSoft}" />
+            <Setter Property="Background" Value="{DynamicResource BgActive}" />
         </Style>
         <Style Selector="Border.clip-card">
-            <Setter Property="Background" Value="#15161f" />
-            <Setter Property="BorderBrush" Value="#262938" />
+            <Setter Property="Background" Value="{DynamicResource BgListItem}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="12,10" />
@@ -46,7 +46,7 @@
         </Grid>
 
         <Border Grid.Row="1" Classes="banner-warning" Margin="0,0,0,12" IsVisible="{Binding !IsCaptureEnabled}">
-            <TextBlock Foreground="#fde68a" FontSize="12" TextWrapping="Wrap"
+            <TextBlock Foreground="{DynamicResource BannerWarningText}" FontSize="12" TextWrapping="Wrap"
                        Text="Saving new clips is turned off. Turn it back on in Settings." />
         </Border>
 
@@ -60,7 +60,7 @@
                                  IsChecked="True" Command="{Binding SetLibraryCommand}" CommandParameter="All" />
                     <RadioButton Classes="filter" GroupName="lib" Content="{Binding StarredCount, StringFormat='Starred ({0})'}"
                                  Command="{Binding SetLibraryCommand}" CommandParameter="Starred" />
-                    <Rectangle Width="1" Fill="#2e3248" Margin="8,4" />
+                    <Rectangle Width="1" Fill="{DynamicResource BorderStrong}" Margin="8,4" />
                     <RadioButton Classes="filter" GroupName="kind" Content="Any type" IsChecked="True"
                                  Command="{Binding SetFilterCommand}" CommandParameter="All" />
                     <RadioButton Classes="filter" GroupName="kind" Content="Text"
@@ -84,12 +84,12 @@
                                     <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
                                         <Border Grid.RowSpan="2" Background="{Binding BadgeColor}" CornerRadius="6"
                                                 Width="30" Height="30" Margin="0,0,12,0" VerticalAlignment="Top">
-                                            <TextBlock Text="{Binding TypeIcon}" FontSize="11" FontWeight="Bold" Foreground="#ffffff"
+                                            <TextBlock Text="{Binding TypeIcon}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource OnAccent}"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                                         </Border>
                                         <TextBlock Grid.Column="1" Text="{Binding PreviewTitle}" FontSize="13" FontWeight="SemiBold"
-                                                   Foreground="#f1f5f9" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Grid.Column="1" Grid.Row="1" FontSize="11" Foreground="#64748b" Margin="0,3,0,0">
+                                                   Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="1" Grid.Row="1" FontSize="11" Foreground="{DynamicResource TextFaint}" Margin="0,3,0,0">
                                             <Run Text="{Binding ContentType}" />
                                             <Run Text=" • " />
                                             <Run Text="{Binding FormattedTime}" />
