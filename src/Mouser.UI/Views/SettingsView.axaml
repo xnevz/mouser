@@ -13,6 +13,14 @@
 
             <Border Classes="glass-card" Padding="20">
                 <StackPanel Spacing="10">
+                    <TextBlock Classes="section-title" Text="Appearance" />
+                    <TextBlock Classes="hint" Text="System follows your Windows setting." />
+                    <ComboBox ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" Width="160" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="glass-card" Padding="20">
+                <StackPanel Spacing="10">
                     <TextBlock Classes="section-title" Text="Phone connection" />
                     <TextBlock Classes="hint"
                                Text="UDP port phones send input to. Change it only if another app already uses it; phones find the new port automatically." />

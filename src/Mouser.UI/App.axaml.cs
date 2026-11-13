@@ -35,6 +35,7 @@ public partial class App : Application
             // which is how two copies on one PC can test desktop-to-desktop control.
             string? dataDir = ArgValue("--data-dir");
             var settings = new SettingsStore(dataDir == null ? null : Path.Combine(Path.GetFullPath(dataDir), "settings.json"));
+            ThemeService.Apply(settings.Current.Theme);
             _host = new MouserHost(settings, InputSinks.CreateForCurrentPlatform(), InputCaptures.CreateForCurrentPlatform());
             _host.Restart();
             _clipboardStorage = new ClipboardStorageService(Path.Combine(settings.DataDirectory, "clipboard.db"));

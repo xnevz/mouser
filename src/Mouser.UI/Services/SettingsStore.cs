@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mouser.Core.Kvm;
@@ -19,6 +20,7 @@ public sealed class AppSettings
     public bool SkipSensitiveClips { get; set; } = true;
     public int ClipboardRetentionDays { get; set; } = 30;
     public bool StartAtLogin { get; set; }
+    public string Theme { get; set; } = "System";
 
     /// <summary>Send copied text to paired computers and accept theirs.</summary>
     public bool ClipboardSyncEnabled { get; set; } = true;
@@ -75,6 +77,7 @@ public sealed class SettingsStore
             if (settings.PairingPin is < 0 or > 999_999) settings.PairingPin = PairingGate.GeneratePin();
             if (settings.InputPort is < 1 or > 65535) settings.InputPort = InputInjectionService.DefaultPort;
             if (settings.ClipboardRetentionDays < 1) settings.ClipboardRetentionDays = 30;
+            if (!ThemeService.Options.Contains(settings.Theme)) settings.Theme = "System";
             return settings;
         }
         catch (JsonException)

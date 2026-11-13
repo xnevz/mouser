@@ -326,6 +326,40 @@ public class ViewModelTests
     }
 
     [Fact]
+    public async Task Theme_DefaultsToSystem()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        Assert.Equal("System", app.Settings.Current.Theme);
+    }
+
+    [Fact]
+    public async Task Theme_SettingPersists()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        app.Main.Settings.Theme = "Light";
+        var reloaded = new SettingsStore(app.Settings.FilePath).Current;
+        Assert.Equal("Light", reloaded.Theme);
+    }
+
+    [Fact]
+    public void Theme_InvalidValueFallsBackToSystem()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"mouser_theme_{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, "{\n  \"Theme\": \"Banana\"\n}");
+        try
+        {
+            var store = new SettingsStore(path);
+            Assert.Equal("System", store.Current.Theme);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Views_LoadTheirXaml()
     {
         Assert.NotNull(new MonitorLayoutView());

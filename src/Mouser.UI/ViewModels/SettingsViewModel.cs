@@ -16,9 +16,11 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _clipboardSyncEnabled;
     [ObservableProperty] private int _clipboardRetentionDays;
     [ObservableProperty] private bool _startAtLogin;
+    [ObservableProperty] private string _theme;
     [ObservableProperty] private string? _statusMessage;
 
     public bool IsStartAtLoginSupported => StartupRegistration.IsSupported;
+    public string[] ThemeOptions => ThemeService.Options;
     public string DataDirectory => _store.DataDirectory;
 
     public SettingsViewModel(SettingsStore store, MouserHost host)
@@ -32,6 +34,13 @@ public partial class SettingsViewModel : ViewModelBase
         _clipboardSyncEnabled = s.ClipboardSyncEnabled;
         _clipboardRetentionDays = s.ClipboardRetentionDays;
         _startAtLogin = s.StartAtLogin;
+        _theme = s.Theme;
+    }
+
+    partial void OnThemeChanged(string value)
+    {
+        ThemeService.Apply(value);
+        Save(s => s.Theme = value);
     }
 
     partial void OnClipboardHistoryEnabledChanged(bool value) => Save(s => s.ClipboardHistoryEnabled = value);
