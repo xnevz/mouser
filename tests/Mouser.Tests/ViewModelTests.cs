@@ -110,6 +110,22 @@ public class ViewModelTests
     }
 
     [Fact]
+    public async Task Sidebar_ListsPairedPhoneAsOnline()
+    {
+        await using var app = new AppFixture();
+        using var phone = new FakePhone(app.Host.Input!.BoundPort);
+        Assert.True(await phone.PairAsync(app.Settings.Current.PairingPin));
+        phone.Send(InputMotionPacket.TypeMotion, 3, 4);
+        await Wait.UntilAsync(() => app.Sink.Snapshot().Length == 1);
+
+        app.Main.Refresh();
+        var device = Assert.Single(app.Main.Devices);
+        Assert.Equal(DeviceKind.Phone, device.Kind);
+        Assert.True(device.IsOnline);
+        Assert.Equal(1, app.Main.OnlineDeviceCount);
+    }
+
+    [Fact]
     public async Task PhoneRemote_NewPinUnpairsPhonesAndIsSaved()
     {
         await using var app = new AppFixture();

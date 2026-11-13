@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -18,6 +20,10 @@ public enum NavigationTab
 public partial class MainViewModel : ViewModelBase
 {
     private readonly MouserHost _host;
+    private readonly SettingsStore _settings;
+
+    public ObservableCollection<SidebarDeviceViewModel> Devices { get; } = new();
+    [ObservableProperty] private int _onlineDeviceCount;
 
     public AndroidRemoteViewModel AndroidRemote { get; }
     public ClipboardHistoryViewModel ClipboardHistory { get; }
@@ -42,6 +48,7 @@ public partial class MainViewModel : ViewModelBase
     public MainViewModel(MouserHost host, SettingsStore settings, ClipboardStorageService clipboardStorage)
     {
         _host = host;
+        _settings = settings;
         AndroidRemote = new AndroidRemoteViewModel(host, settings);
         ClipboardHistory = new ClipboardHistoryViewModel(clipboardStorage, settings);
         Settings = new SettingsViewModel(settings, host);
@@ -55,6 +62,7 @@ public partial class MainViewModel : ViewModelBase
     public void Refresh()
     {
         AndroidRemote.Refresh();
+        RefreshDevices();
         MonitorLayout.SetPeers(_host.Peers);
 
         if (_host.Kvm?.ActivePeerName is { } controlled)
@@ -83,6 +91,89 @@ public partial class MainViewModel : ViewModelBase
         var ip = NetworkInfo.GetLocalIPv4Addresses().FirstOrDefault();
         SystemStatusText = ip == null ? "No network connection" : $"{ip}:{_host.Input.BoundPort}";
         StatusColor = active > 0 ? "#10b981" : "#6366f1";
+    }
+
+    private void RefreshDevices()
+    {
+        var currentKeys = new HashSet<string>();
+
+        // Computers online: every _host.Peers item -> Key = DeviceId, Name = Hostname, IsOnline = true, Kind = Computer
+        foreach (var peer in _host.Peers)
+        {
+            currentKeys.Add(peer.DeviceId);
+            var existing = Devices.FirstOrDefault(d => d.Key == peer.DeviceId && d.Kind == DeviceKind.Computer);
+            if (existing == null)
+            {
+                existing = new SidebarDeviceViewModel(peer.DeviceId, DeviceKind.Computer)
+                {
+                    Name = peer.Hostname,
+                    IsOnline = true
+                };
+                Devices.Add(existing);
+            }
+            else
+            {
+                existing.Name = peer.Hostname;
+                existing.IsOnline = true;
+            }
+        }
+
+        // Computers offline: every _settings.Current.Peers entry whose id is not in _host.Peers
+        foreach (var (id, peerSettings) in _settings.Current.Peers)
+        {
+            if (!_host.Peers.Any(p => p.DeviceId == id))
+            {
+                currentKeys.Add(id);
+                var existing = Devices.FirstOrDefault(d => d.Key == id && d.Kind == DeviceKind.Computer);
+                string name = string.IsNullOrEmpty(peerSettings.Name) ? id : peerSettings.Name;
+                if (existing == null)
+                {
+                    existing = new SidebarDeviceViewModel(id, DeviceKind.Computer)
+                    {
+                        Name = name,
+                        IsOnline = false
+                    };
+                    Devices.Add(existing);
+                }
+                else
+                {
+                    existing.Name = name;
+                    existing.IsOnline = false;
+                }
+            }
+        }
+
+        // Phones: every AndroidRemote.Clients item -> Key = Address, Name = Address, Kind = Phone, IsOnline = IsActive
+        foreach (var client in AndroidRemote.Clients)
+        {
+            currentKeys.Add(client.Address);
+            var existing = Devices.FirstOrDefault(d => d.Key == client.Address && d.Kind == DeviceKind.Phone);
+            if (existing == null)
+            {
+                existing = new SidebarDeviceViewModel(client.Address, DeviceKind.Phone)
+                {
+                    Name = client.Address,
+                    IsOnline = client.IsActive
+                };
+                Devices.Add(existing);
+            }
+            else
+            {
+                existing.Name = client.Address;
+                existing.IsOnline = client.IsActive;
+            }
+        }
+
+        // Remove devices that are no longer present
+        for (int i = Devices.Count - 1; i >= 0; i--)
+        {
+            if (!currentKeys.Contains(Devices[i].Key))
+            {
+                Devices.RemoveAt(i);
+            }
+        }
+
+        OnlineDeviceCount = Devices.Count(d => d.IsOnline);
     }
 
     [RelayCommand]
