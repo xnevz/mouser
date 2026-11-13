@@ -86,7 +86,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | A7 | Migrate `SettingsView.axaml` | A2 | XS |
 | ✅ | A8 | Migrate `QuickPasteWindow.axaml` | A2 | XS |
 | ✅ | A9 | Theme setting System/Light/Dark, default System | A3–A8 | M |
-| ⬜ | A10 | Tray icon, **close-to-tray and minimize-to-tray** (two settings), pause items | A9 | M |
+| ✅ | A10 | Tray icon, **close-to-tray and minimize-to-tray** (two settings), pause items | A9 | M |
 | ⬜ | A11 | `--minimized`, start at login minimized, single instance | A10 | S |
 | ⬜ | A12 | In-app toasts | A9 | M |
 | ⬜ | A13 | Android light + dark scheme and chooser | – | M |
@@ -265,3 +265,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - A7: Migrated SettingsView.axaml to dynamic theme tokens; verified 0 remaining hex colors; 130 tests pass.
 - A8: Migrated QuickPasteWindow.axaml to dynamic theme tokens; verified 0 remaining hex colors; 130 tests pass.
 - A9: Implemented ThemeService with System/Light/Dark options; wired theme setting in SettingsStore, SettingsViewModel, SettingsView, and App startup; switched default to System; added 3 unit tests (133 passing).
+- A10: Added tray icon with menu (Open Mouser, Pause sharing, Pause clipboard, Quit), close-to-tray and minimize-to-tray settings (default true), pause handlers for sharing and clipboard; added 2 unit tests (135 passing).
