@@ -43,7 +43,7 @@ The test count only goes **up**. If it goes down, you deleted or broke a test: u
 4. **No raw colour hex in `.axaml` files you write or edit** once task A1 is ✅ (tasks A2–A8 remove the old ones). Use theme resources (section 4). Grep check is in every UI card.
 5. **Core never references UI.** `Mouser.Core` has no Avalonia. `Mouser.UI` may reference Core.
 6. **Do not change the wire protocol** (UDP 14-byte packet, TCP `MCH1` frames) unless the card says "Protocol change allowed" (cards C7, E12, E13, F3, F4, G6).
-7. **Do not commit or push** unless the user asked. When asked, end the commit message with the attribution line the user's environment requires.
+7. **Git:** follow section 3 of [EXECUTOR_PROMPT.md](./EXECUTOR_PROMPT.md): one branch per task, small commits, never push or merge to main.
 8. **Do not invent APIs.** If you are unsure an Avalonia / Compose / Next.js API exists in the installed version, open a similar existing usage in this repo, or build a 10-line spike, before writing the feature.
 9. **Keep it small.** No new abstractions, interfaces or "future-proof" options that the card does not ask for.
 10. **Comment only the "why"**, one line. For a known limit write: `// shortcut: <limit>, <when to upgrade>`.
@@ -150,7 +150,8 @@ Stop and report (do not guess) when: the card's file does not exist or looks dif
 a build error survives two fix attempts; a test you did not touch starts failing; the task seems to need a package, a
 protocol change or a file outside the card; you are tempted to delete something.
 
-## 7. Paste-ready prompt for the executor
+## 7. Executor prompt
+The full strict prompt (git, tests, UI, reporting) is in [EXECUTOR_PROMPT.md](./EXECUTOR_PROMPT.md). Short version:
 
 ```
 You are executing ONE task from the Mouser repo at d:\projects\mouser.
