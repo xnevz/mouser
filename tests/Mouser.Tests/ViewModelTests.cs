@@ -126,6 +126,15 @@ public class ViewModelTests
     }
 
     [Fact]
+    public void ShowLibrary_NavigatesToClipboardAndSetsLibrary()
+    {
+        var app = new AppFixture();
+        app.Main.ShowLibraryCommand.Execute("Starred");
+        Assert.Same(app.Main.ClipboardHistory, app.Main.CurrentPage);
+        Assert.Equal("Starred", app.Main.ClipboardHistory.SelectedLibrary);
+    }
+
+    [Fact]
     public async Task PhoneRemote_NewPinUnpairsPhonesAndIsSaved()
     {
         await using var app = new AppFixture();

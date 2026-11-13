@@ -187,4 +187,11 @@ public partial class MainViewModel : ViewModelBase
             _ => (NavigationTab.AndroidRemote, AndroidRemote)
         };
     }
+
+    [RelayCommand]
+    private void ShowLibrary(string library)
+    {
+        Navigate("SmartClipboard");
+        ClipboardHistory.SetLibraryCommand.Execute(library);
+    }
 }

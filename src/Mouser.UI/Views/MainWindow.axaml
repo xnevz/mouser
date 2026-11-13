@@ -13,6 +13,10 @@
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BgApp}">
 
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding NavigateCommand}" CommandParameter="Settings" />
+    </Window.KeyBindings>
+
     <Grid ColumnDefinitions="232,*">
         <Border Grid.Column="0"
                 Background="{DynamicResource BgSidebar}"
@@ -32,24 +36,51 @@
                 </Grid>
 
                 <StackPanel Grid.Row="1" Spacing="4">
-                    <Button Classes="nav-button" Classes.active="{Binding IsRemoteTab}"
-                            Command="{Binding NavigateCommand}" CommandParameter="AndroidRemote">
+                    <Button Classes="nav-button" Classes.active="{Binding IsClipboardTab}"
+                            Command="{Binding ShowLibraryCommand}" CommandParameter="All">
                         <Grid ColumnDefinitions="24,*,Auto">
-                            <TextBlock Grid.Column="0" Text="📱" FontSize="14" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="Phone Remote" Margin="8,0,0,0" VerticalAlignment="Center" />
-                            <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!AndroidRemote.ActiveClientCount}">
-                                <TextBlock Text="{Binding AndroidRemote.ActiveClientCount}" Foreground="{DynamicResource Success}" />
+                            <TextBlock Grid.Column="0" Text="📋" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="All items" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!ClipboardHistory.AllCount}">
+                                <TextBlock Text="{Binding ClipboardHistory.AllCount}" Foreground="{DynamicResource BadgeViolet}" />
                             </Border>
                         </Grid>
                     </Button>
 
-                    <Button Classes="nav-button" Classes.active="{Binding IsClipboardTab}"
-                            Command="{Binding NavigateCommand}" CommandParameter="SmartClipboard">
+                    <Button Classes="nav-button"
+                            Command="{Binding ShowLibraryCommand}" CommandParameter="Starred">
                         <Grid ColumnDefinitions="24,*,Auto">
-                            <TextBlock Grid.Column="0" Text="📋" FontSize="14" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="Clipboard History" Margin="8,0,0,0" VerticalAlignment="Center" />
-                            <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!ClipboardHistory.AllCount}">
-                                <TextBlock Text="{Binding ClipboardHistory.AllCount}" Foreground="{DynamicResource BadgeViolet}" />
+                            <TextBlock Grid.Column="0" Text="☆" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Pinned" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!ClipboardHistory.StarredCount}">
+                                <TextBlock Text="{Binding ClipboardHistory.StarredCount}" Foreground="{DynamicResource BadgeViolet}" />
+                            </Border>
+                        </Grid>
+                    </Button>
+
+                    <TextBlock Classes="label" Text="DEVICES" Margin="12,12,0,4" />
+
+                    <ItemsControl ItemsSource="{Binding Devices}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:SidebarDeviceViewModel">
+                                <Grid ColumnDefinitions="Auto,*" Margin="12,4">
+                                    <Ellipse Grid.Column="0" Fill="{Binding StatusColor}" Width="8" Height="8"
+                                             VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Classes="hint" Text="No devices yet" IsVisible="{Binding !Devices.Count}" Margin="12,4" />
+
+                    <Button Classes="nav-button" Classes.active="{Binding IsRemoteTab}"
+                            Command="{Binding NavigateCommand}" CommandParameter="AndroidRemote">
+                        <Grid ColumnDefinitions="24,*,Auto">
+                            <TextBlock Grid.Column="0" Text="+" FontSize="14" VerticalAlignment="Center" FontWeight="Bold" />
+                            <TextBlock Grid.Column="1" Text="Add a phone" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!AndroidRemote.ActiveClientCount}">
+                                <TextBlock Text="{Binding AndroidRemote.ActiveClientCount}" Foreground="{DynamicResource Success}" />
                             </Border>
                         </Grid>
                     </Button>
@@ -58,15 +89,16 @@
                             Command="{Binding NavigateCommand}" CommandParameter="DisplayMatrix">
                         <Grid ColumnDefinitions="24,*">
                             <TextBlock Grid.Column="0" Text="🖥" FontSize="14" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="Displays &amp; Network" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Manage devices…" Margin="8,0,0,0" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
 
                     <Button Classes="nav-button" Classes.active="{Binding IsSettingsTab}"
                             Command="{Binding NavigateCommand}" CommandParameter="Settings">
-                        <Grid ColumnDefinitions="24,*">
+                        <Grid ColumnDefinitions="24,*,Auto">
                             <TextBlock Grid.Column="0" Text="⚙" FontSize="14" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="1" Text="Settings" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="Ctrl+," Classes="hint" FontSize="11" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
                 </StackPanel>
