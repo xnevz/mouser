@@ -16,6 +16,7 @@ public sealed class ClipboardPayload
     public string? HtmlContent { get; set; }
     public string SourceDevice { get; set; } = Environment.MachineName;
     public bool IsFavorite { get; set; }
+    public DateTime CreatedTime => DateTimeOffset.FromUnixTimeMilliseconds(TimestampUtc).LocalDateTime;
 
     public byte[] Serialize()
     {

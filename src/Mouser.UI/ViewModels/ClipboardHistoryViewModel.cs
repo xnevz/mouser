@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -33,6 +34,13 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
 
     /// <summary>Shown when the global quick-paste hotkey is available.</summary>
     [ObservableProperty] private string? _quickPasteHint;
+
+    public static string[] TimeOptions { get; } = { "Any time", "Today", "Yesterday", "Last 7 days", "Last 30 days" };
+    public ObservableCollection<string> DeviceOptions { get; } = new() { "All devices" };
+    [ObservableProperty] private string _selectedDevice = "All devices";
+    [ObservableProperty] private string _selectedTime = "Any time";
+    partial void OnSelectedDeviceChanged(string value) => _ = ReloadAsync();
+    partial void OnSelectedTimeChanged(string value) => _ = ReloadAsync();
 
     public ObservableCollection<ClipboardItemViewModel> FilteredClips { get; } = new();
 
@@ -179,6 +187,15 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
         await ReloadAsync();
     }
 
+    private void PopulateDeviceOptions(IEnumerable<ClipboardPayload> raw)
+    {
+        foreach (var device in raw.Select(c => c.SourceDevice).Where(d => !string.IsNullOrEmpty(d)).Distinct())
+        {
+            if (!DeviceOptions.Contains(device))
+                DeviceOptions.Add(device);
+        }
+    }
+
     public async Task ReloadAsync()
     {
         (AllCount, StarredCount) = await _storage.GetCountsAsync();
@@ -187,9 +204,21 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
             ? await _storage.GetRecentClipsAsync(PageSize, favoritesOnly: SelectedLibrary == "Starred")
             : await _storage.SearchClipsAsync(SearchQuery, PageSize);
 
+        PopulateDeviceOptions(results);
+
         var items = results.AsEnumerable();
         if (SelectedLibrary == "Starred") items = items.Where(c => c.IsFavorite);
         if (Enum.TryParse<ClipboardContentType>(SelectedFilter, out var kind)) items = items.Where(c => c.ContentType == kind);
+        if (SelectedDevice != "All devices") items = items.Where(c => c.SourceDevice == SelectedDevice);
+        var now = DateTime.Now.Date;
+        items = SelectedTime switch
+        {
+            "Today" => items.Where(c => c.CreatedTime.Date == now),
+            "Yesterday" => items.Where(c => c.CreatedTime.Date == now.AddDays(-1)),
+            "Last 7 days" => items.Where(c => c.CreatedTime.Date >= now.AddDays(-7)),
+            "Last 30 days" => items.Where(c => c.CreatedTime.Date >= now.AddDays(-30)),
+            _ => items
+        };
 
         string? selectedId = SelectedClip?.Id;
         FilteredClips.Clear();

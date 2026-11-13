@@ -461,4 +461,61 @@ public class ViewModelTests
         using var second = new SingleInstance(testName);
         Assert.False(second.IsFirst);
     }
+
+    [Fact]
+    public async Task ClipboardFilter_ByDevice()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        var history = app.Main.ClipboardHistory;
+        await history.InitializeAsync();
+
+        await history.CaptureAsync("text 1");
+        await app.Storage.SaveClipAsync(new ClipboardPayload { TextContent = "remote clip", SourceDevice = "OtherPC" });
+        await history.ReloadAsync();
+
+        Assert.Contains("OtherPC", history.DeviceOptions);
+
+        history.SelectedDevice = "OtherPC";
+        await history.ReloadAsync();
+        Assert.Single(history.FilteredClips);
+        Assert.Equal("remote clip", history.FilteredClips[0].Content);
+
+        history.SelectedDevice = "All devices";
+        await history.ReloadAsync();
+        Assert.Equal(2, history.FilteredClips.Count);
+    }
+
+    [Fact]
+    public async Task ClipboardFilter_ByTime()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        var history = app.Main.ClipboardHistory;
+        await history.InitializeAsync();
+
+        await history.CaptureAsync("today clip");
+        var tenDaysAgo = DateTimeOffset.UtcNow.AddDays(-10).ToUnixTimeMilliseconds();
+        await app.Storage.SaveClipAsync(new ClipboardPayload { TextContent = "old clip", TimestampUtc = tenDaysAgo, SourceDevice = Environment.MachineName });
+        await history.ReloadAsync();
+
+        history.SelectedTime = "Today";
+        await history.ReloadAsync();
+        Assert.Single(history.FilteredClips);
+        Assert.Equal("today clip", history.FilteredClips[0].Content);
+
+        history.SelectedTime = "Yesterday";
+        await history.ReloadAsync();
+        Assert.Empty(history.FilteredClips);
+        Assert.True(history.IsEmpty);
+
+        history.SelectedTime = "Last 7 days";
+        await history.ReloadAsync();
+        Assert.Single(history.FilteredClips);
+        Assert.Equal("today clip", history.FilteredClips[0].Content);
+
+        history.SelectedTime = "Last 30 days";
+        await history.ReloadAsync();
+        Assert.Equal(2, history.FilteredClips.Count);
+    }
 }
