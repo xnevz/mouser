@@ -38,6 +38,8 @@
                 <TextBlock Classes="page-title" Text="Clipboard History" />
                 <TextBlock Classes="page-subtitle"
                            Text="Text you copy on this computer is saved here so you can find and copy it again. History stays on this computer." />
+                <TextBlock Classes="hint" Text="{Binding QuickPasteHint}"
+                           IsVisible="{Binding QuickPasteHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             </StackPanel>
             <Button Grid.Column="1" Classes="secondary-btn" Content="Clear history" VerticalAlignment="Center"
                     Command="{Binding ClearAllCommand}" ToolTip.Tip="Delete all clips except starred ones" />

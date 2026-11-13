@@ -10,6 +10,9 @@ public partial class ScreenNodeViewModel : ViewModelBase
     public string ScalingText { get; init; } = string.Empty;
     public string PositionText { get; init; } = string.Empty;
     public bool IsPrimary { get; init; }
+    /// <summary>Another computer placed next to this one, not a local monitor.</summary>
+    public bool IsPeer { get; init; }
+    public string Label => IsPeer ? Name : Number.ToString();
 
     public double PositionX { get; init; }
     public double PositionY { get; init; }
@@ -18,5 +21,5 @@ public partial class ScreenNodeViewModel : ViewModelBase
 
     [ObservableProperty] private bool _isSelected;
 
-    public string RoleText => IsPrimary ? "Main display" : "Extended display";
+    public string RoleText => IsPeer ? "Mouser computer (move the cursor here to control it)" : IsPrimary ? "Main display" : "Extended display";
 }

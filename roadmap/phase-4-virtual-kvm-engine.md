@@ -1,5 +1,7 @@
 # Phase 4: Desktop Virtual KVM (ShareMouse Engine)
 
+> **Status (verified):** Windows capture (low-level hooks), the KVM controller, desktop pairing and placement are implemented and tested. macOS capture is implemented but untested. Linux `uinput` is not implemented. See [README](./README.md).
+
 > **Objective**: Implement the desktop-to-desktop Virtual KVM engine allowing mouse cursor and keyboard inputs to transition seamlessly across physical machines (macOS, Windows, Linux) across display borders.
 
 ---

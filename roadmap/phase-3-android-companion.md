@@ -1,5 +1,7 @@
 # Phase 3: Android Companion & Remote Input Hub
 
+> **Status (verified):** see [README](./README.md) for what the Android app does today.
+
 > **Objective**: Build the Android mobile companion application that turns any Android smartphone into a high-precision, low-latency wireless trackpad, 3D gyro air-mouse, and macro remote for desktop computers.
 
 ---

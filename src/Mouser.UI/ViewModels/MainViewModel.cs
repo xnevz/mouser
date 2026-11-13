@@ -21,7 +21,7 @@ public partial class MainViewModel : ViewModelBase
 
     public AndroidRemoteViewModel AndroidRemote { get; }
     public ClipboardHistoryViewModel ClipboardHistory { get; }
-    public MonitorLayoutViewModel MonitorLayout { get; } = new();
+    public MonitorLayoutViewModel MonitorLayout { get; }
     public SettingsViewModel Settings { get; }
 
     [ObservableProperty] private ViewModelBase _currentPage;
@@ -45,6 +45,8 @@ public partial class MainViewModel : ViewModelBase
         AndroidRemote = new AndroidRemoteViewModel(host, settings);
         ClipboardHistory = new ClipboardHistoryViewModel(clipboardStorage, settings);
         Settings = new SettingsViewModel(settings, host);
+        MonitorLayout = new MonitorLayoutViewModel(host, settings);
+        ClipboardHistory.ShareCapturedText = host.ShareClipboardAsync;
         _currentPage = AndroidRemote;
         Refresh();
     }
@@ -54,6 +56,14 @@ public partial class MainViewModel : ViewModelBase
     {
         AndroidRemote.Refresh();
         MonitorLayout.SetPeers(_host.Peers);
+
+        if (_host.Kvm?.ActivePeerName is { } controlled)
+        {
+            SystemStatusTitle = $"Controlling {controlled}";
+            SystemStatusText = "Ctrl+Alt+Esc to come back";
+            StatusColor = "#f59e0b";
+            return;
+        }
 
         if (_host.Input == null)
         {

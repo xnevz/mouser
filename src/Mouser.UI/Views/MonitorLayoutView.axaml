@@ -15,9 +15,12 @@
         <Style Selector="Button.screen:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="#232535" />
         </Style>
+        <Style Selector="Button.screen.peer /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#112a22" />
+            <Setter Property="BorderBrush" Value="#1f6b53" />
+        </Style>
         <Style Selector="Button.screen.selected /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="BorderBrush" Value="#6366f1" />
-            <Setter Property="Background" Value="#20223a" />
         </Style>
     </UserControl.Styles>
 
@@ -45,16 +48,15 @@
                             </ItemsControl.ItemContainerTheme>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="vm:ScreenNodeViewModel">
-                                    <Button Classes="screen" Classes.selected="{Binding IsSelected}"
-                                            Width="{Binding DisplayWidth}" Height="{Binding DisplayHeight}" Padding="0"
-                                            BorderThickness="2"
-                                            CornerRadius="8" Cursor="Hand"
+                                    <Button Classes="screen" Classes.selected="{Binding IsSelected}" Classes.peer="{Binding IsPeer}"
+                                            Width="{Binding DisplayWidth}" Height="{Binding DisplayHeight}" Padding="4"
+                                            BorderThickness="2" CornerRadius="8" Cursor="Hand"
                                             Command="{Binding $parent[ItemsControl].((vm:MonitorLayoutViewModel)DataContext).SelectScreenCommand}"
                                             CommandParameter="{Binding}"
                                             ToolTip.Tip="{Binding Name}">
                                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
-                                            <TextBlock Text="{Binding Number}" FontSize="24" FontWeight="ExtraBold"
-                                                       Foreground="#ffffff" HorizontalAlignment="Center" />
+                                            <TextBlock Text="{Binding Label}" FontSize="18" FontWeight="ExtraBold"
+                                                       Foreground="#ffffff" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                             <TextBlock Text="{Binding Resolution}" FontSize="10" Foreground="#94a3b8"
                                                        HorizontalAlignment="Center" />
                                         </StackPanel>
@@ -67,11 +69,7 @@
 
                 <Border Grid.Column="2" Classes="glass-card" Padding="18">
                     <StackPanel Spacing="12">
-                        <TextBlock Classes="section-title" Text="{Binding SelectedScreen.Number, StringFormat='Display {0}', FallbackValue='Display'}" />
-                        <StackPanel Spacing="2">
-                            <TextBlock Classes="label" Text="Name" />
-                            <TextBlock Text="{Binding SelectedScreen.Name, FallbackValue='-'}" Foreground="#e2e8f0" TextWrapping="Wrap" />
-                        </StackPanel>
+                        <TextBlock Classes="section-title" Text="{Binding SelectedScreen.Name, FallbackValue='Display'}" TextWrapping="Wrap" />
                         <StackPanel Spacing="2">
                             <TextBlock Classes="label" Text="Resolution" />
                             <TextBlock Text="{Binding SelectedScreen.Resolution, FallbackValue='-'}" Foreground="#e2e8f0" />
@@ -81,41 +79,78 @@
                             <TextBlock Text="{Binding SelectedScreen.ScalingText, FallbackValue='-'}" Foreground="#e2e8f0" />
                         </StackPanel>
                         <StackPanel Spacing="2">
-                            <TextBlock Classes="label" Text="Position on desktop" />
-                            <TextBlock Text="{Binding SelectedScreen.PositionText, FallbackValue='-'}" Foreground="#e2e8f0" />
+                            <TextBlock Classes="label" Text="Position" />
+                            <TextBlock Text="{Binding SelectedScreen.PositionText, FallbackValue='-'}" Foreground="#e2e8f0" TextWrapping="Wrap" />
                         </StackPanel>
                         <StackPanel Spacing="2">
                             <TextBlock Classes="label" Text="Role" />
-                            <TextBlock Text="{Binding SelectedScreen.RoleText, FallbackValue='-'}" Foreground="#e2e8f0" />
+                            <TextBlock Text="{Binding SelectedScreen.RoleText, FallbackValue='-'}" Foreground="#e2e8f0" TextWrapping="Wrap" />
                         </StackPanel>
                         <TextBlock Classes="hint" FontSize="11"
-                                   Text="Arrange or rescale displays in your operating system's display settings; this view updates automatically." />
+                                   Text="Arrange or rescale your own displays in the operating system's display settings; this view updates automatically." />
                     </StackPanel>
                 </Border>
             </Grid>
 
             <Border Classes="glass-card" Padding="18">
                 <StackPanel Spacing="12">
-                    <TextBlock Classes="section-title" Text="Mouser computers on this network" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" Text="Share mouse &amp; keyboard with other computers" />
+                            <TextBlock Classes="hint" Text="{Binding KvmStatus}" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding IsKvmEnabled}" IsEnabled="{Binding CanShareInput}"
+                                      OnContent="On" OffContent="Off" VerticalAlignment="Center" />
+                    </Grid>
 
                     <TextBlock Classes="hint" IsVisible="{Binding !HasPeers}"
-                               Text="None found. Other computers running Mouser on the same network appear here automatically." />
+                               Text="No other Mouser computers found. Start Mouser on another computer on the same network and it appears here." />
 
                     <ItemsControl ItemsSource="{Binding Peers}">
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="vm:PeerItem">
-                                <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,8">
-                                    <TextBlock Grid.Column="0" Text="{Binding Hostname}" FontWeight="SemiBold" Foreground="#f1f5f9" />
-                                    <TextBlock Grid.Column="1" Text="{Binding OperatingSystem}" Foreground="#94a3b8" Margin="16,0" />
-                                    <SelectableTextBlock Grid.Column="2" Text="{Binding Address}" Foreground="#64748b" />
-                                </Grid>
+                            <DataTemplate DataType="vm:PeerViewModel">
+                                <Border Background="#181922" BorderBrush="#272a38" BorderThickness="1" CornerRadius="8" Padding="14,12" Margin="0,0,0,8">
+                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                        <StackPanel Grid.Column="0" Spacing="3">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding Hostname}" FontWeight="SemiBold" Foreground="#f1f5f9" />
+                                                <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="#94a3b8" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                            <TextBlock FontSize="11" Foreground="#64748b">
+                                                <Run Text="{Binding OperatingSystem}" /><Run Text=" • " /><Run Text="{Binding Address}" /><Run Text=" • " /><Run Text="{Binding ScreenText}" />
+                                            </TextBlock>
+                                        </StackPanel>
+
+                                        <!-- Not paired: ask for the other computer's PIN -->
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsVisible="{Binding !IsPaired}" VerticalAlignment="Center">
+                                            <TextBox Text="{Binding PinText}" PlaceholderText="Its PIN" Width="110" MaxLength="7" />
+                                            <Button Classes="primary-btn" Content="Pair" Command="{Binding PairCommand}" />
+                                        </StackPanel>
+
+                                        <!-- Paired: choose where it sits -->
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsPaired}" VerticalAlignment="Center">
+                                            <TextBlock Text="Is to the" Foreground="#cbd5e1" FontSize="12" VerticalAlignment="Center" />
+                                            <ComboBox ItemsSource="{x:Static vm:PeerViewModel.PlacementOptions}" SelectedItem="{Binding Placement}" Width="110" />
+                                            <TextBlock Text="of this screen" Foreground="#cbd5e1" FontSize="12" VerticalAlignment="Center" />
+                                            <Button Classes="secondary-btn" Content="Send file…" Command="{Binding SendFileCommand}" />
+                                            <Button Classes="secondary-btn" Content="Forget" Command="{Binding ForgetCommand}" />
+                                        </StackPanel>
+
+                                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Error}" Foreground="#fda4af" FontSize="11" Margin="0,8,0,0"
+                                                   IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                    </Grid>
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
+                    <TextBlock Classes="hint" Text="{Binding TransferStatus}"
+                               IsVisible="{Binding TransferStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
                     <Border Classes="banner-info">
                         <TextBlock Foreground="#c7d2fe" FontSize="12" TextWrapping="Wrap"
-                                   Text="Moving your mouse and keyboard from one computer to another isn't available yet. Today Mouser lets a phone control this computer and keeps a clipboard history." />
+                                   Text="Pair with the PIN shown on the other computer's Phone Remote page, then pick its side. Push the cursor past that edge to control it; come back through the same edge. Paired computers also share copied text and can send each other files. Ctrl+Alt+Esc (or Scroll Lock) always returns control here, and pressed on this computer locks the cursor to this screen." />
                     </Border>
                 </StackPanel>
             </Border>

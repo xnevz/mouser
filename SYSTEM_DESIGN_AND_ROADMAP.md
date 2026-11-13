@@ -1,3 +1,5 @@
+> This is a historical design document. For what is actually built and how to test it, see [roadmap/README.md](roadmap/README.md).
+
 # Mouser: Unified Cross-Platform Virtual KVM & Universal Smart Clipboard
 ## Architectural Specification, Brainstorming & Implementation Roadmap
 

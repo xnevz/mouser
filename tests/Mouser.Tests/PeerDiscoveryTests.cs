@@ -83,4 +83,25 @@ public class PeerDiscoveryTests
         Assert.Equal(59000, peer.MotionPort);
         Assert.DoesNotContain(a.ActivePeers, p => p.DeviceId == "host-a"); // own beacon ignored
     }
+
+    [Fact]
+    public async Task PeerAddress_StaysStable_WhenBeaconsArriveFromSeveralAdapters()
+    {
+        int port = Random.Shared.Next(40_000, 50_000);
+        using var service = new PeerDiscoveryService("me", "Me", "Windows", 1, 0, port);
+        service.Start();
+        byte[] beacon = PeerDiscoveryService.CreateBeaconPayload(new DiscoveredPeer { DeviceId = "other", Hostname = "Other", MotionPort = 58491 });
+
+        // Same beacon from two different local addresses, like a PC with Ethernet plus a Hyper-V adapter.
+        using var first = new System.Net.Sockets.UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+        first.Send(beacon, beacon.Length, new IPEndPoint(IPAddress.Loopback, port));
+        await Wait.UntilAsync(() => service.ActivePeers.Any(p => p.DeviceId == "other"));
+        var firstAddress = service.ActivePeers.Single(p => p.DeviceId == "other").IpAddress;
+
+        using var second = new System.Net.Sockets.UdpClient(new IPEndPoint(IPAddress.Parse("127.0.0.2"), 0));
+        second.Send(beacon, beacon.Length, new IPEndPoint(IPAddress.Loopback, port));
+        await Task.Delay(200);
+
+        Assert.Equal(firstAddress, service.ActivePeers.Single(p => p.DeviceId == "other").IpAddress);
+    }
 }

@@ -1,5 +1,7 @@
 # Phase 5: Universal Multi-Format Smart Clipboard Engine
 
+> **Status (verified):** history, FTS5 search, secret filter, encrypted sync between paired desktops and the quick-paste overlay are implemented. Clipboard change detection polls once a second (no native hooks). Images and HTML clips are not captured. See [README](./README.md).
+
 > **Objective**: Implement real-time, end-to-end encrypted clipboard synchronization across macOS, Windows, Linux, and Android, paired with an encrypted local SQLite history database and a floating Quick Paste HUD.
 
 ---

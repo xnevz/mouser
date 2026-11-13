@@ -34,6 +34,12 @@ public sealed class MacInputSink : IInputSink
         NativeDriver.InjectMouseDelta(ClampShort(dx), ClampShort(dy));
     }
 
+    public void MoveAbsolute(int x, int y)
+    {
+        if (!_available) return;
+        NativeDriver.InjectMouseMove(x, y);
+    }
+
     public void SetButton(MouseButton button, bool isDown)
     {
         if (!_available) return;

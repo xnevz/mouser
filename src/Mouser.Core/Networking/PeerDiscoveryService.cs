@@ -48,6 +48,18 @@ public sealed class PeerDiscoveryService : IDisposable
         _udpClient.Client.Bind(new IPEndPoint(IPAddress.Any, _discoveryPort));
     }
 
+    /// <summary>Publishes this computer's desktop bounds so peers can place it next to their screens.</summary>
+    public void UpdateLocalScreen(int x, int y, int width, int height)
+    {
+        lock (_localPeerInfo)
+        {
+            _localPeerInfo.ScreenX = x;
+            _localPeerInfo.ScreenY = y;
+            _localPeerInfo.ScreenWidth = width;
+            _localPeerInfo.ScreenHeight = height;
+        }
+    }
+
     public void Start()
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
@@ -62,10 +74,11 @@ public sealed class PeerDiscoveryService : IDisposable
 
     private async Task BroadcastBeaconLoopAsync(CancellationToken token)
     {
-        byte[] beaconPayload = CreateBeaconPayload(_localPeerInfo);
-
         while (!token.IsCancellationRequested)
         {
+            byte[] beaconPayload;
+            lock (_localPeerInfo) beaconPayload = CreateBeaconPayload(_localPeerInfo);
+
             // Re-resolved every beat so Wi-Fi reconnects and adapter changes are picked up.
             foreach (var address in NetworkInfo.GetBroadcastAddresses())
             {
@@ -105,7 +118,10 @@ public sealed class PeerDiscoveryService : IDisposable
                     peer.IpAddress = result.RemoteEndPoint.Address;
                     peer.LastSeenUtc = DateTime.UtcNow;
 
-                    bool isNew = !_peers.ContainsKey(peer.DeviceId);
+                    // A peer beacons from every adapter (Wi-Fi, Ethernet, Hyper-V/WSL…). Keep the address we first
+                    // heard while it stays alive, so links to it don't flip between adapters every second.
+                    bool isNew = !_peers.TryGetValue(peer.DeviceId, out var known);
+                    if (!isNew) peer.IpAddress = known!.IpAddress;
                     _peers[peer.DeviceId] = peer;
 
                     if (isNew)
@@ -163,7 +179,11 @@ public sealed class PeerDiscoveryService : IDisposable
             Host = peer.Hostname,
             Os = peer.OperatingSystem,
             MPort = peer.MotionPort,
-            CPort = peer.ControlPort
+            CPort = peer.ControlPort,
+            X = peer.ScreenX,
+            Y = peer.ScreenY,
+            W = peer.ScreenWidth,
+            H = peer.ScreenHeight
         };
         string json = JsonSerializer.Serialize(dto);
         return Encoding.UTF8.GetBytes("MOUS_DISC:" + json);
@@ -186,6 +206,10 @@ public sealed class PeerDiscoveryService : IDisposable
             peer.OperatingSystem = dto.Os;
             peer.MotionPort = dto.MPort;
             peer.ControlPort = dto.CPort;
+            peer.ScreenX = dto.X;
+            peer.ScreenY = dto.Y;
+            peer.ScreenWidth = dto.W;
+            peer.ScreenHeight = dto.H;
             return true;
         }
         catch
@@ -220,5 +244,9 @@ public sealed class PeerDiscoveryService : IDisposable
         public string Os { get; set; } = string.Empty;
         public int MPort { get; set; }
         public int CPort { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int W { get; set; }
+        public int H { get; set; }
     }
 }

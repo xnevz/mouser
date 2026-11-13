@@ -140,6 +140,12 @@ public sealed class InputInjectionService : IDisposable
                     description = ApplyButtonState(packet.ButtonFlags);
                     break;
 
+                case InputMotionPacket.TypeMoveAbsolute:
+                    MotionEventsProcessed++;
+                    _sink.MoveAbsolute(packet.DeltaX, packet.DeltaY);
+                    description = null;
+                    break;
+
                 case InputMotionPacket.TypeButton:
                     ButtonEventsProcessed++;
                     description = ApplyButtonState(packet.ButtonFlags);

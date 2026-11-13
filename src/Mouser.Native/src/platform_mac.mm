@@ -11,11 +11,22 @@ static NativeMouseButtonCallback g_mouseButtonCallback = NULL;
 static NativeKeyCallback g_keyCallback = NULL;
 static bool g_isInputRedirected = false;
 
+// Moving with a button held arrives as a "dragged" event, not a plain move.
+static bool IsMoveEvent(CGEventType type) {
+    return type == kCGEventMouseMoved || type == kCGEventLeftMouseDragged ||
+           type == kCGEventRightMouseDragged || type == kCGEventOtherMouseDragged;
+}
+
 static CGEventRef EventTapCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon) {
+    // macOS switches the tap off after a slow callback or secure input; turn it straight back on.
+    if (type == kCGEventTapDisabledByTimeout || type == kCGEventTapDisabledByUserInput) {
+        if (g_eventTap) CGEventTapEnable(g_eventTap, true);
+        return event;
+    }
     if (g_isInputRedirected) {
         // When input is redirected to a remote machine, swallow/suppress local events
         // and forward them to the callback handlers for network transmission.
-        if (type == kCGEventMouseMoved && g_mouseMoveCallback) {
+        if (IsMoveEvent(type) && g_mouseMoveCallback) {
             int64_t dx = CGEventGetIntegerValueField(event, kCGMouseEventDeltaX);
             int64_t dy = CGEventGetIntegerValueField(event, kCGMouseEventDeltaY);
             g_mouseMoveCallback((int16_t)dx, (int16_t)dy);
@@ -44,7 +55,7 @@ static CGEventRef EventTapCallback(CGEventTapProxy proxy, CGEventType type, CGEv
     }
 
     // Normal non-redirected local execution: monitor events without suppression
-    if (type == kCGEventMouseMoved && g_mouseMoveCallback) {
+    if (IsMoveEvent(type) && g_mouseMoveCallback) {
         int64_t dx = CGEventGetIntegerValueField(event, kCGMouseEventDeltaX);
         int64_t dy = CGEventGetIntegerValueField(event, kCGMouseEventDeltaY);
         g_mouseMoveCallback((int16_t)dx, (int16_t)dy);
@@ -99,6 +110,9 @@ int32_t mouser_init_input_capture(NativeMouseMoveCallback onMove,
     }
 
     CGEventMask mask = CGEventMaskBit(kCGEventMouseMoved) |
+                       CGEventMaskBit(kCGEventLeftMouseDragged) |
+                       CGEventMaskBit(kCGEventRightMouseDragged) |
+                       CGEventMaskBit(kCGEventOtherMouseDragged) |
                        CGEventMaskBit(kCGEventLeftMouseDown) |
                        CGEventMaskBit(kCGEventLeftMouseUp) |
                        CGEventMaskBit(kCGEventRightMouseDown) |

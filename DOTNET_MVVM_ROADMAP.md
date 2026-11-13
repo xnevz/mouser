@@ -1,3 +1,5 @@
+> This is a historical design document. For what is actually built and how to test it, see [roadmap/README.md](roadmap/README.md).
+
 # Mouser: .NET / C# + Low-Level C++ Architecture & Comprehensive Roadmap
 ## Production Plan: Cross-Platform Virtual KVM & Smart Clipboard (macOS, Windows, Linux, Android)
 

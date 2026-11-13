@@ -15,6 +15,12 @@ public sealed class DiscoveredPeer
     public int ControlPort { get; set; }
     public DateTime LastSeenUtc { get; set; } = DateTime.UtcNow;
 
+    /// <summary>Bounding box of the peer's whole desktop in its own pixel coordinates (0 size if unknown).</summary>
+    public int ScreenX { get; set; }
+    public int ScreenY { get; set; }
+    public int ScreenWidth { get; set; }
+    public int ScreenHeight { get; set; }
+
     public IPEndPoint MotionEndPoint => new IPEndPoint(IpAddress, MotionPort);
     public IPEndPoint ControlEndPoint => new IPEndPoint(IpAddress, ControlPort);
 

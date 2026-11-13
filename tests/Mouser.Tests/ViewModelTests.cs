@@ -27,11 +27,14 @@ public sealed class AppFixture : IAsyncDisposable
     public FakeClipboard Clipboard { get; } = new();
     public MainViewModel Main { get; }
 
-    public AppFixture()
+    public string Downloads => Path.Combine(_dir, "downloads");
+
+    public AppFixture(int? discoveryPort = null)
     {
         Settings = new SettingsStore(Path.Combine(_dir, "settings.json"));
         Settings.Current.InputPort = 0; // any free port
-        Host = new MouserHost(Settings, Sink, discoveryPort: Random.Shared.Next(40_000, 50_000));
+        Host = new MouserHost(Settings, Sink, discoveryPort: discoveryPort ?? Random.Shared.Next(40_000, 50_000),
+            downloadDirectory: Path.Combine(_dir, "downloads"));
         Host.Restart();
         Storage = new ClipboardStorageService(Path.Combine(_dir, "clipboard.db"));
         Main = new MainViewModel(Host, Settings, Storage);

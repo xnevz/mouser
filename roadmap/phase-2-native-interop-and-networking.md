@@ -1,5 +1,7 @@
 # Phase 2: Native Interop & Networking Engine
 
+> **Status (verified):** discovery is UDP broadcast (not mDNS/Zeroconf), packets are not encrypted, and pairing uses a 6-digit PIN. See [README](./README.md).
+
 > **Objective**: Implement the low-level C++ native libraries (`libmouser_native`), source-generated C# interop bindings (`[LibraryImport]`), and the zero-allocation UDP/TCP network engine for high-frequency input streaming and peer discovery.
 
 ---

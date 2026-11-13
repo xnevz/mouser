@@ -35,6 +35,9 @@ public sealed partial class Win32InputSink : IInputSink
         SendMouse(dx, dy, 0, MOUSEEVENTF_MOVE);
     }
 
+    // SetCursorPos takes physical pixels in a per-monitor DPI aware process (Avalonia sets that up).
+    public void MoveAbsolute(int x, int y) => SetCursorPos(x, y);
+
     public void SetButton(MouseButton button, bool isDown)
     {
         uint flags = button switch
@@ -146,4 +149,8 @@ public sealed partial class Win32InputSink : IInputSink
 
     [LibraryImport("user32.dll")]
     private static partial uint MapVirtualKeyW(uint uCode, uint uMapType);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool SetCursorPos(int x, int y);
 }

@@ -46,7 +46,8 @@ if (_settings.Current.SkipSensitiveClips &&
         'Windows uses user32 SendInput directly from C#; no native library to install.',
         'macOS uses libmouser_native (Objective-C++) and needs the Accessibility permission.',
         'Keys travel as Windows virtual-key codes and are translated for macOS.',
-        'Linux injection (XTest/uinput) is not written yet.',
+        'Windows captures input with low-level hooks; injected events are ignored so nothing loops back.',
+        'Linux injection and capture (XTest/uinput) are not written yet.',
       ],
       codeSnippet: `// InputInjectionService.cs: packets carry the full
 // button mask, so a lost packet can't leave a button stuck
@@ -65,8 +66,9 @@ foreach (var button in Buttons)
         'Desktops broadcast a small beacon every second on each network adapter; phones listen and list them.',
         'A phone pairs by sending the 6-digit PIN; five wrong guesses lock it out for a minute.',
         'Per-sender sequence numbers drop duplicated or reordered packets and survive app restarts.',
-        'Pings every second measure latency and detect a dropped connection.',
-        'Packets are not encrypted yet: use Mouser on networks you trust.',
+        'Pings measure latency and detect a dropped connection; the KVM hands control back if a peer goes quiet.',
+        'Clipboard and files travel over TCP, AES-256-GCM encrypted with a key derived from the pairing PIN.',
+        'Mouse and keyboard packets are not encrypted: use Mouser on networks you trust.',
       ],
       codeSnippet: `// SequenceTracker.cs
 short diff = unchecked((short)(sequence - last));

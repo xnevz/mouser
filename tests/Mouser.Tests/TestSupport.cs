@@ -12,6 +12,7 @@ public sealed class RecordingSink : IInputSink
     public bool IsSupported => true;
 
     public void MoveRelative(int dx, int dy) { lock (Events) Events.Add($"move {dx},{dy}"); }
+    public void MoveAbsolute(int x, int y) { lock (Events) Events.Add($"at {x},{y}"); }
     public void SetButton(MouseButton button, bool isDown) { lock (Events) Events.Add($"{button} {(isDown ? "down" : "up")}"); }
     public void Scroll(int horizontal, int vertical) { lock (Events) Events.Add($"scroll {horizontal},{vertical}"); }
     public void Key(ushort virtualKey, bool isDown) { lock (Events) Events.Add($"key 0x{virtualKey:X2} {(isDown ? "down" : "up")}"); }

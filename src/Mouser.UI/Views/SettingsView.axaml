@@ -30,6 +30,8 @@
                     <CheckBox Content="Save text I copy to the clipboard history" IsChecked="{Binding ClipboardHistoryEnabled}" />
                     <CheckBox Content="Don't save things that look like passwords, API keys, private keys or card numbers"
                               IsChecked="{Binding SkipSensitiveClips}" />
+                    <CheckBox Content="Share copied text with paired computers (encrypted, local network only)"
+                              IsChecked="{Binding ClipboardSyncEnabled}" />
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="Delete unstarred clips after" VerticalAlignment="Center" Foreground="#cbd5e1" FontSize="12" />
                         <NumericUpDown Value="{Binding ClipboardRetentionDays}" Minimum="1" Maximum="3650" Increment="1"

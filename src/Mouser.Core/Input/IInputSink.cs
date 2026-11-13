@@ -17,6 +17,9 @@ public interface IInputSink
     bool IsSupported { get; }
 
     void MoveRelative(int dx, int dy);
+
+    /// <summary>Puts the cursor at a position in this computer's desktop pixel coordinates.</summary>
+    void MoveAbsolute(int x, int y);
     void SetButton(MouseButton button, bool isDown);
 
     /// <summary>Wheel deltas in WHEEL_DELTA units (120 = one notch). Positive vertical = up, positive horizontal = right.</summary>
@@ -30,6 +33,7 @@ public sealed class NullInputSink : IInputSink
     public static readonly NullInputSink Instance = new();
     public bool IsSupported => false;
     public void MoveRelative(int dx, int dy) { }
+    public void MoveAbsolute(int x, int y) { }
     public void SetButton(MouseButton button, bool isDown) { }
     public void Scroll(int horizontal, int vertical) { }
     public void Key(ushort virtualKey, bool isDown) { }

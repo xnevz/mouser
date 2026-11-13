@@ -62,9 +62,10 @@ export const Hero = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-6 text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed"
           >
-            Mouser turns an Android phone into a trackpad, air mouse and media remote for your{' '}
-            <strong className="text-slate-900 dark:text-white font-semibold">Windows or Mac</strong>, and keeps a
-            searchable history of everything you copy. It all stays on your local network.
+            Mouser moves one mouse and keyboard across your{' '}
+            <strong className="text-slate-900 dark:text-white font-semibold">computers</strong>, turns an Android
+            phone into a trackpad and remote, and keeps a searchable, synced history of everything you copy. It all
+            stays on your local network.
           </motion.p>
 
           <motion.div

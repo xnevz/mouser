@@ -2,15 +2,21 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MousePointer2, ClipboardList, Navigation, Radar, ShieldCheck, Music } from 'lucide-react';
+import { MousePointer2, ClipboardList, Navigation, Radar, ShieldCheck, Music, Monitor } from 'lucide-react';
 
 const features = [
+  {
+    icon: Monitor,
+    title: 'One mouse and keyboard, several computers',
+    body: 'Pair two computers, say which side the other one is on, and push the cursor past that edge to control it. Copied text follows you, and you can send files across. Ctrl+Alt+Esc always brings you back.',
+    accent: 'text-sky-600 dark:text-sky-400 bg-sky-500/10 border-sky-500/25',
+    wide: true,
+  },
   {
     icon: MousePointer2,
     title: 'A real trackpad on your phone',
     body: 'Move with one finger, scroll with two, tap to click and two-finger tap to right-click. Hold the Left button to drag windows and select text.',
     accent: 'text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border-cyan-500/25',
-    wide: true,
   },
   {
     icon: Navigation,
@@ -27,9 +33,8 @@ const features = [
   {
     icon: ClipboardList,
     title: 'Clipboard history',
-    body: 'Everything you copy is saved locally and searchable. Star what matters, copy it back with one click. Links and code are detected automatically, and things that look like passwords or API keys are skipped.',
+    body: 'Everything you copy is saved locally and searchable. Press Win+Alt+V in any app to pick a clip and paste it. Links and code are detected automatically, and things that look like passwords or API keys are skipped.',
     accent: 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/25',
-    wide: true,
   },
   {
     icon: Radar,
@@ -42,6 +47,7 @@ const features = [
     title: 'PIN pairing',
     body: 'A phone must enter the 6-digit PIN shown on the computer before it can control it. Repeated wrong guesses are locked out, and a new PIN unpairs everyone.',
     accent: 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/25',
+    wide: true,
   },
 ];
 
@@ -51,7 +57,7 @@ export const FeatureGrid = () => (
       <div className="text-center max-w-3xl mx-auto mb-16">
         <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">What Mouser does today</h2>
         <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300">
-          Moving one mouse across several computers is on the roadmap. Here is what already works.
+          Everything below works today on Windows. macOS and Linux support varies, see Get Mouser.
         </p>
       </div>
 

@@ -30,6 +30,9 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     [ObservableProperty] private int _allCount;
     [ObservableProperty] private int _starredCount;
 
+    /// <summary>Shown when the global quick-paste hotkey is available.</summary>
+    [ObservableProperty] private string? _quickPasteHint;
+
     public ObservableCollection<ClipboardItemViewModel> FilteredClips { get; } = new();
 
     public bool IsCaptureEnabled => _settings.Current.ClipboardHistoryEnabled;
@@ -61,12 +64,50 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
             string? text = await _clipboard.GetTextAsync();
             if (text == null || text == _lastSeenText) return false;
             _lastSeenText = text;
-            return await CaptureAsync(text);
+            bool captured = await CaptureAsync(text);
+            if (ShareCapturedText != null && IsShareable(text)) _ = ShareCapturedText(text);
+            return captured;
         }
         finally
         {
             _isPolling = false;
         }
+    }
+
+    /// <summary>Set by the app to send newly copied text to paired computers.</summary>
+    public Func<string, Task>? ShareCapturedText { get; set; }
+
+    private bool IsShareable(string text) =>
+        !string.IsNullOrWhiteSpace(text) && text.Length <= MaxClipLength &&
+        !(_settings.Current.SkipSensitiveClips && ClipboardPrivacyFilter.IsSensitive(text));
+
+    /// <summary>Puts text copied on a paired computer on this clipboard (and in history) without echoing it back.</summary>
+    public async Task ApplyRemoteClipAsync(string fromComputer, ClipboardPayload clip)
+    {
+        string text = clip.TextContent;
+        if (_clipboard == null || !IsShareable(text) || text == _lastSeenText) return;
+
+        _lastSeenText = text; // the next poll sees our own write and must not send it back
+        await _clipboard.SetTextAsync(text);
+        if (_settings.Current.ClipboardHistoryEnabled)
+        {
+            await _storage.SaveClipAsync(new ClipboardPayload
+            {
+                ContentType = ClipboardClassifier.Classify(text),
+                TextContent = text,
+                SourceDevice = fromComputer
+            });
+            await ReloadAsync();
+        }
+        StatusMessage = $"Pasted text copied on {fromComputer}.";
+    }
+
+    /// <summary>Puts history text back on the clipboard without capturing or syncing it again.</summary>
+    public async Task CopyTextAsync(string text)
+    {
+        if (_clipboard == null) return;
+        _lastSeenText = text;
+        await _clipboard.SetTextAsync(text);
     }
 
     public async Task<bool> CaptureAsync(string text)
@@ -115,9 +156,8 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     [RelayCommand]
     private async Task CopyClipAsync(ClipboardItemViewModel? clip)
     {
-        if (clip == null || _clipboard == null) return;
-        _lastSeenText = clip.Content; // don't re-capture our own write
-        await _clipboard.SetTextAsync(clip.Content);
+        if (clip == null) return;
+        await CopyTextAsync(clip.Content);
         StatusMessage = "Copied to clipboard.";
     }
 

@@ -1,0 +1,33 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Mouser.UI.ViewModels"
+        x:Class="Mouser.UI.Views.QuickPasteWindow"
+        x:DataType="vm:QuickPasteViewModel"
+        Title="Quick paste"
+        Width="560" SizeToContent="Height" MaxHeight="520"
+        WindowDecorations="None" CanResize="False" ShowInTaskbar="False" Topmost="True"
+        WindowStartupLocation="CenterScreen"
+        Background="#13141d">
+
+    <Border BorderBrush="#4f46e5" BorderThickness="1" CornerRadius="10" Padding="12">
+        <StackPanel Spacing="10">
+            <TextBox x:Name="SearchBox" Text="{Binding Query}" PlaceholderText="Search clipboard history… (Enter to paste, Esc to close)" />
+
+            <TextBlock Classes="hint" IsVisible="{Binding IsEmpty}" Margin="4"
+                       Text="No clips yet. Copy some text and it shows up here." />
+
+            <ListBox x:Name="ClipList" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
+                     Background="Transparent" MaxHeight="400" IsVisible="{Binding !IsEmpty}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="vm:ClipboardItemViewModel">
+                        <Grid ColumnDefinitions="Auto,*,Auto" Margin="2,4">
+                            <TextBlock Text="{Binding StarIcon}" Foreground="{Binding StarColor}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding PreviewTitle}" Foreground="#f1f5f9" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="{Binding FormattedTime}" Foreground="#64748b" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </StackPanel>
+    </Border>
+</Window>

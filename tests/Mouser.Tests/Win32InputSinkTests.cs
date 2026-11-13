@@ -23,21 +23,24 @@ public partial class Win32InputSinkTests
     public async Task MoveRelative_MovesTheRealCursor()
     {
         Assert.True(GetCursorPos(out var start));
-        // Start away from screen edges so the move can't be clamped.
-        SetCursorPos(400, 400);
         try
         {
-            var sink = new Win32InputSink();
-            sink.MoveRelative(40, 25);
-            await Task.Delay(50);
-            Assert.True(GetCursorPos(out var moved));
+            // The real mouse is shared with whoever sits at the PC, so a hand on it can spoil one attempt.
+            POINT moved = default;
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                SetCursorPos(400, 400); // away from screen edges so the move can't be clamped
+                new Win32InputSink().MoveRelative(40, 25);
+                await Task.Delay(50);
+                Assert.True(GetCursorPos(out moved));
+                if (moved.X > 400 && moved.Y > 400) return;
+            }
 
             if (moved.X == 400 && moved.Y == 400)
                 return; // locked or non-interactive session: Windows silently drops injected input
 
             // Pointer acceleration may scale the distance, but the direction must match.
-            Assert.True(moved.X > 400, $"expected cursor to move right, got {moved.X}");
-            Assert.True(moved.Y > 400, $"expected cursor to move down, got {moved.Y}");
+            Assert.Fail($"expected the cursor to move right and down from (400,400), got ({moved.X},{moved.Y})");
         }
         finally
         {
@@ -55,5 +58,16 @@ public partial class Win32InputSinkTests
     public void ExtendedKeyFlag_IsSetForNavigationAndMediaKeys(ushort vk, bool extended)
     {
         Assert.Equal(extended, Win32InputSink.IsExtendedKey(vk));
+    }
+
+    [WindowsFact]
+    public void Capture_InstallsAndRemovesGlobalHooks()
+    {
+        using var capture = new Win32InputCapture { Handler = _ => false };
+        capture.Start();
+        capture.Start(); // idempotent
+        capture.Stop();
+        capture.Start(); // can be restarted after a stop
+        capture.Stop();
     }
 }

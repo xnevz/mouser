@@ -13,6 +13,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private int _inputPort;
     [ObservableProperty] private bool _clipboardHistoryEnabled;
     [ObservableProperty] private bool _skipSensitiveClips;
+    [ObservableProperty] private bool _clipboardSyncEnabled;
     [ObservableProperty] private int _clipboardRetentionDays;
     [ObservableProperty] private bool _startAtLogin;
     [ObservableProperty] private string? _statusMessage;
@@ -28,12 +29,14 @@ public partial class SettingsViewModel : ViewModelBase
         _inputPort = s.InputPort;
         _clipboardHistoryEnabled = s.ClipboardHistoryEnabled;
         _skipSensitiveClips = s.SkipSensitiveClips;
+        _clipboardSyncEnabled = s.ClipboardSyncEnabled;
         _clipboardRetentionDays = s.ClipboardRetentionDays;
         _startAtLogin = s.StartAtLogin;
     }
 
     partial void OnClipboardHistoryEnabledChanged(bool value) => Save(s => s.ClipboardHistoryEnabled = value);
     partial void OnSkipSensitiveClipsChanged(bool value) => Save(s => s.SkipSensitiveClips = value);
+    partial void OnClipboardSyncEnabledChanged(bool value) => Save(s => s.ClipboardSyncEnabled = value);
 
     partial void OnClipboardRetentionDaysChanged(int value)
     {

@@ -1,5 +1,7 @@
 # Phase 6: Packaging, macOS Notarization & Release
 
+> **Status (verified):** file transfer to a paired computer and the build scripts work. Notarization, signed installers, MSIX and Flatpak were never produced, and the DMG sizes below were not reproducible. See [README](./README.md).
+
 > **Objective**: Implement drag-and-drop file streaming, package production-ready installers for all target platforms, execute Apple Notarization on macOS, and benchmark system performance to ensure zero micro-stuttering.
 
 ---
