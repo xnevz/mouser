@@ -81,7 +81,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | A2 | Convert `App.axaml` styles to tokens | A1 | M |
 | ✅ | A3 | Migrate `MainWindow.axaml` | A2 | S |
 | ✅ | A4 | Migrate `AndroidRemoteView.axaml` | A2 | S |
-| ⬜ | A5 | Migrate `ClipboardHistoryView.axaml` | A2 | S |
+| ✅ | A5 | Migrate `ClipboardHistoryView.axaml` | A2 | S |
 | ⬜ | A6 | Migrate `MonitorLayoutView.axaml` | A2 | M |
 | ⬜ | A7 | Migrate `SettingsView.axaml` | A2 | XS |
 | ⬜ | A8 | Migrate `QuickPasteWindow.axaml` | A2 | XS |
@@ -260,3 +260,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - A2: Converted all raw hex color setters in App.axaml styles to dynamic theme tokens; verified 0 remaining hex colors outside SystemAccentColor* lines; all 130 tests pass.
 - A3: Migrated MainWindow.axaml to dynamic theme tokens; verified 0 remaining hex colors; 130 tests pass.
 - A4: Migrated AndroidRemoteView.axaml to dynamic theme tokens; verified 0 remaining hex colors; 130 tests pass.
+- A5: Migrated ClipboardHistoryView.axaml to dynamic theme tokens; verified 0 remaining hex colors; 130 tests pass.
