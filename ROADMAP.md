@@ -100,7 +100,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | B3 | Clipboard filters: device and time | A9 | M |
 | ✅ | B4 | Day headers in the list | B3 | S |
 | ✅ | B5 | Clipboard page layout (search, chips, grouped list) | B3, B4 | L |
-| ⬜ | B6 | Detail pane (actions, metadata cards) | B5 | M |
+| ✅ | B6 | Detail pane (actions, metadata cards) | B5 | M |
 | ⬜ | B7 | Editable device name | A9 | S |
 | ⬜ | B8 | Devices view model | B1, B7 | M |
 | ⬜ | B9 | Devices page + navigation switch (clipboard becomes the home page) | B2, B8 | L |
@@ -273,3 +273,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - B3: Added CreatedTime property to ClipboardPayload, device and time filter options to ClipboardHistoryViewModel with PopulateDeviceOptions and ReloadAsync filtering; added unit tests ClipboardFilter_ByDevice and ClipboardFilter_ByTime (142 passing).
 - B4: Added TimestampLocal, DayLabel, ShowDayHeader, and DayCount to ClipboardItemViewModel; computed day headers and item counts per section in ClipboardHistoryViewModel.ReloadAsync(); added unit test ClipboardHistory_ComputesDayHeadersAndCounts (143 passing).
 - B5: Updated ClipboardHistoryView with search row (including Clear history button), filter dropdown chips (Type, Device, Time), and day headers in list cards; wired Ctrl+F hotkey to focus search via MainViewModel and MainWindow; added unit test FocusSearch_NavigatesAndFiresEvent (144 passing).
+- B6: Updated ClipboardHistoryView detail pane with top action buttons (Copy, Star, Delete), monospace text preview, metadata card, and empty state; added unit test ClipboardHistory_DetailPaneSelection (145 passing).
