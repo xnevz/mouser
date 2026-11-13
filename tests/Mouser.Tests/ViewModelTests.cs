@@ -268,6 +268,38 @@ public class ViewModelTests
     }
 
     [Fact]
+    public async Task ClipboardHistory_ComputesDayHeadersAndCounts()
+    {
+        await using var app = new AppFixture();
+        var history = app.Main.ClipboardHistory;
+        await history.InitializeAsync();
+
+        await history.CaptureAsync("clip 1 today");
+        await history.CaptureAsync("clip 2 today");
+
+        var twoDaysAgo = DateTimeOffset.UtcNow.AddDays(-2).ToUnixTimeMilliseconds();
+        await app.Storage.SaveClipAsync(new ClipboardPayload
+        {
+            TextContent = "clip two days ago",
+            TimestampUtc = twoDaysAgo,
+            SourceDevice = Environment.MachineName
+        });
+
+        await history.ReloadAsync();
+
+        Assert.Equal(3, history.FilteredClips.Count);
+        Assert.True(history.FilteredClips[0].ShowDayHeader);
+        Assert.Equal(2, history.FilteredClips[0].DayCount);
+        Assert.Equal("Today", history.FilteredClips[0].DayLabel);
+
+        Assert.False(history.FilteredClips[1].ShowDayHeader);
+        Assert.Equal(0, history.FilteredClips[1].DayCount);
+
+        Assert.True(history.FilteredClips[2].ShowDayHeader);
+        Assert.Equal(1, history.FilteredClips[2].DayCount);
+    }
+
+    [Fact]
     public void Displays_AreScaledToFitAndKeepTheirArrangement()
     {
         var vm = new MonitorLayoutViewModel();

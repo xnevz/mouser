@@ -224,6 +224,26 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
         FilteredClips.Clear();
         foreach (var payload in items) FilteredClips.Add(new ClipboardItemViewModel(payload));
 
+        string? lastLabel = null;
+        for (int i = 0; i < FilteredClips.Count; i++)
+        {
+            var item = FilteredClips[i];
+            if (item.DayLabel != lastLabel)
+            {
+                item.ShowDayHeader = true;
+                lastLabel = item.DayLabel;
+                int count = 0;
+                for (int j = i; j < FilteredClips.Count && FilteredClips[j].DayLabel == lastLabel; j++)
+                    count++;
+                item.DayCount = count;
+            }
+            else
+            {
+                item.ShowDayHeader = false;
+                item.DayCount = 0;
+            }
+        }
+
         SelectedClip = FilteredClips.FirstOrDefault(c => c.Id == selectedId) ?? FilteredClips.FirstOrDefault();
         OnPropertyChanged(nameof(IsEmpty));
     }

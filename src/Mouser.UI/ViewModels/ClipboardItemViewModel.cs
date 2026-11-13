@@ -17,6 +17,9 @@ public partial class ClipboardItemViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(StarIcon), nameof(StarColor))]
     private bool _isPinned;
 
+    [ObservableProperty] private bool _showDayHeader;
+    [ObservableProperty] private int _dayCount;
+
     public ClipboardItemViewModel(ClipboardPayload payload)
     {
         Id = payload.Id;
@@ -26,6 +29,18 @@ public partial class ClipboardItemViewModel : ViewModelBase
         SourceDevice = payload.SourceDevice;
         Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(payload.TimestampUtc).UtcDateTime;
         _isPinned = payload.IsFavorite;
+    }
+
+    public DateTime TimestampLocal => Timestamp.ToLocalTime();
+
+    public string DayLabel
+    {
+        get
+        {
+            var d = TimestampLocal.Date;
+            var today = DateTime.Now.Date;
+            return d == today ? "Today" : d == today.AddDays(-1) ? "Yesterday" : d.ToString("ddd, MMM d");
+        }
     }
 
     public string ContentType => Kind.ToString();
