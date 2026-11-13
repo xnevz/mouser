@@ -16,11 +16,11 @@
             </StackPanel>
 
             <Border Classes="banner-error" IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                <TextBlock Text="{Binding ErrorMessage}" Foreground="#fecdd3" FontSize="12" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource BannerErrorText}" FontSize="12" TextWrapping="Wrap" />
             </Border>
 
             <Border Classes="banner-warning" IsVisible="{Binding !CanInject}">
-                <TextBlock Foreground="#fde68a" FontSize="12" TextWrapping="Wrap"
+                <TextBlock Foreground="{DynamicResource BannerWarningText}" FontSize="12" TextWrapping="Wrap"
                            Text="Mouser can't control the mouse on this operating system yet (Windows and macOS are supported). Phones can pair, but input won't reach the desktop." />
             </Border>
 
@@ -36,23 +36,23 @@
                             <TextBlock Classes="hint" Text="3.  Enter this PIN when asked:" />
                         </StackPanel>
 
-                        <Border Background="#0f1018" BorderBrush="#2e3248" BorderThickness="1" CornerRadius="10" Padding="16,12">
+                        <Border Background="{DynamicResource BgSunken}" BorderBrush="{DynamicResource BorderStrong}" BorderThickness="1" CornerRadius="10" Padding="16,12">
                             <Grid ColumnDefinitions="*,Auto">
                                 <SelectableTextBlock Grid.Column="0" Text="{Binding PairingPinText}"
                                                      FontSize="34" FontWeight="Bold" LetterSpacing="4"
-                                                     Foreground="#f8fafc" VerticalAlignment="Center" />
+                                                     Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
                                 <Button Grid.Column="1" Classes="secondary-btn" Content="New PIN"
                                         Command="{Binding RegeneratePinCommand}" VerticalAlignment="Center"
                                         ToolTip.Tip="Create a new PIN. Phones paired with the old one are disconnected." />
                             </Grid>
                         </Border>
 
-                        <Separator Background="#272a38" />
+                        <Separator Background="{DynamicResource BorderSubtle}" />
 
                         <StackPanel Spacing="6">
                             <TextBlock Classes="label" Text="Not listed on the phone? Enter this address manually:" />
                             <SelectableTextBlock Text="{Binding AddressText}" FontSize="15" FontWeight="SemiBold"
-                                                 Foreground="#e2e8f0" TextWrapping="Wrap" />
+                                                 Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
                             <TextBlock Classes="label" Text="{Binding Port, StringFormat='Port {0}'}" />
                         </StackPanel>
 
@@ -77,14 +77,14 @@
                         <ItemsControl ItemsSource="{Binding Clients}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="vm:RemoteClientItem">
-                                    <Border Background="#181922" BorderBrush="#272a38" BorderThickness="1"
+                                    <Border Background="{DynamicResource BgRaised}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
                                             CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
                                         <Grid ColumnDefinitions="Auto,*,Auto">
                                             <Ellipse Grid.Column="0" Width="9" Height="9" Fill="{Binding StatusColor}"
                                                      VerticalAlignment="Center" Margin="0,0,12,0" />
                                             <StackPanel Grid.Column="1" Spacing="2">
-                                                <TextBlock Text="{Binding Address}" FontWeight="SemiBold" Foreground="#f1f5f9" />
-                                                <TextBlock FontSize="11" Foreground="#94a3b8">
+                                                <TextBlock Text="{Binding Address}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                                                <TextBlock FontSize="11" Foreground="{DynamicResource TextMuted}">
                                                     <Run Text="{Binding LastSeenText}" />
                                                     <Run Text=" • " />
                                                     <Run Text="{Binding LastEvent}" />
