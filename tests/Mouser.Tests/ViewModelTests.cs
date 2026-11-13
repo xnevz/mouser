@@ -401,4 +401,15 @@ public class ViewModelTests
         Assert.NotNull(new AndroidRemoteView());
         Assert.NotNull(new SettingsView());
     }
+
+    [Fact]
+    public void SingleInstance_FirstOwns_SecondSignalsAndReleases()
+    {
+        string testName = "Mouser_Test_" + Guid.NewGuid().ToString("N");
+        using var first = new SingleInstance(testName);
+        Assert.True(first.IsFirst);
+
+        using var second = new SingleInstance(testName);
+        Assert.False(second.IsFirst);
+    }
 }

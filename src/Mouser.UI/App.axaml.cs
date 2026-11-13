@@ -40,6 +40,19 @@ public partial class App : Application
             // --data-dir <folder> runs an independent instance (own settings, PIN, port and history),
             // which is how two copies on one PC can test desktop-to-desktop control.
             string? dataDir = ArgValue("--data-dir");
+            SingleInstance? singleInstance = null;
+            if (dataDir == null)
+            {
+                singleInstance = new SingleInstance();
+                if (!singleInstance.IsFirst)
+                {
+                    singleInstance.SignalFirst();
+                    desktop.Shutdown();
+                    return;
+                }
+                singleInstance.Listen(() => Dispatcher.UIThread.Post(ShowMainWindow));
+            }
+
             var settings = new SettingsStore(dataDir == null ? null : Path.Combine(Path.GetFullPath(dataDir), "settings.json"));
             ThemeService.Apply(settings.Current.Theme);
             _host = new MouserHost(settings, InputSinks.CreateForCurrentPlatform(), InputCaptures.CreateForCurrentPlatform());
@@ -54,6 +67,9 @@ public partial class App : Application
             var window = new MainWindow { DataContext = vm };
             if (dataDir != null) window.Title = $"Mouser ({Path.GetFileName(Path.GetFullPath(dataDir))})";
             desktop.MainWindow = window;
+
+            if (Environment.GetCommandLineArgs().Contains("--minimized") && settings.Current.CloseToTray)
+                window.Opened += (_, _) => window.Hide();
 
             _settings = settings;
             _mainViewModel = vm;
@@ -132,6 +148,7 @@ public partial class App : Application
 
             desktop.Exit += (_, _) =>
             {
+                singleInstance?.Dispose();
                 _refreshTimer.Stop();
                 _hotkey?.Dispose();
                 _host.Dispose();
