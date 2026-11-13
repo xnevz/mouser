@@ -95,7 +95,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 ### Track B: New shell ([B-shell.md](roadmap/tasks/B-shell.md))
 | Status | ID | Task | Needs | Size |
 | :-: | :-: | :--- | :--- | :-: |
-| ⬜ | B1 | Sidebar device list (view model) | A9 | S |
+| ✅ | B1 | Sidebar device list (view model) | A9 | S |
 | ⬜ | B2 | New sidebar (All items, Pinned, Devices, Settings, Ctrl+,) | B1 | M |
 | ⬜ | B3 | Clipboard filters: device and time | A9 | M |
 | ⬜ | B4 | Day headers in the list | B3 | S |
@@ -268,3 +268,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - A10: Added tray icon with menu (Open Mouser, Pause sharing, Pause clipboard, Quit), close-to-tray and minimize-to-tray settings (default true), pause handlers for sharing and clipboard; added 2 unit tests (135 passing).
 - A11: Added SingleInstance mutex and show event, wired single-instance check/ping in App.axaml.cs (skipped when --data-dir is passed), updated Windows startup registry entry to append --minimized, implemented --minimized startup hide to tray, added unit test (136 passing).
 - A12: Created ToastWindow and ToastService with stacking and 4-second dismiss; wired notification setting in SettingsStore, SettingsViewModel, and SettingsView; connected clip, file, KVM state, and first hide-to-tray toasts in App.axaml.cs; added 2 unit tests (138 passing).
+- B1: Added SidebarDeviceViewModel and Devices collection/OnlineDeviceCount to MainViewModel with RefreshDevices in-place updates; added unit test Sidebar_ListsPairedPhoneAsOnline (139 passing).
