@@ -62,23 +62,30 @@ public sealed class PeerDiscoveryService : IDisposable
 
     private async Task BroadcastBeaconLoopAsync(CancellationToken token)
     {
-        var targetEndPoint = new IPEndPoint(IPAddress.Broadcast, _discoveryPort);
+        byte[] beaconPayload = CreateBeaconPayload(_localPeerInfo);
 
         while (!token.IsCancellationRequested)
         {
+            // Re-resolved every beat so Wi-Fi reconnects and adapter changes are picked up.
+            foreach (var address in NetworkInfo.GetBroadcastAddresses())
+            {
+                try
+                {
+                    await _udpClient.SendAsync(beaconPayload, beaconPayload.Length, new IPEndPoint(address, _discoveryPort));
+                }
+                catch (SocketException)
+                {
+                    // Adapter went down between enumeration and send.
+                }
+            }
+
             try
             {
-                byte[] beaconPayload = CreateBeaconPayload(_localPeerInfo);
-                await _udpClient.SendAsync(beaconPayload, beaconPayload.Length, targetEndPoint);
                 await Task.Delay(1000, token);
             }
             catch (OperationCanceledException)
             {
                 break;
-            }
-            catch
-            {
-                // Network interface transient errors
             }
         }
     }

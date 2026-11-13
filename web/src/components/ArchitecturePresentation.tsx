@@ -18,86 +18,80 @@ export const ArchitecturePresentation = () => {
 
   const architectureLayers = {
     mvvm: {
-      title: 'Modern MVVM & Presentation Layer',
-      subtitle: '.NET 8/9 with CommunityToolkit.Mvvm & Avalonia XAML UI',
+      title: 'Desktop app: Avalonia + MVVM',
+      subtitle: '.NET 8, Avalonia 12 and CommunityToolkit.Mvvm on Windows, macOS and Linux',
       icon: Layers,
       color: 'text-cyan-400',
-      badge: 'C# 12 / Avalonia',
+      badge: 'C# / Avalonia',
       points: [
-        'Pure separation of concerns: Zero business logic in code-behind XAML views.',
-        'Interactive Canvas: Drag-and-drop monitor matrix arranging multi-monitor topologies with DPI normalization.',
-        'Dark theme by default with responsive real-time telemetry gauges.',
-        'Dependency injection via Microsoft.Extensions.DependencyInjection.',
+        'View models hold all logic and are covered by unit tests; views only bind.',
+        'Settings are saved as JSON in the user data folder; clipboard history lives in SQLite with full-text search.',
+        'The live monitor layout comes straight from the operating system, including scaling.',
       ],
-      codeSnippet: `// MainWindowViewModel.cs
-[ObservableProperty]
-private MonitorTopology _topology;
-
-[RelayCommand]
-private async Task OnCursorCrossBorderAsync(BorderDirection direction)
+      codeSnippet: `// ClipboardHistoryViewModel.cs
+if (_settings.Current.SkipSensitiveClips &&
+    ClipboardPrivacyFilter.IsSensitive(text))
 {
-    await _inputRouter.HopToAdjacentScreenAsync(direction);
+    StatusMessage = "Skipped a copied secret.";
+    return false;
 }`,
     },
     native: {
-      title: 'Native C++ System Interop Engine',
-      subtitle: 'Zero-Overhead [LibraryImport] P/Invoke with C-ABI Dynamic Libraries',
+      title: 'Input injection',
+      subtitle: 'SendInput on Windows, CGEvent through a small native library on macOS',
       icon: Cpu,
       color: 'text-indigo-400',
-      badge: 'C++20 / C-ABI',
+      badge: 'Win32 / CoreGraphics',
       points: [
-        'macOS: CGEventTap low-level input interception & TCC Accessibility security sandbox.',
-        'Windows: Win32 RawInput & SetWindowsHookEx(WH_MOUSE_LL, WH_KEYBOARD_LL).',
-        'Linux: Native /dev/uinput virtual device injection & libinput Wayland portal hooks.',
-        'Compiled directly via Xcode Clang, MSVC, and GCC into lightweight native dylibs.',
+        'Windows uses user32 SendInput directly from C#; no native library to install.',
+        'macOS uses libmouser_native (Objective-C++) and needs the Accessibility permission.',
+        'Keys travel as Windows virtual-key codes and are translated for macOS.',
+        'Linux injection (XTest/uinput) is not written yet.',
       ],
-      codeSnippet: `// NativeMethods.cs
-[LibraryImport("libmouser_native", EntryPoint = "mouser_install_event_tap")]
-[UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-internal static partial int InstallEventTap(
-    EventCallback callback,
-    nint userData
-);`,
+      codeSnippet: `// InputInjectionService.cs: packets carry the full
+// button mask, so a lost packet can't leave a button stuck
+byte changed = (byte)(newState ^ _buttonState);
+foreach (var button in Buttons)
+    if ((changed & (byte)button) != 0)
+        _sink.SetButton(button, (newState & (byte)button) != 0);`,
     },
     net: {
-      title: 'Zero-Allocation UDP Network Pipeline',
-      subtitle: '1,000 Hz Sub-Millisecond Input Streaming & mDNS Peer Discovery',
+      title: 'Network protocol',
+      subtitle: '14-byte UDP packets, broadcast discovery and PIN pairing',
       icon: Network,
       color: 'text-fuchsia-400',
-      badge: 'UDP / MemoryPool',
+      badge: 'UDP',
       points: [
-        'Zero GC Pauses: Byte manipulation executed via ReadOnlySpan<byte> and ArrayPool<byte>.',
-        'AES-256-GCM authenticated cipher streams with automatic rotating session keys.',
-        'Zero-Configuration discovery: Automatic peer detection via Zeroconf / mDNS with QR code PIN pairing.',
-        'Jitter buffer with packet loss concealment for high-polling gaming mice.',
+        'Desktops broadcast a small beacon every second on each network adapter; phones listen and list them.',
+        'A phone pairs by sending the 6-digit PIN; five wrong guesses lock it out for a minute.',
+        'Per-sender sequence numbers drop duplicated or reordered packets and survive app restarts.',
+        'Pings every second measure latency and detect a dropped connection.',
+        'Packets are not encrypted yet: use Mouser on networks you trust.',
       ],
-      codeSnippet: `// InputPacketSocket.cs
-public void ProcessInboundPacket(ReadOnlySpan<byte> packet)
-{
-    var header = MemoryMarshal.Read<PacketHeader>(packet[..16]);
-    if (header.Magic != MouserMagic) return;
-
-    _decryptor.DecryptInPlace(packet[16..]);
-    _inputInjector.InjectCursorMove(header.DeltaX, header.DeltaY);
-}`,
+      codeSnippet: `// SequenceTracker.cs
+short diff = unchecked((short)(sequence - last));
+// late or duplicate packet: drop it.
+// A big jump backwards means the phone app restarted.
+if (diff <= 0 && diff >= -RestartWindow) return false;`,
     },
     mobile: {
-      title: 'Android Mobile Companion Subsystem',
-      subtitle: 'High-Performance Kotlin, Jetpack Compose & 3D Sensor Fusion Hub',
+      title: 'Android companion',
+      subtitle: 'Kotlin and Jetpack Compose',
       icon: Smartphone,
       color: 'text-emerald-400',
       badge: 'Kotlin / Compose',
       points: [
-        'Multi-touch virtual trackpad with two-finger scrolling and three-finger app gestures.',
-        '3D Gyroscope Air Mouse: Hold trigger button to steer cursor through real-world spatial orientation.',
-        'Encrypted mobile clipboard synchronization bridge.',
-        'Zero cloud reliance: Direct peer-to-peer local Wi-Fi UDP socket communication.',
+        'Trackpad with tap, two-finger tap, two-finger scroll and hold-to-drag buttons.',
+        'Gyroscope air mouse that only uses the sensor while the trigger is held.',
+        'Sub-pixel accumulation so slow movements still move the pointer.',
+        'Remembers the last computer and its PIN, and reconnects on launch.',
       ],
-      codeSnippet: `// GyroSensorService.kt
-override fun onSensorChanged(event: SensorEvent?) {
-    val gyroX = event?.values?.get(0) ?: 0f
-    val gyroY = event?.values?.get(1) ?: 0f
-    udpClient.sendMotionPacket(dx = -gyroY * sensitivity, dy = -gyroX * sensitivity)
+      codeSnippet: `// Protocol.kt
+fun add(delta: Float): Int {
+    val total = remainder + delta
+    val whole = total.toInt()
+    remainder = total - whole
+    return whole
 }`,
     },
   };
@@ -113,10 +107,10 @@ override fun onSensorChanged(event: SensorEvent?) {
             Under The Hood
           </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Engineered for Raw Performance
+            How it works
           </h2>
           <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300">
-            A cohesive architecture combining managed .NET MVVM safety with uncompromised native C++ operating system hooks.
+            A .NET desktop app, a small native library for macOS, and a Kotlin phone app talking over a simple UDP protocol.
           </p>
         </div>
 
@@ -124,10 +118,10 @@ override fun onSensorChanged(event: SensorEvent?) {
         <div className="flex justify-center mb-12">
           <StretchyPillTabs
             tabs={[
-              { id: 'mvvm', label: '1. UI & MVVM Layer', icon: Layers },
-              { id: 'native', label: '2. Native C++ Drivers', icon: Cpu },
-              { id: 'net', label: '3. Zero-Alloc UDP', icon: Network },
-              { id: 'mobile', label: '4. Android Mobile', icon: Smartphone },
+              { id: 'mvvm', label: 'Desktop app', icon: Layers },
+              { id: 'native', label: 'Input injection', icon: Cpu },
+              { id: 'net', label: 'Network', icon: Network },
+              { id: 'mobile', label: 'Android', icon: Smartphone },
             ]}
             activeId={activeTab}
             onChange={(id) => setActiveTab(id as 'mvvm' | 'native' | 'net' | 'mobile')}

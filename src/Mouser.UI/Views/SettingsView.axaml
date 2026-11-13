@@ -3,90 +3,58 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Mouser.UI.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="640"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:Class="Mouser.UI.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
 
-    <Grid RowDefinitions="Auto,*,Auto" Margin="24">
-        <!-- Header -->
-        <Grid Grid.Row="0" Margin="0,0,0,18">
-            <StackPanel Spacing="4">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="Settings &amp; Security" FontSize="20" FontWeight="Bold" Foreground="#f4f4f5" />
-                    <Border Background="#232533" CornerRadius="6" Padding="8,2" VerticalAlignment="Center">
-                        <TextBlock Text="Zero Cloud • E2EE" FontSize="11" FontWeight="SemiBold" Foreground="#10b981" />
-                    </Border>
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="16" MaxWidth="720" HorizontalAlignment="Left">
+            <TextBlock Classes="page-title" Text="Settings" />
+
+            <Border Classes="glass-card" Padding="20">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="section-title" Text="Phone connection" />
+                    <TextBlock Classes="hint"
+                               Text="UDP port phones send input to. Change it only if another app already uses it; phones find the new port automatically." />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <NumericUpDown Value="{Binding InputPort}" Minimum="1024" Maximum="65535" Increment="1"
+                                       FormatString="0" Width="160" />
+                        <Button Classes="secondary-btn" Content="Apply" Command="{Binding ApplyPortCommand}" />
+                    </StackPanel>
                 </StackPanel>
-                <TextBlock Text="Configure networking, cryptographic pairing, screen edge transition sensitivity, and privacy shields"
-                           FontSize="13" Foreground="#94a3b8" />
-            </StackPanel>
-        </Grid>
+            </Border>
 
-        <!-- Main Settings Cards -->
-        <ScrollViewer Grid.Row="1">
-            <StackPanel Spacing="16" MaxWidth="760" HorizontalAlignment="Left">
-                <!-- Section 1: Cryptographic Pairing & E2EE -->
-                <Border Classes="glass-card" Padding="20">
-                    <StackPanel Spacing="14">
-                        <TextBlock Text="Pairing &amp; End-to-End Encryption" FontSize="14" FontWeight="SemiBold" Foreground="#f4f4f5" />
-                        <TextBlock Text="All peer-to-peer data (keystrokes, clipboard, file chunks) is encrypted via ChaCha20-Poly1305 with zero cloud telemetry."
-                                   FontSize="12" Foreground="#94a3b8" TextWrapping="Wrap" />
-
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Active Cryptographic Pairing PIN" FontSize="11" Foreground="#64748b" />
-                                <TextBlock Text="{Binding PairingPin}" FontSize="24" FontWeight="Bold" Foreground="#818cf8" Margin="0,4,0,0" />
-                            </StackPanel>
-
-                            <Button Grid.Column="1" Classes="secondary-btn" Command="{Binding RegeneratePinCommand}" VerticalAlignment="Center">
-                                <TextBlock Text="Regenerate PIN" />
-                            </Button>
-                        </Grid>
-
-                        <Separator Background="#272a38" />
-                        <CheckBox Content="Enable strict End-to-End Encryption (E2EE)" IsChecked="{Binding EnableE2ee}" Foreground="#cbd5e1" FontSize="12" />
+            <Border Classes="glass-card" Padding="20">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="section-title" Text="Clipboard history" />
+                    <CheckBox Content="Save text I copy to the clipboard history" IsChecked="{Binding ClipboardHistoryEnabled}" />
+                    <CheckBox Content="Don't save things that look like passwords, API keys, private keys or card numbers"
+                              IsChecked="{Binding SkipSensitiveClips}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Delete unstarred clips after" VerticalAlignment="Center" Foreground="#cbd5e1" FontSize="12" />
+                        <NumericUpDown Value="{Binding ClipboardRetentionDays}" Minimum="1" Maximum="3650" Increment="1"
+                                       FormatString="0" Width="120" />
+                        <TextBlock Text="days" VerticalAlignment="Center" Foreground="#cbd5e1" FontSize="12" />
                     </StackPanel>
-                </Border>
+                </StackPanel>
+            </Border>
 
-                <!-- Section 2: Virtual KVM Edge Hopping -->
-                <Border Classes="glass-card" Padding="20">
-                    <StackPanel Spacing="14">
-                        <TextBlock Text="Virtual KVM Transition Sensitivity" FontSize="14" FontWeight="SemiBold" Foreground="#f4f4f5" />
+            <Border Classes="glass-card" Padding="20" IsVisible="{Binding IsStartAtLoginSupported}">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="section-title" Text="Startup" />
+                    <CheckBox Content="Start Mouser when I sign in" IsChecked="{Binding StartAtLogin}" />
+                </StackPanel>
+            </Border>
 
-                        <StackPanel Spacing="6">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Text="Edge Friction / Resistance Delay" FontSize="11" Foreground="#94a3b8" />
-                                <TextBlock Grid.Column="1" Text="{Binding EdgeResistanceMs, StringFormat='{}{0} ms'}" FontSize="11" Foreground="#cbd5e1" />
-                            </Grid>
-                            <Slider Value="{Binding EdgeResistanceMs}" Minimum="0" Maximum="500" />
-                            <TextBlock Text="Prevents accidental switching when targeting scrollbars, close buttons, or dock." FontSize="11" Foreground="#64748b" />
-                        </StackPanel>
+            <Border Classes="glass-card" Padding="20">
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="section-title" Text="Data" />
+                    <TextBlock Classes="hint" Text="Settings and clipboard history are stored only on this computer, in:" />
+                    <SelectableTextBlock Text="{Binding DataDirectory}" Foreground="#e2e8f0" FontSize="12" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
 
-                        <Separator Background="#272a38" />
-                        <CheckBox Content="Synchronize display lock and screen sleep across devices" IsChecked="{Binding AutoLockScreens}" Foreground="#cbd5e1" FontSize="12" />
-                    </StackPanel>
-                </Border>
-
-                <!-- Section 3: Privacy & Clipboard Firewall -->
-                <Border Classes="glass-card" Padding="20">
-                    <StackPanel Spacing="14">
-                        <TextBlock Text="Privacy &amp; Password Firewall" FontSize="14" FontWeight="SemiBold" Foreground="#f4f4f5" />
-                        <CheckBox Content="Exclude password managers (1Password, Bitwarden, KeePassXC)"
-                                  IsChecked="{Binding ExcludePasswordManagers}"
-                                  Foreground="#cbd5e1"
-                                  FontSize="12" />
-                        <CheckBox Content="Launch Mouser silently at system login"
-                                  IsChecked="{Binding StartAtLogin}"
-                                  Foreground="#cbd5e1"
-                                  FontSize="12" />
-                    </StackPanel>
-                </Border>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- Status Bottom Bar -->
-        <Border Grid.Row="2" Margin="0,14,0,0" Padding="12,8" Background="#14151d" CornerRadius="8" BorderBrush="#272a38" BorderThickness="1">
-            <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="#94a3b8" VerticalAlignment="Center" />
-        </Border>
-    </Grid>
+            <TextBlock Classes="hint" Text="{Binding StatusMessage}" />
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>

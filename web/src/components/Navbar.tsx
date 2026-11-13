@@ -1,7 +1,9 @@
 'use client';
 
+import { REPO_URL } from '@/data/releases';
+
 import React, { useState, useEffect } from 'react';
-import { MousePointer, GitBranch, Download, Menu, X, Sparkles } from 'lucide-react';
+import { MousePointer, GitBranch, Download, Menu, X } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 export const Navbar = () => {
@@ -38,25 +40,15 @@ export const Navbar = () => {
                 <span className="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition-colors">
                   Mouser
                 </span>
-                <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
-                  v1.0-rc.3
-                </span>
               </div>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono hidden sm:block">
-                Virtual KVM & Smart Clipboard
+                Phone remote & clipboard history
               </span>
             </div>
           </a>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            <a
-              href="#demo"
-              className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors flex items-center gap-1.5"
-            >
-              <Sparkles className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
-              Interactive Demo
-            </a>
             <a
               href="#downloads"
               className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
@@ -75,12 +67,6 @@ export const Navbar = () => {
             >
               Architecture
             </a>
-            <a
-              href="#comparison"
-              className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-            >
-              Comparison
-            </a>
           </nav>
 
           {/* Action CTAs & Theme Toggle */}
@@ -89,16 +75,13 @@ export const Navbar = () => {
             <ThemeToggle />
 
             <a
-              href="https://github.com/mouser-org/mouser"
+              href={REPO_URL}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700/80 transition-all hover:text-slate-950 dark:hover:text-white"
             >
               <GitBranch className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
               <span>GitHub</span>
-              <span className="text-xs bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400 font-mono">
-                ★ 2.4k
-              </span>
             </a>
 
             <a
@@ -130,18 +113,11 @@ export const Navbar = () => {
       {mobileMenuOpen && (
         <div className="md:hidden bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl border-b border-slate-200 dark:border-slate-800 px-4 pt-2 pb-6 space-y-3">
           <a
-            href="#demo"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-900"
-          >
-            Interactive Demo
-          </a>
-          <a
             href="#downloads"
             onClick={() => setMobileMenuOpen(false)}
             className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-900"
           >
-            Downloads & Installers
+            Get Mouser
           </a>
           <a
             href="#features"
@@ -157,20 +133,13 @@ export const Navbar = () => {
           >
             Architecture
           </a>
-          <a
-            href="#comparison"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-900"
-          >
-            Feature Comparison
-          </a>
           <div className="pt-2 flex flex-col gap-2">
             <a
               href="#downloads"
               onClick={() => setMobileMenuOpen(false)}
               className="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-medium text-center flex items-center justify-center gap-2"
             >
-              <Download className="w-4 h-4" /> Download Mouser Free
+              <Download className="w-4 h-4" /> Get Mouser
             </a>
           </div>
         </div>

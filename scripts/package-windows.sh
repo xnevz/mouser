@@ -15,4 +15,4 @@ dotnet publish "${PROJECT_ROOT}/src/Mouser.Desktop/Mouser.Desktop.csproj" \
     -p:IncludeNativeLibrariesForSelfExtract=true \
     -o "${OUTPUT_DIR}"
 
-echo "SUCCESS: Windows release published to: ${OUTPUT_DIR}/Mouser.Desktop.exe"
+echo "SUCCESS: Windows release published to: ${OUTPUT_DIR}/Mouser.exe"

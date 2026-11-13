@@ -2,12 +2,13 @@ package com.mouser.companion.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PanTool
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,153 +16,165 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mouser.companion.model.InputMotionPacket
 import com.mouser.companion.ui.theme.*
 
 /**
- * Interactive multi-touch trackpad surface supporting 1-finger motion, tap to click,
- * 2-finger right-click, and hardware left/right click buttons.
+ * Touch trackpad: 1 finger moves, 2 fingers scroll, tap = left click, 2-finger tap = right click.
+ * The buttons below are press-and-hold, so holding Left while moving a finger drags.
  */
 @Composable
 fun TrackpadSurface(
+    isConnected: Boolean,
     sensitivity: Float,
-    onMotionDelta: (dx: Short, dy: Short) -> Unit,
-    onButtonClick: (button: Byte, isDown: Boolean) -> Unit,
+    onSensitivityChanged: (Float) -> Unit,
+    onMove: (dx: Float, dy: Float) -> Unit,
+    onScroll: (dx: Float, dy: Float) -> Unit,
+    onClick: (button: Byte) -> Unit,
+    onButton: (button: Byte, isDown: Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var touchPos by remember { mutableStateOf<Offset?>(null) }
+    val haptics = LocalHapticFeedback.current
+    val currentSensitivity by rememberUpdatedState(sensitivity)
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Main Trackpad Surface
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
                 .background(Zinc800)
-                .border(1.dp, Zinc700, RoundedCornerShape(16.dp))
-                .pointerInput(sensitivity) {
-                    detectDragGestures(
-                        onDragStart = { offset ->
-                            touchPos = offset
-                        },
-                        onDragEnd = {
-                            touchPos = null
-                        },
-                        onDragCancel = {
-                            touchPos = null
-                        },
-                        onDrag = { change, dragAmount ->
-                            change.consume()
-                            touchPos = change.position
-
-                            val dx = (dragAmount.x * sensitivity).toInt().coerceIn(-32768, 32767).toShort()
-                            val dy = (dragAmount.y * sensitivity).toInt().coerceIn(-32768, 32767).toShort()
-                            if (dx != 0.toShort() || dy != 0.toShort()) {
-                                onMotionDelta(dx, dy)
-                            }
-                        }
-                    )
-                }
+                .border(1.dp, if (isConnected) Zinc700 else Zinc800, RoundedCornerShape(16.dp))
+                .semantics { contentDescription = "Trackpad" }
                 .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = {
-                            // 1-finger tap = Left Click
-                            onButtonClick(InputMotionPacket.BUTTON_LEFT, true)
-                            onButtonClick(InputMotionPacket.BUTTON_LEFT, false)
-                        },
-                        onDoubleTap = {
-                            // Double tap = Double click
-                            onButtonClick(InputMotionPacket.BUTTON_LEFT, true)
-                            onButtonClick(InputMotionPacket.BUTTON_LEFT, false)
-                            onButtonClick(InputMotionPacket.BUTTON_LEFT, true)
-                            onButtonClick(InputMotionPacket.BUTTON_LEFT, false)
-                        },
-                        onLongPress = {
-                            // Long press = Right Click
-                            onButtonClick(InputMotionPacket.BUTTON_RIGHT, true)
-                            onButtonClick(InputMotionPacket.BUTTON_RIGHT, false)
+                    val slop = viewConfiguration.touchSlop
+                    awaitEachGesture {
+                        val first = awaitFirstDown(requireUnconsumed = false)
+                        var maxPointers = 1
+                        var travelled = 0f
+                        var lastCentroid: Offset? = null
+                        var lastCount = 0
+                        var event: PointerEvent
+                        do {
+                            event = awaitPointerEvent()
+                            val pressed = event.changes.filter { it.pressed }
+                            maxPointers = maxOf(maxPointers, pressed.size)
+                            if (pressed.isNotEmpty()) {
+                                val centroid = pressed
+                                    .fold(Offset.Zero) { acc, c -> acc + c.position } / pressed.size.toFloat()
+                                val previous = lastCentroid
+                                // Skip the frame where a finger lands or lifts so the centroid jump isn't sent as motion.
+                                if (previous != null && pressed.size == lastCount) {
+                                    val delta = centroid - previous
+                                    travelled += delta.getDistance()
+                                    if (pressed.size == 1) {
+                                        onMove(delta.x * currentSensitivity, delta.y * currentSensitivity)
+                                    } else {
+                                        onScroll(delta.x, delta.y)
+                                    }
+                                }
+                                lastCentroid = centroid
+                                lastCount = pressed.size
+                            }
+                            event.changes.forEach { it.consume() }
+                        } while (event.changes.any { it.pressed })
+
+                        val duration = event.changes.first().uptimeMillis - first.uptimeMillis
+                        if (travelled < slop && duration < 300) {
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onClick(if (maxPointers >= 2) InputMotionPacket.BUTTON_RIGHT else InputMotionPacket.BUTTON_LEFT)
                         }
-                    )
+                    }
                 },
             contentAlignment = Alignment.Center
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(24.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.TouchApp,
-                    contentDescription = null,
-                    tint = Zinc600,
-                    modifier = Modifier.size(48.dp)
-                )
+                Icon(Icons.Default.TouchApp, contentDescription = null, tint = Zinc600, modifier = Modifier.size(44.dp))
                 Text(
-                    text = "Trackpad Surface",
+                    text = if (isConnected) "Move with one finger • scroll with two" else "Connect to a computer to start",
                     style = MaterialTheme.typography.titleMedium,
-                    color = Zinc600
+                    color = Zinc400,
+                    textAlign = TextAlign.Center
                 )
-                Text(
-                    text = "Slide to move • Tap for Left Click • Long-press for Right Click",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Zinc600
-                )
+                if (isConnected) {
+                    Text(
+                        text = "Tap to click • two-finger tap to right-click • hold Left below to drag",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Zinc600,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
 
-        // Dedicated Physical Button Strip (Left & Right Click)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(Icons.Default.Speed, contentDescription = "Pointer speed", tint = Zinc400)
+            Slider(
+                value = sensitivity,
+                onValueChange = onSensitivityChanged,
+                valueRange = 0.5f..4f,
+                modifier = Modifier.weight(1f)
+            )
+            Text("%.1f×".format(sensitivity), style = MaterialTheme.typography.labelSmall, color = Zinc100)
+        }
+
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp),
+            modifier = Modifier.fillMaxWidth().height(64.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Left Click Button
-            Button(
-                onClick = {
-                    onButtonClick(InputMotionPacket.BUTTON_LEFT, true)
-                    onButtonClick(InputMotionPacket.BUTTON_LEFT, false)
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Zinc800,
-                    contentColor = Zinc100
-                ),
-                border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(Zinc700))
-            ) {
-                Text("Left Click", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+            HoldButton("Left", Modifier.weight(1f)) { down ->
+                if (down) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onButton(InputMotionPacket.BUTTON_LEFT, down)
             }
-
-            // Right Click Button
-            Button(
-                onClick = {
-                    onButtonClick(InputMotionPacket.BUTTON_RIGHT, true)
-                    onButtonClick(InputMotionPacket.BUTTON_RIGHT, false)
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Zinc800,
-                    contentColor = Zinc100
-                ),
-                border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(Zinc700))
-            ) {
-                Text("Right Click", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+            HoldButton("Right", Modifier.weight(1f)) { down ->
+                if (down) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onButton(InputMotionPacket.BUTTON_RIGHT, down)
             }
         }
+    }
+}
+
+/** A mouse button: sends down on press and up on release, so it can be held for dragging. */
+@Composable
+fun HoldButton(label: String, modifier: Modifier = Modifier, onStateChange: (isDown: Boolean) -> Unit) {
+    var pressed by remember { mutableStateOf(false) }
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (pressed) Zinc700 else Zinc800)
+            .border(1.dp, Zinc700, RoundedCornerShape(12.dp))
+            .semantics { contentDescription = "$label mouse button" }
+            .pointerInput(Unit) {
+                detectTapGestures(onPress = {
+                    pressed = true
+                    onStateChange(true)
+                    try {
+                        tryAwaitRelease()
+                    } finally {
+                        pressed = false
+                        onStateChange(false)
+                    }
+                })
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = Zinc100, fontWeight = FontWeight.SemiBold)
     }
 }

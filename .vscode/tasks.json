@@ -24,7 +24,7 @@
             "args": [
                 "run",
                 "--project",
-                "${workspaceFolder}/src/Mouser.UI/Mouser.UI.csproj"
+                "${workspaceFolder}/src/Mouser.Desktop/Mouser.Desktop.csproj"
             ],
             "problemMatcher": "$msCompile",
             "dependsOn": "build"
@@ -59,7 +59,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/src/Mouser.UI/Mouser.UI.csproj",
+                "${workspaceFolder}/src/Mouser.Desktop/Mouser.Desktop.csproj",
                 "-c",
                 "Release"
             ],

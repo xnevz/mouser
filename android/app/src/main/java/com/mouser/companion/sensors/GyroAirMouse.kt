@@ -8,60 +8,53 @@ import android.hardware.SensorManager
 import kotlin.math.abs
 
 /**
- * 3D Gyroscope and IMU sensor listener that calculates spatial air-mouse deltas for desktop cursor control.
- * Includes micro-tremor deadzone filtering and dynamic sensitivity scaling.
+ * Turns gyroscope rotation into pointer motion. The sensor is only registered while the trigger is held,
+ * so the air mouse costs no battery the rest of the time.
  */
 class GyroAirMouse(
     context: Context,
-    private val onDeltaCalculated: (dx: Short, dy: Short) -> Unit
+    private val onDelta: (dx: Float, dy: Float) -> Unit
 ) : SensorEventListener {
 
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val gyroSensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
 
-    var isEnabled: Boolean = false
-        private set
+    val isAvailable: Boolean get() = gyroSensor != null
 
-    var isTriggerHeld: Boolean = false
-    var sensitivity: Float = 25.0f
-    var deadzoneThreshold: Float = 0.04f
+    /** Pixels per (rad/s) per sample at SENSOR_DELAY_GAME (~50 Hz). */
+    var sensitivity: Float = 30f
+
+    /** Angular speeds below this (rad/s) are hand tremor and ignored. */
+    var deadzone: Float = 0.03f
+
+    private var isRunning = false
 
     fun start() {
-        if (isEnabled || gyroSensor == null) return
-        isEnabled = true
-        sensorManager.registerListener(
-            this,
-            gyroSensor,
-            SensorManager.SENSOR_DELAY_GAME
-        )
+        if (isRunning || gyroSensor == null) return
+        isRunning = true
+        sensorManager.registerListener(this, gyroSensor, SensorManager.SENSOR_DELAY_GAME)
     }
 
     fun stop() {
-        if (!isEnabled) return
-        isEnabled = false
+        if (!isRunning) return
+        isRunning = false
         sensorManager.unregisterListener(this)
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
-        if (event == null || !isEnabled || !isTriggerHeld) return
-
-        if (event.sensor.type == Sensor.TYPE_GYROSCOPE) {
-            // Values: [0] = Angular speed around X, [1] = Y, [2] = Z in rad/s
-            val yawVelocity = event.values[2]   // Z-axis rotation (left/right tilt)
-            val pitchVelocity = event.values[0] // X-axis rotation (up/down tilt)
-
-            // Deadzone filter: suppress hand micro-tremors below threshold
-            if (abs(yawVelocity) > deadzoneThreshold || abs(pitchVelocity) > deadzoneThreshold) {
-                // Invert axes according to natural pointer ergonomics
-                val dx = (-yawVelocity * sensitivity).toInt().coerceIn(-32768, 32767).toShort()
-                val dy = (-pitchVelocity * sensitivity).toInt().coerceIn(-32768, 32767).toShort()
-
-                if (dx != 0.toShort() || dy != 0.toShort()) {
-                    onDeltaCalculated(dx, dy)
-                }
-            }
-        }
+        if (event == null || event.sensor.type != Sensor.TYPE_GYROSCOPE) return
+        val (dx, dy) = toPointerDelta(event.values[2], event.values[0], sensitivity, deadzone)
+        if (dx != 0f || dy != 0f) onDelta(dx, dy)
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+    companion object {
+        /** Yaw (z) turns left/right, pitch (x) tilts up/down; both inverted so the pointer follows the phone's tip. */
+        fun toPointerDelta(yaw: Float, pitch: Float, sensitivity: Float, deadzone: Float): Pair<Float, Float> {
+            val dx = if (abs(yaw) > deadzone) -yaw * sensitivity else 0f
+            val dy = if (abs(pitch) > deadzone) -pitch * sensitivity else 0f
+            return dx to dy
+        }
+    }
 }

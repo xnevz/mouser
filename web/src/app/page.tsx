@@ -1,10 +1,8 @@
 import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/Hero';
-import { InteractiveCanvasDemo } from '@/components/InteractiveCanvasDemo';
 import { DownloadSection } from '@/components/DownloadSection';
 import { FeatureGrid } from '@/components/FeatureGrid';
 import { ArchitecturePresentation } from '@/components/ArchitecturePresentation';
-import { ComparisonTable } from '@/components/ComparisonTable';
 import { Footer } from '@/components/Footer';
 import { InteractiveMouseFollower } from '@/components/InteractiveMouseFollower';
 
@@ -14,11 +12,9 @@ export default function Home() {
       <Navbar />
       <main className="flex-1 relative z-10">
         <Hero />
-        <InteractiveCanvasDemo />
-        <DownloadSection />
         <FeatureGrid />
+        <DownloadSection />
         <ArchitecturePresentation />
-        <ComparisonTable />
       </main>
       <Footer />
       <InteractiveMouseFollower />

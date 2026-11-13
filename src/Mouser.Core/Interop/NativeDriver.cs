@@ -9,6 +9,17 @@ public static partial class NativeDriver
 {
     private const string LibraryName = "mouser_native";
 
+    static NativeDriver()
+    {
+        // The macOS .app bundle ships the dylib in Contents/Frameworks, which the default probing doesn't search.
+        NativeLibrary.SetDllImportResolver(typeof(NativeDriver).Assembly, (name, assembly, searchPath) =>
+        {
+            if (name != LibraryName || !OperatingSystem.IsMacOS()) return IntPtr.Zero;
+            string frameworks = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "Frameworks", "libmouser_native.dylib"));
+            return File.Exists(frameworks) && NativeLibrary.TryLoad(frameworks, out var handle) ? handle : IntPtr.Zero;
+        });
+    }
+
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void MouseMoveDelegate(short dx, short dy);
 
@@ -48,6 +59,9 @@ public static partial class NativeDriver
 
     [LibraryImport(LibraryName, EntryPoint = "mouser_inject_key")]
     public static partial void InjectKey(uint keyCode, byte modifiers, [MarshalAs(UnmanagedType.Bool)] bool isDown);
+
+    [LibraryImport(LibraryName, EntryPoint = "mouser_inject_scroll")]
+    public static partial void InjectScroll(int horizontal, int vertical);
 
     [LibraryImport(LibraryName, EntryPoint = "mouser_set_input_redirection")]
     public static partial void SetInputRedirection([MarshalAs(UnmanagedType.Bool)] bool enabled);

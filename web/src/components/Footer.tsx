@@ -1,6 +1,6 @@
 import React from 'react';
 import { MousePointer, Shield, ArrowUpRight } from 'lucide-react';
-import { CURRENT_RELEASE_VERSION } from '@/data/releases';
+import { REPO_URL } from '@/data/releases';
 
 export const Footer = () => {
   return (
@@ -18,42 +18,21 @@ export const Footer = () => {
               <span className="font-extrabold text-lg text-slate-900 dark:text-white">Mouser</span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Unified cross-platform Virtual KVM switch and universal smart clipboard engine built for speed, privacy, and zero lag.
+              Use your Android phone as a trackpad and remote for your computer, with a local clipboard history.
             </p>
-            <div className="text-xs font-mono text-cyan-600 dark:text-cyan-400">
-              Current Release: {CURRENT_RELEASE_VERSION}
-            </div>
           </div>
 
           {/* Quick links: Downloads */}
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-3">Downloads</h4>
             <ul className="space-y-2 text-xs">
-              <li>
-                <a href="#downloads" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
-                  macOS (Apple Silicon & Intel DMG)
-                </a>
-              </li>
-              <li>
-                <a href="#downloads" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
-                  Windows (x64 & ARM64 MSI)
-                </a>
-              </li>
-              <li>
-                <a href="#downloads" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
-                  Linux (AppImage, Flatpak, DEB)
-                </a>
-              </li>
-              <li>
-                <a href="#downloads" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
-                  Android Companion APK
-                </a>
-              </li>
-              <li>
-                <a href="#downloads" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
-                  iOS TestFlight Beta
-                </a>
-              </li>
+              {['Windows', 'macOS', 'Linux (clipboard only)', 'Android companion'].map((label) => (
+                <li key={label}>
+                  <a href="#downloads" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
+                    {label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -63,7 +42,7 @@ export const Footer = () => {
             <ul className="space-y-2 text-xs">
               <li>
                 <a
-                  href="https://github.com/mouser-org/mouser"
+                  href={REPO_URL}
                   target="_blank"
                   rel="noreferrer"
                   className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors flex items-center gap-1"
@@ -74,17 +53,7 @@ export const Footer = () => {
               </li>
               <li>
                 <a href="#architecture" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
-                  Architecture & Specifications
-                </a>
-              </li>
-              <li>
-                <a href="#demo" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
-                  Interactive Simulator
-                </a>
-              </li>
-              <li>
-                <a href="#comparison" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
-                  Feature Comparison
+                  How it works
                 </a>
               </li>
             </ul>
@@ -96,10 +65,10 @@ export const Footer = () => {
             <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2 text-xs shadow-sm dark:shadow-none">
               <div className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
                 <Shield className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                <span>100% Zero-Knowledge</span>
+                <span>Stays on your network</span>
               </div>
               <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-normal">
-                All mouse packets and clipboard payloads stay on your local network. Protected by AES-256-GCM authenticated encryption.
+                No accounts and no cloud. Input travels directly between your phone and computer, and clipboard history never leaves the computer. Phone traffic is not encrypted yet, so use it on networks you trust.
               </p>
             </div>
           </div>
@@ -107,7 +76,7 @@ export const Footer = () => {
 
         {/* Bottom copyright */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© 2026 Mouser Open Source Project. Released under MIT / Apache 2.0.</p>
+          <p>© 2026 Mouser contributors.</p>
           <div className="flex items-center gap-1">
             <span>Crafted with Next.js, Tailwind CSS & Framer Motion</span>
           </div>

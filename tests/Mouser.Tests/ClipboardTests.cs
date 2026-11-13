@@ -185,4 +185,67 @@ public sealed class ClipboardTests
             }
         }
     }
+
+    [Theory]
+    [InlineData("https://github.com/xyz/repo", ClipboardContentType.Link)]
+    [InlineData("  http://example.com/a?b=c  ", ClipboardContentType.Link)]
+    [InlineData("var x = 42;", ClipboardContentType.Code)]
+    [InlineData("public void Run()\n{\n    Console.WriteLine(1);\n}", ClipboardContentType.Code)]
+    [InlineData("import os\nprint(os.getcwd())", ClipboardContentType.Code)]
+    [InlineData("Buy milk and eggs on the way home", ClipboardContentType.Text)]
+    [InlineData("Dear team,\nthe meeting moved to 3pm.\nThanks", ClipboardContentType.Text)]
+    [InlineData("see https://example.com for details", ClipboardContentType.Text)]
+    public void Classifier_DetectsContentType(string text, ClipboardContentType expected)
+    {
+        Assert.Equal(expected, ClipboardClassifier.Classify(text));
+    }
+
+    [Fact]
+    public void Classifier_Title_UsesFirstNonEmptyLineAndTruncates()
+    {
+        Assert.Equal("hello", ClipboardClassifier.Title("\n\n  hello  \nworld"));
+        Assert.Equal(80, ClipboardClassifier.Title(new string('a', 200)).Length);
+    }
+
+    [Fact]
+    public void PrivacyFilter_DetectsValidCardNumbersOnly()
+    {
+        Assert.True(ClipboardPrivacyFilter.IsSensitive("4111 1111 1111 1111"));  // Luhn-valid test card
+        Assert.False(ClipboardPrivacyFilter.IsSensitive("1234 5678 9012 3456")); // fails Luhn
+    }
+
+    [Fact]
+    public async Task Storage_DeleteClearCountsAndFavorites()
+    {
+        string tempDb = Path.Combine(Path.GetTempPath(), $"mouser_test_{Guid.NewGuid():N}.db");
+        try
+        {
+            await using var storage = new ClipboardStorageService(tempDb);
+            long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            for (int i = 0; i < 5; i++)
+                await storage.SaveClipAsync(new ClipboardPayload { Id = $"c{i}", TimestampUtc = now + i, TextContent = $"clip number {i}" });
+
+            // Copying the same text again bumps it instead of duplicating it.
+            Assert.False(await storage.SaveClipAsync(new ClipboardPayload { TimestampUtc = now + 100, TextContent = "clip number 0" }));
+            Assert.Equal("c0", (await storage.GetRecentClipsAsync(1))[0].Id);
+
+            await storage.ToggleFavoriteAsync("c1");
+            Assert.Equal((5, 1), await storage.GetCountsAsync());
+            Assert.Equal("c1", Assert.Single(await storage.GetRecentClipsAsync(10, favoritesOnly: true)).Id);
+
+            await storage.DeleteClipAsync("c2");
+            Assert.Empty(await storage.SearchClipsAsync("number 2"));
+
+            int removed = await storage.ClearAsync();
+            Assert.Equal(3, removed);
+            Assert.Equal((1, 1), await storage.GetCountsAsync());
+            Assert.Empty(await storage.SearchClipsAsync("number 3")); // full-text index cleared too
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            foreach (var f in new[] { tempDb, tempDb + "-wal", tempDb + "-shm" })
+                if (File.Exists(f)) try { File.Delete(f); } catch { }
+        }
+    }
 }

@@ -42,6 +42,10 @@ void mouser_inject_key(uint32_t keyCode, uint8_t modifiers, bool isDown) {
     (void)keyCode; (void)modifiers; (void)isDown;
 }
 
+void mouser_inject_scroll(int32_t horizontal, int32_t vertical) {
+    (void)horizontal; (void)vertical;
+}
+
 static bool g_stubInputRedirected = false;
 static int32_t g_stubCursorX = 0;
 static int32_t g_stubCursorY = 0;

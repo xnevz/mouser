@@ -1,285 +1,160 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Mouser.Core.Clipboard;
+using Mouser.UI.Services;
 
 namespace Mouser.UI.ViewModels;
 
-public class PairedDeviceItem
-{
-    public string Name { get; init; } = string.Empty;
-    public string Role { get; init; } = string.Empty;
-    public string Icon { get; init; } = "💻";
-    public bool IsOnline { get; init; } = true;
-    public string PingText { get; init; } = "<1ms";
-}
-
+/// <summary>Local clipboard history: captures copied text, stores it in SQLite and lets you search and re-copy it.</summary>
 public partial class ClipboardHistoryViewModel : ViewModelBase
 {
-    private readonly ObservableCollection<ClipboardItemViewModel> _allClips = new();
+    /// <summary>Clips larger than this are not stored (they are usually accidental file-sized copies).</summary>
+    public const int MaxClipLength = 1_000_000;
+    private const int PageSize = 200;
 
-    [ObservableProperty]
-    private string _searchQuery = string.Empty;
+    private readonly ClipboardStorageService _storage;
+    private readonly SettingsStore _settings;
+    private IClipboardAccess? _clipboard;
+    private string? _lastSeenText;
+    private bool _isPolling;
 
-    [ObservableProperty]
-    private string _selectedLibrary = "All"; // All, Starred, Encrypted, Trash
-
-    [ObservableProperty]
-    private string _selectedFilter = "All"; // All, Text, Code, Link, Image, File
-
-    [ObservableProperty]
-    private string _selectedDevice = "All";
-
-    [ObservableProperty]
-    private ClipboardItemViewModel? _selectedClip;
-
-    [ObservableProperty]
-    private string _statusMessage = "Local-First End-to-End Encrypted Sync Active (ChaCha20-Poly1305)";
-
-    [ObservableProperty]
-    private int _allCount;
-
-    [ObservableProperty]
-    private int _starredCount;
-
-    [ObservableProperty]
-    private int _encryptedCount;
+    [ObservableProperty] private string _searchQuery = string.Empty;
+    [ObservableProperty] private string _selectedLibrary = "All";   // All, Starred
+    [ObservableProperty] private string _selectedFilter = "All";    // All, Text, Link, Code
+    [ObservableProperty] private ClipboardItemViewModel? _selectedClip;
+    [ObservableProperty] private string _statusMessage = string.Empty;
+    [ObservableProperty] private int _allCount;
+    [ObservableProperty] private int _starredCount;
 
     public ObservableCollection<ClipboardItemViewModel> FilteredClips { get; } = new();
-    public ObservableCollection<PairedDeviceItem> PairedDevices { get; } = new();
 
-    public ClipboardHistoryViewModel()
+    public bool IsCaptureEnabled => _settings.Current.ClipboardHistoryEnabled;
+    public bool IsEmpty => FilteredClips.Count == 0;
+
+    public ClipboardHistoryViewModel(ClipboardStorageService storage, SettingsStore settings)
     {
-        // Seed Paired Devices (UniClipboard Multi-Device Mesh)
-        PairedDevices.Add(new PairedDeviceItem { Name = "MacBook Pro 16\"", Role = "Host • macOS Sonoma", Icon = "💻", IsOnline = true, PingText = "Local" });
-        PairedDevices.Add(new PairedDeviceItem { Name = "Windows Workstation", Role = "Peer • Windows 11", Icon = "🖥️", IsOnline = true, PingText = "0.8ms" });
-        PairedDevices.Add(new PairedDeviceItem { Name = "Linux ThinkPad", Role = "Peer • Ubuntu 24", Icon = "🐧", IsOnline = true, PingText = "1.2ms" });
-        PairedDevices.Add(new PairedDeviceItem { Name = "Android Galaxy S24", Role = "Mobile • Wireless LAN", Icon = "📱", IsOnline = true, PingText = "2.1ms" });
-
-        // Seed initial history items with UniClipboard rich payload metadata
-        _allClips.Add(new ClipboardItemViewModel
-        {
-            ContentType = "Code",
-            PreviewTitle = "Zero-Allocation UDP Packet Struct",
-            Content = "[StructLayout(LayoutKind.Sequential, Pack = 1)]\npublic struct InputMotionPacket\n{\n    public byte Magic;\n    public byte PacketType;\n    public float DeltaX;\n    public float DeltaY;\n    public uint Buttons;\n}",
-            SourceDevice = "Windows Workstation",
-            SourceApp = "VS Code",
-            Timestamp = DateTime.UtcNow.AddMinutes(-2),
-            IsPinned = true
-        });
-
-        _allClips.Add(new ClipboardItemViewModel
-        {
-            ContentType = "Link",
-            PreviewTitle = "Apple Developer: CGEventTap Documentation",
-            Content = "https://developer.apple.com/documentation/coregraphics/cgeventtap",
-            SourceDevice = "MacBook Pro",
-            SourceApp = "Safari",
-            Timestamp = DateTime.UtcNow.AddMinutes(-12),
-            IsPinned = true
-        });
-
-        _allClips.Add(new ClipboardItemViewModel
-        {
-            ContentType = "Text",
-            PreviewTitle = "Meeting notes & KVM specs",
-            Content = "ShareMouse alternative with cross-platform clipboard, UniClipboard design system, and Android air mouse.",
-            SourceDevice = "Linux ThinkPad",
-            SourceApp = "Obsidian",
-            Timestamp = DateTime.UtcNow.AddMinutes(-45),
-            IsPinned = false
-        });
-
-        _allClips.Add(new ClipboardItemViewModel
-        {
-            ContentType = "Code",
-            PreviewTitle = "Objective-C++ Hook callback",
-            Content = "CGEventRef eventTapCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon)\n{\n    if (type == kCGEventMouseMoved) {\n        CGPoint loc = CGEventGetLocation(event);\n        dispatch_motion(loc.x, loc.y);\n    }\n    return event;\n}",
-            SourceDevice = "MacBook Pro",
-            SourceApp = "Xcode",
-            Timestamp = DateTime.UtcNow.AddHours(-1),
-            IsPinned = false
-        });
-
-        _allClips.Add(new ClipboardItemViewModel
-        {
-            ContentType = "Link",
-            PreviewTitle = "UniClipboard GitHub Repository",
-            Content = "https://github.com/UniClipboard/UniClipboard",
-            SourceDevice = "Linux ThinkPad",
-            SourceApp = "Firefox",
-            Timestamp = DateTime.UtcNow.AddHours(-2),
-            IsPinned = true
-        });
-
-        _allClips.Add(new ClipboardItemViewModel
-        {
-            ContentType = "File",
-            PreviewTitle = "mouser-network-topology.drawio.png",
-            Content = "/Users/abdelkarim/Documents/mouser/specs/mouser-network-topology.drawio.png (Binary PNG image, 342.1 KB)",
-            SourceDevice = "MacBook Pro",
-            SourceApp = "Finder",
-            Timestamp = DateTime.UtcNow.AddHours(-3),
-            IsPinned = false
-        });
-
-        _allClips.Add(new ClipboardItemViewModel
-        {
-            ContentType = "Text",
-            PreviewTitle = "Wi-Fi Hotspot Passphrase",
-            Content = "Mouser-UltraMesh-WPA3-Secured-2026",
-            SourceDevice = "Android Galaxy S24",
-            SourceApp = "Settings",
-            Timestamp = DateTime.UtcNow.AddHours(-4),
-            IsPinned = false
-        });
-
-        UpdateCounts();
-        RefreshFilter();
+        _storage = storage;
+        _settings = settings;
     }
 
-    partial void OnSearchQueryChanged(string value) => RefreshFilter();
-    partial void OnSelectedFilterChanged(string value) => RefreshFilter();
-    partial void OnSelectedLibraryChanged(string value) => RefreshFilter();
-    partial void OnSelectedDeviceChanged(string value) => RefreshFilter();
+    /// <summary>Connects the system clipboard once the main window exists.</summary>
+    public void AttachClipboard(IClipboardAccess clipboard) => _clipboard = clipboard;
 
-    [RelayCommand]
-    private void SetLibrary(string library)
+    public async Task InitializeAsync()
     {
-        SelectedLibrary = library;
+        await _storage.InitializeAsync();
+        await _storage.PurgeClipsOlderThanAsync(_settings.Current.ClipboardRetentionDays);
+        await ReloadAsync();
     }
 
-    [RelayCommand]
-    private void SetFilter(string filter)
+    /// <summary>Reads the system clipboard and records new text. Returns true when a clip was added.</summary>
+    public async Task<bool> PollClipboardAsync()
     {
-        SelectedFilter = filter;
-    }
-
-    [RelayCommand]
-    private void SetDeviceFilter(string device)
-    {
-        SelectedDevice = device;
-    }
-
-    [RelayCommand]
-    private void SelectClip(ClipboardItemViewModel? clip)
-    {
-        if (clip == null) return;
-        foreach (var c in FilteredClips)
+        if (_clipboard == null || _isPolling) return false;
+        _isPolling = true;
+        try
         {
-            c.IsSelected = (c == clip);
+            string? text = await _clipboard.GetTextAsync();
+            if (text == null || text == _lastSeenText) return false;
+            _lastSeenText = text;
+            return await CaptureAsync(text);
         }
-        SelectedClip = clip;
-    }
-
-    [RelayCommand]
-    private void ToggleStar(ClipboardItemViewModel? clip)
-    {
-        if (clip == null) return;
-        clip.IsPinned = !clip.IsPinned;
-        UpdateCounts();
-        StatusMessage = clip.IsPinned
-            ? $"⭐ Starred: {clip.PreviewTitle}"
-            : $"Unstarred: {clip.PreviewTitle}";
-
-        if (SelectedLibrary == "Starred")
+        finally
         {
-            RefreshFilter();
+            _isPolling = false;
         }
     }
 
-    [RelayCommand]
-    private void CopyClip(ClipboardItemViewModel? clip)
+    public async Task<bool> CaptureAsync(string text)
     {
-        if (clip == null) return;
-        StatusMessage = $"✓ Copied to clipboard ({clip.ContentType} from {clip.SourceDevice})";
-    }
+        OnPropertyChanged(nameof(IsCaptureEnabled));
+        if (!_settings.Current.ClipboardHistoryEnabled || string.IsNullOrWhiteSpace(text)) return false;
 
-    [RelayCommand]
-    private void SendToDevice(string deviceName)
-    {
-        if (SelectedClip == null) return;
-        StatusMessage = $"✓ Dispatched \"{SelectedClip.PreviewTitle}\" securely to {deviceName} via LAN mesh";
-    }
-
-    [RelayCommand]
-    private void DeleteClip(ClipboardItemViewModel? clip)
-    {
-        if (clip == null) return;
-        _allClips.Remove(clip);
-        FilteredClips.Remove(clip);
-        UpdateCounts();
-        StatusMessage = "Item removed from clipboard history";
-        if (SelectedClip == clip)
+        if (text.Length > MaxClipLength)
         {
-            SelectedClip = FilteredClips.FirstOrDefault();
+            StatusMessage = "Skipped a very large copy (over 1 MB of text).";
+            return false;
         }
+
+        if (_settings.Current.SkipSensitiveClips && ClipboardPrivacyFilter.IsSensitive(text))
+        {
+            StatusMessage = "Skipped a copied secret (looks like a key, token or card number).";
+            return false;
+        }
+
+        await _storage.SaveClipAsync(new ClipboardPayload
+        {
+            ContentType = ClipboardClassifier.Classify(text),
+            TextContent = text,
+            SourceDevice = Environment.MachineName
+        });
+        await ReloadAsync();
+        return true;
+    }
+
+    partial void OnSearchQueryChanged(string value) => _ = ReloadAsync();
+    partial void OnSelectedFilterChanged(string value) => _ = ReloadAsync();
+    partial void OnSelectedLibraryChanged(string value) => _ = ReloadAsync();
+
+    [RelayCommand] private void SetLibrary(string library) => SelectedLibrary = library;
+    [RelayCommand] private void SetFilter(string filter) => SelectedFilter = filter;
+
+    [RelayCommand]
+    private async Task ToggleStarAsync(ClipboardItemViewModel? clip)
+    {
+        if (clip == null) return;
+        clip.IsPinned = await _storage.ToggleFavoriteAsync(clip.Id);
+        StatusMessage = clip.IsPinned ? "Starred. Starred clips are kept forever." : "Removed star.";
+        await ReloadAsync();
     }
 
     [RelayCommand]
-    private void ClearAll()
+    private async Task CopyClipAsync(ClipboardItemViewModel? clip)
     {
-        _allClips.Clear();
+        if (clip == null || _clipboard == null) return;
+        _lastSeenText = clip.Content; // don't re-capture our own write
+        await _clipboard.SetTextAsync(clip.Content);
+        StatusMessage = "Copied to clipboard.";
+    }
+
+    [RelayCommand]
+    private async Task DeleteClipAsync(ClipboardItemViewModel? clip)
+    {
+        if (clip == null) return;
+        await _storage.DeleteClipAsync(clip.Id);
+        StatusMessage = "Clip deleted.";
+        await ReloadAsync();
+    }
+
+    [RelayCommand]
+    private async Task ClearAllAsync()
+    {
+        int removed = await _storage.ClearAsync(includeFavorites: false);
+        StatusMessage = $"Cleared {removed} clip{(removed == 1 ? "" : "s")}. Starred clips were kept.";
+        await ReloadAsync();
+    }
+
+    public async Task ReloadAsync()
+    {
+        (AllCount, StarredCount) = await _storage.GetCountsAsync();
+
+        var results = string.IsNullOrWhiteSpace(SearchQuery)
+            ? await _storage.GetRecentClipsAsync(PageSize, favoritesOnly: SelectedLibrary == "Starred")
+            : await _storage.SearchClipsAsync(SearchQuery, PageSize);
+
+        var items = results.AsEnumerable();
+        if (SelectedLibrary == "Starred") items = items.Where(c => c.IsFavorite);
+        if (Enum.TryParse<ClipboardContentType>(SelectedFilter, out var kind)) items = items.Where(c => c.ContentType == kind);
+
+        string? selectedId = SelectedClip?.Id;
         FilteredClips.Clear();
-        SelectedClip = null;
-        UpdateCounts();
-        StatusMessage = "Clipboard history cleared";
-    }
+        foreach (var payload in items) FilteredClips.Add(new ClipboardItemViewModel(payload));
 
-    private void UpdateCounts()
-    {
-        AllCount = _allClips.Count;
-        StarredCount = _allClips.Count(c => c.IsPinned);
-        EncryptedCount = _allClips.Count(c => c.IsEncrypted);
-    }
-
-    private void RefreshFilter()
-    {
-        FilteredClips.Clear();
-        var items = _allClips.AsEnumerable();
-
-        // 1. Library Filter (All, Starred, Encrypted)
-        if (SelectedLibrary == "Starred")
-        {
-            items = items.Where(c => c.IsPinned);
-        }
-        else if (SelectedLibrary == "Encrypted")
-        {
-            items = items.Where(c => c.IsEncrypted);
-        }
-
-        // 2. Type Filter (All, Text, Code, Link, Image, File)
-        if (!string.IsNullOrWhiteSpace(SelectedFilter) && SelectedFilter != "All")
-        {
-            items = items.Where(c => c.ContentType.Equals(SelectedFilter, StringComparison.OrdinalIgnoreCase));
-        }
-
-        // 3. Device Filter
-        if (!string.IsNullOrWhiteSpace(SelectedDevice) && SelectedDevice != "All")
-        {
-            items = items.Where(c => c.SourceDevice.Contains(SelectedDevice, StringComparison.OrdinalIgnoreCase));
-        }
-
-        // 4. Search Query (Full-text matching title, content, device, or app)
-        if (!string.IsNullOrWhiteSpace(SearchQuery))
-        {
-            items = items.Where(c =>
-                c.PreviewTitle.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ||
-                c.Content.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ||
-                c.SourceDevice.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ||
-                c.SourceApp.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
-        }
-
-        foreach (var item in items)
-        {
-            FilteredClips.Add(item);
-        }
-
-        SelectedClip = FilteredClips.FirstOrDefault();
-        if (SelectedClip != null)
-        {
-            SelectedClip.IsSelected = true;
-        }
+        SelectedClip = FilteredClips.FirstOrDefault(c => c.Id == selectedId) ?? FilteredClips.FirstOrDefault();
+        OnPropertyChanged(nameof(IsEmpty));
     }
 }

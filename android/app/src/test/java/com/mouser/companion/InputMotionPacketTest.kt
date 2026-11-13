@@ -16,7 +16,7 @@ class InputMotionPacketTest {
             deltaX = -120,
             deltaY = 350,
             buttonFlags = (InputMotionPacket.BUTTON_LEFT.toInt() or InputMotionPacket.BUTTON_RIGHT.toInt()).toByte(),
-            modifiers = InputMotionPacket.MOD_CMD
+            modifiers = 0x01
         )
 
         val bytes = original.toByteArray()

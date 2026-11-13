@@ -3,402 +3,134 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Mouser.UI.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="1050" d:DesignHeight="680"
+             mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="640"
              x:Class="Mouser.UI.Views.ClipboardHistoryView"
              x:DataType="vm:ClipboardHistoryViewModel">
 
-    <Grid RowDefinitions="Auto,*,Auto" Margin="20">
-        <!-- Top Header & Search Bar -->
-        <Grid Grid.Row="0" Margin="0,0,0,14" RowDefinitions="Auto,Auto">
-            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
-                <StackPanel Grid.Column="0" Spacing="3">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBlock Text="Smart Clipboard" FontSize="20" FontWeight="Bold" Foreground="#f4f4f5" />
-                        <Border Background="#232533" CornerRadius="6" Padding="8,2" VerticalAlignment="Center">
-                            <TextBlock Text="UniClipboard Protocol • E2EE" FontSize="11" FontWeight="SemiBold" Foreground="#10b981" />
-                        </Border>
-                    </StackPanel>
-                    <TextBlock Text="Local-first peer-to-peer clipboard sync across macOS, Windows, Linux &amp; Android. Zero cloud reliance."
-                               FontSize="12" Foreground="#94a3b8" />
-                </StackPanel>
+    <UserControl.Styles>
+        <Style Selector="ListBox.clips ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+        <Style Selector="ListBox.clips ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox.clips ListBoxItem:selected Border.clip-card">
+            <Setter Property="BorderBrush" Value="#6366f1" />
+            <Setter Property="Background" Value="#1a1b28" />
+        </Style>
+        <Style Selector="Border.clip-card">
+            <Setter Property="Background" Value="#15161f" />
+            <Setter Property="BorderBrush" Value="#262938" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,10" />
+        </Style>
+        <Style Selector="RadioButton.filter">
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+    </UserControl.Styles>
 
-                <!-- Top Header Actions -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Button Classes="secondary-btn" Command="{Binding ClearAllCommand}" ToolTip.Tip="Clear unpinned clips">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Text="🗑" FontSize="12" />
-                            <TextBlock Text="Clear History" FontSize="12" />
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
-            </Grid>
-
-            <!-- Search Field -->
-            <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
-                <TextBox Grid.Column="0"
-                         Text="{Binding SearchQuery, Mode=TwoWay}"
-                         PlaceholderText="Search clipboard history, source apps, and devices (Press / to focus)..."
-                         Background="#181922"
-                         Foreground="#f4f4f5"
-                         BorderBrush="#272a38"
-                         CornerRadius="8"
-                         Padding="12,9"
-                         Margin="0,0,10,0" />
-
-                <!-- Quick Filter Chips -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                    <Button Classes="secondary-btn" Command="{Binding SetFilterCommand}" CommandParameter="All" Content="All" FontSize="12" />
-                    <Button Classes="secondary-btn" Command="{Binding SetFilterCommand}" CommandParameter="Text" Content="Text" FontSize="12" />
-                    <Button Classes="secondary-btn" Command="{Binding SetFilterCommand}" CommandParameter="Code" Content="Code" FontSize="12" />
-                    <Button Classes="secondary-btn" Command="{Binding SetFilterCommand}" CommandParameter="Link" Content="Links" FontSize="12" />
-                    <Button Classes="secondary-btn" Command="{Binding SetFilterCommand}" CommandParameter="File" Content="Files" FontSize="12" />
-                </StackPanel>
-            </Grid>
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="24">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,14">
+            <StackPanel Spacing="4">
+                <TextBlock Classes="page-title" Text="Clipboard History" />
+                <TextBlock Classes="page-subtitle"
+                           Text="Text you copy on this computer is saved here so you can find and copy it again. History stays on this computer." />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="secondary-btn" Content="Clear history" VerticalAlignment="Center"
+                    Command="{Binding ClearAllCommand}" ToolTip.Tip="Delete all clips except starred ones" />
         </Grid>
 
-        <!-- Main UniClipboard 3-Column Workspace: Left Rail, Center Feed, Right Inspector -->
-        <Grid Grid.Row="1" ColumnDefinitions="210,*,320">
-            <!-- Column 0: UniClipboard Navigation Rail (Library, Categories, Devices) -->
-            <Border Grid.Column="0" Classes="glass-card" Margin="0,0,12,0" Padding="12">
-                <ScrollViewer>
-                    <StackPanel Spacing="16">
-                        <!-- Section: Library -->
-                        <StackPanel Spacing="4">
-                            <TextBlock Text="LIBRARY" FontSize="10" FontWeight="Bold" Foreground="#64748b" Margin="6,0,0,6" />
+        <Border Grid.Row="1" Classes="banner-warning" Margin="0,0,0,12" IsVisible="{Binding !IsCaptureEnabled}">
+            <TextBlock Foreground="#fde68a" FontSize="12" TextWrapping="Wrap"
+                       Text="Saving new clips is turned off. Turn it back on in Settings." />
+        </Border>
 
-                            <!-- All Clips -->
-                            <Button Classes="nav-button" Command="{Binding SetLibraryCommand}" CommandParameter="All">
-                                <Grid ColumnDefinitions="20,*,Auto">
-                                    <TextBlock Grid.Column="0" Text="📥" FontSize="12" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="1" Text="All Clips" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center" />
-                                    <Border Grid.Column="2" Background="#232533" CornerRadius="10" Padding="6,1">
-                                        <TextBlock Text="{Binding AllCount}" FontSize="10" FontWeight="Bold" Foreground="#94a3b8" />
-                                    </Border>
-                                </Grid>
-                            </Button>
+        <Grid Grid.Row="2" ColumnDefinitions="*,16,340">
+            <!-- List -->
+            <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*">
+                <TextBox Grid.Row="0" PlaceholderText="Search clips…" Text="{Binding SearchQuery}" Margin="0,0,0,10" />
 
-                            <!-- Starred / Favorites -->
-                            <Button Classes="nav-button" Command="{Binding SetLibraryCommand}" CommandParameter="Starred">
-                                <Grid ColumnDefinitions="20,*,Auto">
-                                    <TextBlock Grid.Column="0" Text="⭐" FontSize="12" Foreground="#f59e0b" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="1" Text="Starred" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center" />
-                                    <Border Grid.Column="2" Background="#38290f" CornerRadius="10" Padding="6,1">
-                                        <TextBlock Text="{Binding StarredCount}" FontSize="10" FontWeight="Bold" Foreground="#f59e0b" />
-                                    </Border>
-                                </Grid>
-                            </Button>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+                    <RadioButton Classes="filter" GroupName="lib" Content="{Binding AllCount, StringFormat='All ({0})'}"
+                                 IsChecked="True" Command="{Binding SetLibraryCommand}" CommandParameter="All" />
+                    <RadioButton Classes="filter" GroupName="lib" Content="{Binding StarredCount, StringFormat='Starred ({0})'}"
+                                 Command="{Binding SetLibraryCommand}" CommandParameter="Starred" />
+                    <Rectangle Width="1" Fill="#2e3248" Margin="8,4" />
+                    <RadioButton Classes="filter" GroupName="kind" Content="Any type" IsChecked="True"
+                                 Command="{Binding SetFilterCommand}" CommandParameter="All" />
+                    <RadioButton Classes="filter" GroupName="kind" Content="Text"
+                                 Command="{Binding SetFilterCommand}" CommandParameter="Text" />
+                    <RadioButton Classes="filter" GroupName="kind" Content="Links"
+                                 Command="{Binding SetFilterCommand}" CommandParameter="Link" />
+                    <RadioButton Classes="filter" GroupName="kind" Content="Code"
+                                 Command="{Binding SetFilterCommand}" CommandParameter="Code" />
+                </StackPanel>
 
-                            <!-- Encrypted E2EE -->
-                            <Button Classes="nav-button" Command="{Binding SetLibraryCommand}" CommandParameter="Encrypted">
-                                <Grid ColumnDefinitions="20,*,Auto">
-                                    <TextBlock Grid.Column="0" Text="🔒" FontSize="12" Foreground="#10b981" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="1" Text="Encrypted" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center" />
-                                    <Border Grid.Column="2" Background="#142e23" CornerRadius="10" Padding="6,1">
-                                        <TextBlock Text="{Binding EncryptedCount}" FontSize="10" FontWeight="Bold" Foreground="#10b981" />
-                                    </Border>
-                                </Grid>
-                            </Button>
-                        </StackPanel>
+                <Grid Grid.Row="2">
+                    <TextBlock Classes="hint" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+                               IsVisible="{Binding IsEmpty}"
+                               Text="Nothing here yet.&#10;Copy some text anywhere on this computer and it will show up." />
 
-                        <Separator Background="#272a38" />
-
-                        <!-- Section: Paired Sync Devices (Direct LAN Mesh) -->
-                        <StackPanel Spacing="4">
-                            <TextBlock Text="SYNCED DEVICES" FontSize="10" FontWeight="Bold" Foreground="#64748b" Margin="6,0,0,6" />
-
-                            <ItemsControl ItemsSource="{Binding PairedDevices}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="vm:PairedDeviceItem">
-                                        <Button Classes="nav-button"
-                                                Command="{Binding $parent[UserControl].((vm:ClipboardHistoryViewModel)DataContext).SetDeviceFilterCommand}"
-                                                CommandParameter="{Binding Name}"
-                                                Margin="0,1" Padding="8,6">
-                                            <Grid ColumnDefinitions="Auto,*,Auto">
-                                                <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0" />
-                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" Foreground="#f4f4f5" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Text="{Binding Role}" FontSize="9" Foreground="#64748b" />
-                                                </StackPanel>
-                                                <Ellipse Grid.Column="2" Width="6" Height="6" Fill="#10b981" VerticalAlignment="Center" Margin="4,0,0,0" />
-                                            </Grid>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-
-                            <!-- Reset Device Filter -->
-                            <Button Classes="secondary-btn"
-                                    Command="{Binding SetDeviceFilterCommand}"
-                                    CommandParameter="All"
-                                    FontSize="10"
-                                    Padding="6,3"
-                                    HorizontalAlignment="Stretch"
-                                    Margin="0,4,0,0">
-                                <TextBlock Text="Show All Devices" HorizontalAlignment="Center" />
-                            </Button>
-                        </StackPanel>
-
-                        <Separator Background="#272a38" />
-
-                        <!-- Section: Mesh Security Status -->
-                        <Border Background="#14151d" BorderBrush="#272a38" BorderThickness="1" CornerRadius="8" Padding="10">
-                            <StackPanel Spacing="4">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <Ellipse Width="6" Height="6" Fill="#10b981" VerticalAlignment="Center" />
-                                    <TextBlock Text="Local-First P2P" FontSize="11" FontWeight="Bold" Foreground="#10b981" />
-                                </StackPanel>
-                                <TextBlock Text="ChaCha20-Poly1305 encryption. No cloud relay." FontSize="10" Foreground="#64748b" TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
-
-            <!-- Column 1: Clips Feed List (Center) -->
-            <Border Grid.Column="1" Classes="glass-card" Margin="0,0,12,0" Padding="10">
-                <ScrollViewer>
-                    <ItemsControl ItemsSource="{Binding FilteredClips}">
-                        <ItemsControl.ItemTemplate>
+                    <ListBox Classes="clips" Background="Transparent" ItemsSource="{Binding FilteredClips}"
+                             SelectedItem="{Binding SelectedClip}" IsVisible="{Binding !IsEmpty}">
+                        <ListBox.ItemTemplate>
                             <DataTemplate DataType="vm:ClipboardItemViewModel">
-                                <Border Background="#181922"
-                                        BorderBrush="{Binding IsSelected, Converter={x:Null}, StringFormat='#6366f1'}"
-                                        BorderThickness="1"
-                                        CornerRadius="10"
-                                        Padding="12"
-                                        Margin="0,0,0,8"
-                                        Cursor="Hand">
-                                    <Grid RowDefinitions="Auto,Auto,Auto">
-                                        <!-- Card Header: Type Badge, Title, Device, Star, Time -->
-                                        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto,Auto">
-                                            <!-- Type Badge -->
-                                            <Border Grid.Column="0"
-                                                    Background="{Binding BadgeColor}"
-                                                    CornerRadius="4"
-                                                    Padding="6,2"
-                                                    Margin="0,0,8,0">
-                                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                                    <TextBlock Text="{Binding TypeIcon}" FontSize="9" />
-                                                    <TextBlock Text="{Binding ContentType}"
-                                                               FontSize="10"
-                                                               FontWeight="Bold"
-                                                               Foreground="#ffffff" />
-                                                </StackPanel>
-                                            </Border>
-
-                                            <!-- Preview Title -->
-                                            <TextBlock Grid.Column="1"
-                                                       Text="{Binding PreviewTitle}"
-                                                       FontWeight="SemiBold"
-                                                       FontSize="12"
-                                                       Foreground="#f4f4f5"
-                                                       TextTrimming="CharacterEllipsis"
-                                                       VerticalAlignment="Center" />
-
-                                            <!-- Source Device Tag -->
-                                            <Border Grid.Column="2" Background="#232533" CornerRadius="4" Padding="6,2" Margin="6,0">
-                                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                                    <TextBlock Text="{Binding DeviceIcon}" FontSize="10" VerticalAlignment="Center" />
-                                                    <TextBlock Text="{Binding SourceDevice}" FontSize="10" Foreground="#94a3b8" VerticalAlignment="Center" />
-                                                </StackPanel>
-                                            </Border>
-
-                                            <!-- Relative Time -->
-                                            <TextBlock Grid.Column="3"
-                                                       Text="{Binding FormattedTime}"
-                                                       FontSize="11"
-                                                       Foreground="#64748b"
-                                                       VerticalAlignment="Center"
-                                                       Margin="4,0,8,0" />
-
-                                            <!-- Star Toggle Button -->
-                                            <Button Grid.Column="4"
-                                                    Background="Transparent"
-                                                    Padding="4,2"
-                                                    Command="{Binding $parent[UserControl].((vm:ClipboardHistoryViewModel)DataContext).ToggleStarCommand}"
-                                                    CommandParameter="{Binding}"
-                                                    ToolTip.Tip="Star / Pin clip">
-                                                <TextBlock Text="{Binding StarIcon}" FontSize="14" Foreground="{Binding StarColor}" />
-                                            </Button>
-                                        </Grid>
-
-                                        <!-- Card Body Preview Snippet -->
-                                        <TextBlock Grid.Row="1"
-                                                   Text="{Binding Content}"
-                                                   Foreground="#94a3b8"
-                                                   FontFamily="SF Mono, Menlo, Monaco, Consolas, monospace"
-                                                   FontSize="11"
-                                                   MaxLines="2"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Margin="0,8,0,8" />
-
-                                        <!-- Card Footer: Quick Actions & Metadata -->
-                                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
-                                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding FormattedSize}" FontSize="10" Foreground="#64748b" VerticalAlignment="Center" />
-                                                <TextBlock Text="•" FontSize="10" Foreground="#475569" VerticalAlignment="Center" />
-                                                <TextBlock Text="{Binding SourceApp, StringFormat='via {0}'}" FontSize="10" Foreground="#64748b" VerticalAlignment="Center" />
-                                            </StackPanel>
-
-                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                                                <Button Classes="primary-btn"
-                                                        Padding="8,3"
-                                                        FontSize="11"
-                                                        Command="{Binding $parent[UserControl].((vm:ClipboardHistoryViewModel)DataContext).CopyClipCommand}"
-                                                        CommandParameter="{Binding}"
-                                                        ToolTip.Tip="Copy to system clipboard">
-                                                    <StackPanel Orientation="Horizontal" Spacing="4">
-                                                        <TextBlock Text="📋" FontSize="10" />
-                                                        <TextBlock Text="Copy" />
-                                                    </StackPanel>
-                                                </Button>
-
-                                                <Button Classes="secondary-btn"
-                                                        Padding="8,3"
-                                                        FontSize="11"
-                                                        Command="{Binding $parent[UserControl].((vm:ClipboardHistoryViewModel)DataContext).SelectClipCommand}"
-                                                        CommandParameter="{Binding}"
-                                                        ToolTip.Tip="Inspect details">
-                                                    <TextBlock Text="Inspect" />
-                                                </Button>
-
-                                                <Button Classes="secondary-btn"
-                                                        Padding="6,3"
-                                                        FontSize="11"
-                                                        Command="{Binding $parent[UserControl].((vm:ClipboardHistoryViewModel)DataContext).DeleteClipCommand}"
-                                                        CommandParameter="{Binding}"
-                                                        ToolTip.Tip="Delete clip">
-                                                    <TextBlock Text="✕" />
-                                                </Button>
-                                            </StackPanel>
-                                        </Grid>
+                                <Border Classes="clip-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
+                                        <Border Grid.RowSpan="2" Background="{Binding BadgeColor}" CornerRadius="6"
+                                                Width="30" Height="30" Margin="0,0,12,0" VerticalAlignment="Top">
+                                            <TextBlock Text="{Binding TypeIcon}" FontSize="11" FontWeight="Bold" Foreground="#ffffff"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="{Binding PreviewTitle}" FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="#f1f5f9" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="1" Grid.Row="1" FontSize="11" Foreground="#64748b" Margin="0,3,0,0">
+                                            <Run Text="{Binding ContentType}" />
+                                            <Run Text=" • " />
+                                            <Run Text="{Binding FormattedTime}" />
+                                        </TextBlock>
+                                        <TextBlock Grid.Column="2" Grid.RowSpan="2" Text="{Binding StarIcon}" FontSize="15"
+                                                   Foreground="{Binding StarColor}" VerticalAlignment="Center" Margin="8,0,0,0" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </Border>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Grid>
 
-            <!-- Column 2: UniClipboard Payload Inspector & Remote Dispatch Panel (Right) -->
+            <!-- Detail -->
             <Border Grid.Column="2" Classes="glass-card" Padding="16">
-                <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
-                    <!-- Inspector Header -->
-                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
-                        <StackPanel Grid.Column="0" Spacing="2">
-                            <TextBlock Text="Clip Inspector" FontSize="14" FontWeight="SemiBold" Foreground="#f4f4f5" />
-                            <TextBlock Text="{Binding SelectedClip.PreviewTitle, FallbackValue='No clip selected'}"
-                                       FontSize="11" Foreground="#94a3b8" TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
+                <Grid RowDefinitions="Auto,*,Auto,Auto">
+                    <TextBlock Grid.Row="0" Classes="section-title" Margin="0,0,0,10" TextTrimming="CharacterEllipsis"
+                               Text="{Binding SelectedClip.PreviewTitle, FallbackValue='No clip selected'}" />
 
-                        <Border Grid.Column="1" Background="{Binding SelectedClip.BadgeColor, FallbackValue='#3b82f6'}" CornerRadius="4" Padding="6,2">
-                            <TextBlock Text="{Binding SelectedClip.ContentType, FallbackValue='Text'}" FontSize="10" FontWeight="Bold" Foreground="#ffffff" />
-                        </Border>
-                    </Grid>
+                    <TextBox Grid.Row="1" Text="{Binding SelectedClip.Content, Mode=OneWay, FallbackValue=''}"
+                             IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
+                             FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12"
+                             VerticalContentAlignment="Top" />
 
-                    <!-- Primary Actions: Copy & Star -->
-                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
-                        <Button Grid.Column="0"
-                                Classes="primary-btn"
-                                Margin="0,0,6,0"
-                                Command="{Binding CopyClipCommand}"
-                                CommandParameter="{Binding SelectedClip}">
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
-                                <TextBlock Text="📋" FontSize="13" />
-                                <TextBlock Text="Copy to Clipboard" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button Grid.Column="1"
-                                Classes="secondary-btn"
-                                Command="{Binding ToggleStarCommand}"
-                                CommandParameter="{Binding SelectedClip}"
-                                ToolTip.Tip="Toggle Star">
-                            <TextBlock Text="{Binding SelectedClip.StarIcon, FallbackValue='☆'}" FontSize="14" Foreground="{Binding SelectedClip.StarColor, FallbackValue='#64748b'}" />
-                        </Button>
-                    </Grid>
-
-                    <!-- Full Payload Content Display Box -->
-                    <TextBox Grid.Row="2"
-                             Text="{Binding SelectedClip.Content, FallbackValue='Select an item to view full content'}"
-                             IsReadOnly="True"
-                             AcceptsReturn="True"
-                             TextWrapping="Wrap"
-                             Background="#111217"
-                             Foreground="#e2e8f0"
-                             BorderBrush="#272a38"
-                             CornerRadius="8"
-                             FontFamily="SF Mono, Menlo, Monaco, Consolas, monospace"
-                             FontSize="11"
-                             Padding="10" />
-
-                    <!-- Quick Mesh Dispatch: Send to Paired Device -->
-                    <StackPanel Grid.Row="3" Margin="0,12,0,0" Spacing="6">
-                        <TextBlock Text="Direct Send to Mesh Peer" FontSize="11" FontWeight="SemiBold" Foreground="#94a3b8" />
-                        <Grid ColumnDefinitions="*,*,*">
-                            <Button Grid.Column="0" Classes="secondary-btn" Margin="0,0,3,0" Padding="4,5" FontSize="10"
-                                    Command="{Binding SendToDeviceCommand}" CommandParameter="MacBook Pro">
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="3">
-                                    <TextBlock Text="💻" FontSize="10" />
-                                    <TextBlock Text="Mac" />
-                                </StackPanel>
-                            </Button>
-                            <Button Grid.Column="1" Classes="secondary-btn" Margin="2,0,2,0" Padding="4,5" FontSize="10"
-                                    Command="{Binding SendToDeviceCommand}" CommandParameter="Windows PC">
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="3">
-                                    <TextBlock Text="🖥️" FontSize="10" />
-                                    <TextBlock Text="Windows" />
-                                </StackPanel>
-                            </Button>
-                            <Button Grid.Column="2" Classes="secondary-btn" Margin="3,0,0,0" Padding="4,5" FontSize="10"
-                                    Command="{Binding SendToDeviceCommand}" CommandParameter="Android Phone">
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="3">
-                                    <TextBlock Text="📱" FontSize="10" />
-                                    <TextBlock Text="Phone" />
-                                </StackPanel>
-                            </Button>
-                        </Grid>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,12,0,10"
+                                IsVisible="{Binding SelectedClip, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <Button Classes="primary-btn" Content="Copy" Command="{Binding CopyClipCommand}" CommandParameter="{Binding SelectedClip}" />
+                        <Button Classes="secondary-btn" Command="{Binding ToggleStarCommand}" CommandParameter="{Binding SelectedClip}"
+                                Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}" />
+                        <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}" />
                     </StackPanel>
 
-                    <!-- Technical Metadata Details (UniClipboard Inspector Specs) -->
-                    <Border Grid.Row="4" Margin="0,12,0,0" Background="#14151d" CornerRadius="8" Padding="10" BorderBrush="#272a38" BorderThickness="1">
-                        <StackPanel Spacing="4">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Text="Origin Device" FontSize="10" Foreground="#64748b" />
-                                <TextBlock Grid.Column="1" Text="{Binding SelectedClip.SourceDevice, FallbackValue='-'}" FontSize="10" FontWeight="SemiBold" Foreground="#94a3b8" />
-                            </Grid>
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Text="Source App" FontSize="10" Foreground="#64748b" />
-                                <TextBlock Grid.Column="1" Text="{Binding SelectedClip.SourceApp, FallbackValue='-'}" FontSize="10" Foreground="#94a3b8" />
-                            </Grid>
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Text="Payload Size" FontSize="10" Foreground="#64748b" />
-                                <TextBlock Grid.Column="1" Text="{Binding SelectedClip.FormattedSize, FallbackValue='-'}" FontSize="10" Foreground="#94a3b8" />
-                            </Grid>
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Text="Line / Word Count" FontSize="10" Foreground="#64748b" />
-                                <TextBlock Grid.Column="1" Text="{Binding SelectedClip.LineCount, StringFormat='{}{0} lines', FallbackValue='-'}" FontSize="10" Foreground="#94a3b8" />
-                            </Grid>
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Text="SHA-256 Checksum" FontSize="10" Foreground="#64748b" />
-                                <TextBlock Grid.Column="1" Text="{Binding SelectedClip.Sha256Checksum, FallbackValue='-'}" FontSize="10" FontFamily="SF Mono, monospace" Foreground="#64748b" />
-                            </Grid>
-                            <Separator Background="#272a38" Margin="0,2" />
-                            <TextBlock Text="🔒 Passwords and auth tokens automatically scrubbed" FontSize="9" Foreground="#10b981" />
-                        </StackPanel>
-                    </Border>
+                    <TextBlock Grid.Row="3" Classes="label"
+                               IsVisible="{Binding SelectedClip, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <Run Text="{Binding SelectedClip.CharCount, FallbackValue=0}" /><Run Text=" characters • " />
+                        <Run Text="{Binding SelectedClip.WordCount, FallbackValue=0}" /><Run Text=" words • " />
+                        <Run Text="{Binding SelectedClip.LineCount, FallbackValue=0}" /><Run Text=" lines" />
+                    </TextBlock>
                 </Grid>
             </Border>
         </Grid>
 
-        <!-- Status Bottom Bar -->
-        <Border Grid.Row="2" Margin="0,12,0,0" Padding="12,8" Background="#14151d" CornerRadius="8" BorderBrush="#272a38" BorderThickness="1">
-            <Grid ColumnDefinitions="*,Auto">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                    <Ellipse Width="6" Height="6" Fill="#10b981" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="#94a3b8" VerticalAlignment="Center" />
-                </StackPanel>
-                <TextBlock Grid.Column="1" Text="Quick Panel Shortcut: ⌘ + Shift + V / Ctrl + Shift + V" FontSize="11" Foreground="#64748b" VerticalAlignment="Center" />
-            </Grid>
-        </Border>
+        <TextBlock Grid.Row="3" Classes="hint" Margin="0,12,0,0" Text="{Binding StatusMessage}" />
     </Grid>
 </UserControl>

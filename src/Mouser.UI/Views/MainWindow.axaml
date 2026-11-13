@@ -7,121 +7,84 @@
         x:Class="Mouser.UI.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Mouser — Virtual KVM &amp; Smart Clipboard"
+        Title="Mouser"
         Width="1140" Height="740"
-        MinWidth="980" MinHeight="620"
+        MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         Background="#0c0d12">
 
-    <Grid ColumnDefinitions="250,*">
-        <!-- Sleek Refined Dark Sidebar -->
+    <Grid ColumnDefinitions="232,*">
         <Border Grid.Column="0"
                 Background="#12131b"
                 BorderBrush="#232635"
                 BorderThickness="0,0,1,0"
-                Padding="16">
+                Padding="14">
             <Grid RowDefinitions="Auto,*,Auto">
-                <!-- App Brand Header -->
-                <StackPanel Grid.Row="0" Spacing="6" Margin="4,8,4,24">
-                    <Grid ColumnDefinitions="Auto,*">
-                        <Border Grid.Column="0"
-                                Width="36" Height="36"
-                                CornerRadius="10"
-                                Background="#4f46e5"
-                                BoxShadow="0 4 14 0 #404f46e5"
-                                Margin="0,0,12,0">
-                            <TextBlock Text="M"
-                                       Foreground="#ffffff"
-                                       FontSize="20"
-                                       FontWeight="ExtraBold"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
-                        </Border>
+                <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="6,8,6,24">
+                    <Border Grid.Column="0" Width="34" Height="34" CornerRadius="9" Background="#4f46e5" Margin="0,0,12,0">
+                        <TextBlock Text="M" Foreground="#ffffff" FontSize="18" FontWeight="ExtraBold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Mouser" FontSize="16" FontWeight="Bold" Foreground="#f8fafc" />
+                        <TextBlock Text="Phone remote &amp; clipboard" FontSize="11" Foreground="#94a3b8" />
+                    </StackPanel>
+                </Grid>
 
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="Mouser"
-                                       FontSize="17"
-                                       FontWeight="Bold"
-                                       Foreground="#f8fafc" />
-                            <TextBlock Text="Virtual KVM &amp; Clipboard"
-                                       FontSize="11"
-                                       Foreground="#94a3b8" />
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
-
-                <!-- Navigation Tabs -->
-                <StackPanel Grid.Row="1" Spacing="6">
-                    <Button Classes="nav-button"
-                            Command="{Binding NavigateCommand}"
-                            CommandParameter="DisplayMatrix">
-                        <Grid ColumnDefinitions="24,*,Auto">
-                            <TextBlock Grid.Column="0" Text="🖥" FontSize="14" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="Display Arrangement" Margin="8,0,0,0" VerticalAlignment="Center" />
-                            <Border Grid.Column="2" Background="#142e23" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
-                                <TextBlock Text="3" FontSize="10" FontWeight="Bold" Foreground="#10b981" />
-                            </Border>
-                        </Grid>
-                    </Button>
-
-                    <Button Classes="nav-button"
-                            Command="{Binding NavigateCommand}"
-                            CommandParameter="SmartClipboard">
-                        <Grid ColumnDefinitions="24,*,Auto">
-                            <TextBlock Grid.Column="0" Text="📋" FontSize="14" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="Smart Clipboard" Margin="8,0,0,0" VerticalAlignment="Center" />
-                            <Border Grid.Column="2" Background="#261b40" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
-                                <TextBlock Text="UniClip" FontSize="10" FontWeight="Bold" Foreground="#a855f7" />
-                            </Border>
-                        </Grid>
-                    </Button>
-
-                    <Button Classes="nav-button"
-                            Command="{Binding NavigateCommand}"
-                            CommandParameter="AndroidRemote">
+                <StackPanel Grid.Row="1" Spacing="4">
+                    <Button Classes="nav-button" Classes.active="{Binding IsRemoteTab}"
+                            Command="{Binding NavigateCommand}" CommandParameter="AndroidRemote">
                         <Grid ColumnDefinitions="24,*,Auto">
                             <TextBlock Grid.Column="0" Text="📱" FontSize="14" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="Android Remote" Margin="8,0,0,0" VerticalAlignment="Center" />
-                            <Border Grid.Column="2" Background="#182747" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
-                                <TextBlock Text="120Hz" FontSize="10" FontWeight="Bold" Foreground="#38bdf8" />
+                            <TextBlock Grid.Column="1" Text="Phone Remote" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!AndroidRemote.ActiveClientCount}">
+                                <TextBlock Text="{Binding AndroidRemote.ActiveClientCount}" Foreground="#10b981" />
                             </Border>
                         </Grid>
                     </Button>
 
-                    <Button Classes="nav-button"
-                            Command="{Binding NavigateCommand}"
-                            CommandParameter="Settings">
+                    <Button Classes="nav-button" Classes.active="{Binding IsClipboardTab}"
+                            Command="{Binding NavigateCommand}" CommandParameter="SmartClipboard">
+                        <Grid ColumnDefinitions="24,*,Auto">
+                            <TextBlock Grid.Column="0" Text="📋" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Clipboard History" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!ClipboardHistory.AllCount}">
+                                <TextBlock Text="{Binding ClipboardHistory.AllCount}" Foreground="#a78bfa" />
+                            </Border>
+                        </Grid>
+                    </Button>
+
+                    <Button Classes="nav-button" Classes.active="{Binding IsDisplaysTab}"
+                            Command="{Binding NavigateCommand}" CommandParameter="DisplayMatrix">
+                        <Grid ColumnDefinitions="24,*">
+                            <TextBlock Grid.Column="0" Text="🖥" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Displays &amp; Network" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+
+                    <Button Classes="nav-button" Classes.active="{Binding IsSettingsTab}"
+                            Command="{Binding NavigateCommand}" CommandParameter="Settings">
                         <Grid ColumnDefinitions="24,*">
                             <TextBlock Grid.Column="0" Text="⚙" FontSize="14" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="Settings &amp; Security" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Settings" Margin="8,0,0,0" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
                 </StackPanel>
 
-                <!-- Sidebar Footer Status Pill -->
-                <Border Grid.Row="2"
-                        Background="#161722"
-                        BorderBrush="#272a38"
-                        BorderThickness="1"
-                        CornerRadius="10"
-                        Padding="12,10">
+                <Border Grid.Row="2" Background="#161722" BorderBrush="#272a38" BorderThickness="1"
+                        CornerRadius="10" Padding="12,10">
                     <StackPanel Spacing="4">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Ellipse Width="8" Height="8" Fill="#10b981" VerticalAlignment="Center" />
-                            <TextBlock Text="Mesh Connected" FontSize="11" FontWeight="SemiBold" Foreground="#10b981" />
+                            <Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding SystemStatusTitle}" FontSize="12" FontWeight="SemiBold" Foreground="#e2e8f0" />
                         </StackPanel>
-                        <TextBlock Text="{Binding SystemStatusText}"
-                                   FontSize="10"
-                                   Foreground="#94a3b8"
-                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding SystemStatusText}" FontSize="11" Foreground="#94a3b8"
+                                   TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
             </Grid>
         </Border>
 
-        <!-- Right Content Body: Active Page Content -->
-        <ContentControl Grid.Column="1"
-                        Content="{Binding CurrentPage}" />
+        <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" />
     </Grid>
 </Window>
-

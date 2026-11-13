@@ -14,18 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mouser — Cross-Platform Virtual KVM & Smart Clipboard",
+  title: "Mouser — Phone trackpad & clipboard history for your computer",
   description:
-    "Seamlessly glide mouse and keyboard between macOS, Windows, Linux, and Android with <3ms latency and zero-knowledge encrypted clipboard synchronization.",
-  keywords: [
-    "Virtual KVM",
-    "ShareMouse alternative",
-    "Synergy alternative",
-    "Universal Control",
-    "Clipboard Sync",
-    "Cross-platform mouse sharing",
-    "Zero latency KVM",
-  ],
+    "Open-source app that turns an Android phone into a trackpad, air mouse and media remote for Windows and macOS, with a local, searchable clipboard history.",
+  keywords: ["phone trackpad", "air mouse", "Android remote mouse", "clipboard history", "open source"],
   authors: [{ name: "Mouser Open Source Contributors" }],
 };
 

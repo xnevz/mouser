@@ -208,6 +208,18 @@ void mouser_inject_key(uint32_t keyCode, uint8_t modifiers, bool isDown) {
     }
 }
 
+void mouser_inject_scroll(int32_t horizontal, int32_t vertical) {
+    // 120 units (one wheel notch) -> 30 px. CG wheel2 is positive towards the left, hence the negation.
+    int32_t pxVertical = vertical / 4;
+    int32_t pxHorizontal = -horizontal / 4;
+    if (pxVertical == 0 && pxHorizontal == 0) return;
+    CGEventRef ev = CGEventCreateScrollWheelEvent(NULL, kCGScrollEventUnitPixel, 2, pxVertical, pxHorizontal);
+    if (ev) {
+        CGEventPost(kCGHIDEventTap, ev);
+        CFRelease(ev);
+    }
+}
+
 void mouser_set_input_redirection(bool enabled) {
     g_isInputRedirected = enabled;
 }

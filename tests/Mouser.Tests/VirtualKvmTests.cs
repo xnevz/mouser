@@ -1,8 +1,6 @@
 using System;
-using System.Runtime.InteropServices;
 using Mouser.Core.Geometry;
 using Mouser.Core.Kvm;
-using Mouser.Core.Networking;
 using Xunit;
 
 namespace Mouser.Tests;
@@ -160,6 +158,18 @@ public sealed class VirtualKvmTests
     }
 
     [Fact]
+    public void KeyTranslation_WindowsToMac_MapsKnownKeysAndRefusesUnknown()
+    {
+        var translator = new KeyTranslationService();
+
+        Assert.True(translator.TryTranslateWindowsToMac(0x41, out uint macA)); // VK_A
+        Assert.Equal(0x00u, macA);
+        Assert.True(translator.TryTranslateWindowsToMac(0x60, out uint macKp0)); // VK_NUMPAD0
+        Assert.Equal(0x52u, macKp0);
+        Assert.False(translator.TryTranslateWindowsToMac(0xB3, out _)); // media play/pause has no keycode on macOS
+    }
+
+    [Fact]
     public void KeyTranslation_TracksKeyStatesAndDrainsStuckKeys()
     {
         var translator = new KeyTranslationService();
@@ -232,27 +242,8 @@ public sealed class VirtualKvmTests
         Assert.Equal("remote", kvm.CurrentFocusedHostId);
 
         // Switch back to local
-        kvm.SwitchBackToLocal(500, 500);
+        kvm.SwitchBackToLocal();
         Assert.False(kvm.IsRedirected);
         Assert.Equal("local", kvm.CurrentFocusedHostId);
-    }
-
-    [Fact]
-    public void InputKeyEventPacket_ValidatesBinaryHeaderAndPacking()
-    {
-        var packet = InputKeyEventPacket.Create(101, 0x11, 0x04, true);
-
-        Assert.True(packet.IsValid());
-        Assert.Equal(InputKeyEventPacket.ExpectedMagic, packet.Magic);
-        Assert.Equal(InputKeyEventPacket.ExpectedVersion, packet.Version);
-        Assert.Equal(InputKeyEventPacket.ExpectedPacketType, packet.PacketType);
-        Assert.Equal(101, packet.SequenceId);
-        Assert.Equal(0x11u, packet.KeyCode);
-        Assert.Equal(0x04, packet.Modifiers);
-        Assert.Equal(1, packet.IsDown);
-
-        // Check exact struct size in memory (16 bytes packed)
-        int size = Marshal.SizeOf<InputKeyEventPacket>();
-        Assert.Equal(16, size);
     }
 }

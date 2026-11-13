@@ -1,39 +1,76 @@
+using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Mouser.UI.Services;
 
 namespace Mouser.UI.ViewModels;
 
 public partial class SettingsViewModel : ViewModelBase
 {
-    [ObservableProperty]
-    private int _listenPort = 58490;
+    private readonly SettingsStore _store;
+    private readonly MouserHost _host;
 
-    [ObservableProperty]
-    private int _edgeResistanceMs = 150;
+    [ObservableProperty] private int _inputPort;
+    [ObservableProperty] private bool _clipboardHistoryEnabled;
+    [ObservableProperty] private bool _skipSensitiveClips;
+    [ObservableProperty] private int _clipboardRetentionDays;
+    [ObservableProperty] private bool _startAtLogin;
+    [ObservableProperty] private string? _statusMessage;
 
-    [ObservableProperty]
-    private bool _startAtLogin = true;
+    public bool IsStartAtLoginSupported => StartupRegistration.IsSupported;
+    public string DataDirectory => _store.DataDirectory;
 
-    [ObservableProperty]
-    private bool _enableE2ee = true;
+    public SettingsViewModel(SettingsStore store, MouserHost host)
+    {
+        _store = store;
+        _host = host;
+        var s = store.Current;
+        _inputPort = s.InputPort;
+        _clipboardHistoryEnabled = s.ClipboardHistoryEnabled;
+        _skipSensitiveClips = s.SkipSensitiveClips;
+        _clipboardRetentionDays = s.ClipboardRetentionDays;
+        _startAtLogin = s.StartAtLogin;
+    }
 
-    [ObservableProperty]
-    private string _pairingPin = "849-204";
+    partial void OnClipboardHistoryEnabledChanged(bool value) => Save(s => s.ClipboardHistoryEnabled = value);
+    partial void OnSkipSensitiveClipsChanged(bool value) => Save(s => s.SkipSensitiveClips = value);
 
-    [ObservableProperty]
-    private bool _excludePasswordManagers = true;
+    partial void OnClipboardRetentionDaysChanged(int value)
+    {
+        if (value >= 1) Save(s => s.ClipboardRetentionDays = value);
+    }
 
-    [ObservableProperty]
-    private bool _autoLockScreens = false;
-
-    [ObservableProperty]
-    private string _statusMessage = "All settings saved locally";
+    partial void OnStartAtLoginChanged(bool value)
+    {
+        try
+        {
+            StartupRegistration.Apply(value);
+            Save(s => s.StartAtLogin = value);
+        }
+        catch (Exception e) when (e is UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            StatusMessage = $"Couldn't change startup setting: {e.Message}";
+        }
+    }
 
     [RelayCommand]
-    private void RegeneratePin()
+    private void ApplyPort()
     {
-        var rnd = new System.Random();
-        PairingPin = $"{rnd.Next(100, 999)}-{rnd.Next(100, 999)}";
-        StatusMessage = "New cryptographic pairing PIN generated";
+        if (InputPort is < 1024 or > 65535)
+        {
+            StatusMessage = "Choose a port between 1024 and 65535.";
+            return;
+        }
+
+        Save(s => s.InputPort = InputPort);
+        _host.Restart();
+        StatusMessage = _host.InputError ?? $"Now listening on port {InputPort}. Reconnect your phone.";
+    }
+
+    private void Save(Action<AppSettings> change)
+    {
+        change(_store.Current);
+        _store.Save();
+        StatusMessage = "Saved.";
     }
 }

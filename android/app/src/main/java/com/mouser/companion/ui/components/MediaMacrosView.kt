@@ -1,138 +1,95 @@
 package com.mouser.companion.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.VolumeDown
+import androidx.compose.material.icons.automirrored.filled.VolumeMute
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mouser.companion.model.VirtualKey
 import com.mouser.companion.ui.theme.*
 
-/**
- * Media remote and full numeric keypad macro panel.
- */
+private data class PadKey(val label: String, val code: Short, val accent: Boolean = false)
+
+private val keypad = listOf(
+    listOf(PadKey("7", VirtualKey.numpadDigit(7)), PadKey("8", VirtualKey.numpadDigit(8)), PadKey("9", VirtualKey.numpadDigit(9)), PadKey("⌫", VirtualKey.BACK, true)),
+    listOf(PadKey("4", VirtualKey.numpadDigit(4)), PadKey("5", VirtualKey.numpadDigit(5)), PadKey("6", VirtualKey.numpadDigit(6)), PadKey("+", VirtualKey.ADD)),
+    listOf(PadKey("1", VirtualKey.numpadDigit(1)), PadKey("2", VirtualKey.numpadDigit(2)), PadKey("3", VirtualKey.numpadDigit(3)), PadKey("−", VirtualKey.SUBTRACT)),
+    listOf(PadKey("0", VirtualKey.numpadDigit(0)), PadKey(".", VirtualKey.DECIMAL), PadKey("×", VirtualKey.MULTIPLY), PadKey("↵", VirtualKey.RETURN, true))
+)
+
+/** Media keys, arrow keys and a numeric keypad. Media keys work on Windows hosts; macOS ignores them. */
 @Composable
 fun MediaMacrosView(
-    onSendKey: (keyCode: Short, isDown: Boolean) -> Unit,
+    isConnected: Boolean,
+    onKey: (virtualKey: Short) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Media Controller Card
+        if (!isConnected) {
+            Text("Connect to a computer to use these keys.", style = MaterialTheme.typography.bodyMedium, color = Zinc400)
+        }
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = Zinc800)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = "Media Remote",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Zinc100
-                )
-
-                // Playback row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    MediaButton(icon = Icons.Default.SkipPrevious, label = "Prev") {
-                        onSendKey(0x10, true); onSendKey(0x10, false) // Prev track
-                    }
-                    MediaButton(icon = Icons.Default.PlayArrow, label = "Play/Pause") {
-                        onSendKey(0x11, true); onSendKey(0x11, false) // Play/pause
-                    }
-                    MediaButton(icon = Icons.Default.SkipNext, label = "Next") {
-                        onSendKey(0x12, true); onSendKey(0x12, false) // Next track
-                    }
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Media", style = MaterialTheme.typography.titleMedium, color = Zinc100)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    MediaButton(Icons.Default.SkipPrevious, "Previous track", isConnected) { onKey(VirtualKey.MEDIA_PREV) }
+                    MediaButton(Icons.Default.PlayArrow, "Play or pause", isConnected) { onKey(VirtualKey.MEDIA_PLAY_PAUSE) }
+                    MediaButton(Icons.Default.SkipNext, "Next track", isConnected) { onKey(VirtualKey.MEDIA_NEXT) }
                 }
-
-                Divider(color = Zinc700, thickness = 1.dp)
-
-                // Volume row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    MediaButton(icon = Icons.Default.VolumeMute, label = "Mute") {
-                        onSendKey(0x13, true); onSendKey(0x13, false)
-                    }
-                    MediaButton(icon = Icons.Default.VolumeDown, label = "Vol -") {
-                        onSendKey(0x14, true); onSendKey(0x14, false)
-                    }
-                    MediaButton(icon = Icons.Default.VolumeUp, label = "Vol +") {
-                        onSendKey(0x15, true); onSendKey(0x15, false)
-                    }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    MediaButton(Icons.AutoMirrored.Filled.VolumeMute, "Mute", isConnected) { onKey(VirtualKey.VOLUME_MUTE) }
+                    MediaButton(Icons.AutoMirrored.Filled.VolumeDown, "Volume down", isConnected) { onKey(VirtualKey.VOLUME_DOWN) }
+                    MediaButton(Icons.AutoMirrored.Filled.VolumeUp, "Volume up", isConnected) { onKey(VirtualKey.VOLUME_UP) }
+                }
+                HorizontalDivider(color = Zinc700)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    MediaButton(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Left arrow", isConnected) { onKey(VirtualKey.LEFT) }
+                    MediaButton(Icons.Default.KeyboardArrowUp, "Up arrow", isConnected) { onKey(VirtualKey.UP) }
+                    MediaButton(Icons.Default.KeyboardArrowDown, "Down arrow", isConnected) { onKey(VirtualKey.DOWN) }
+                    MediaButton(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Right arrow", isConnected) { onKey(VirtualKey.RIGHT) }
+                    MediaButton(Icons.Default.SpaceBar, "Space", isConnected) { onKey(VirtualKey.SPACE) }
                 }
             }
         }
 
-        // Quick Numeric Keypad
         Card(
             modifier = Modifier.fillMaxWidth().weight(1f),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = Zinc800)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp).fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "Numeric Keypad (Numpad)",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Zinc100
-                )
-
-                val keypad = listOf(
-                    listOf("7", "8", "9", "⌫"),
-                    listOf("4", "5", "6", "+"),
-                    listOf("1", "2", "3", "-"),
-                    listOf("0", ".", "=", "↵")
-                )
-
+            Column(modifier = Modifier.padding(16.dp).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Number pad", style = MaterialTheme.typography.titleMedium, color = Zinc100)
                 for (row in keypad) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         for (key in row) {
                             Button(
-                                onClick = {
-                                    val code: Short = when (key) {
-                                        "⌫" -> 0x08 // Backspace
-                                        "↵" -> 0x0D // Enter
-                                        else -> key[0].code.toShort()
-                                    }
-                                    onSendKey(code, true)
-                                    onSendKey(code, false)
-                                },
+                                onClick = { onKey(key.code) },
+                                enabled = isConnected,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (key in listOf("⌫", "↵")) BluePrimary else Zinc700
-                                )
+                                colors = ButtonDefaults.buttonColors(containerColor = if (key.accent) BluePrimary else Zinc700)
                             ) {
-                                Text(
-                                    text = key,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Zinc100
-                                )
+                                Text(key.label, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Zinc100)
                             }
                         }
                     }
@@ -143,22 +100,12 @@ fun MediaMacrosView(
 }
 
 @Composable
-private fun MediaButton(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
+private fun MediaButton(icon: ImageVector, label: String, enabled: Boolean, onClick: () -> Unit) {
     IconButton(
         onClick = onClick,
-        modifier = Modifier
-            .size(56.dp)
-            .background(Zinc700, RoundedCornerShape(12.dp))
+        enabled = enabled,
+        modifier = Modifier.size(52.dp).background(Zinc700, RoundedCornerShape(12.dp))
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = Zinc100,
-            modifier = Modifier.size(28.dp)
-        )
+        Icon(icon, contentDescription = label, tint = if (enabled) Zinc100 else Zinc600, modifier = Modifier.size(26.dp))
     }
 }

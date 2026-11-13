@@ -1,65 +1,89 @@
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Mouser.Core.Clipboard;
+using Mouser.Core.Networking;
+using Mouser.UI.Services;
 
 namespace Mouser.UI.ViewModels;
 
 public enum NavigationTab
 {
-    DisplayMatrix,
-    SmartClipboard,
     AndroidRemote,
+    SmartClipboard,
+    DisplayMatrix,
     Settings
 }
 
 public partial class MainViewModel : ViewModelBase
 {
+    private readonly MouserHost _host;
+
+    public AndroidRemoteViewModel AndroidRemote { get; }
+    public ClipboardHistoryViewModel ClipboardHistory { get; }
     public MonitorLayoutViewModel MonitorLayout { get; } = new();
-    public ClipboardHistoryViewModel ClipboardHistory { get; } = new();
-    public AndroidRemoteViewModel AndroidRemote { get; } = new();
-    public SettingsViewModel Settings { get; } = new();
+    public SettingsViewModel Settings { get; }
+
+    [ObservableProperty] private ViewModelBase _currentPage;
 
     [ObservableProperty]
-    private ViewModelBase _currentPage;
+    [NotifyPropertyChangedFor(nameof(IsRemoteTab), nameof(IsClipboardTab), nameof(IsDisplaysTab), nameof(IsSettingsTab))]
+    private NavigationTab _currentTab = NavigationTab.AndroidRemote;
 
-    [ObservableProperty]
-    private NavigationTab _currentTab = NavigationTab.DisplayMatrix;
+    [ObservableProperty] private string _systemStatusTitle = string.Empty;
+    [ObservableProperty] private string _systemStatusText = string.Empty;
+    [ObservableProperty] private string _statusColor = "#64748b";
 
-    [ObservableProperty]
-    private string _systemStatusText = "3 Devices Connected • E2EE Active";
+    public bool IsRemoteTab => CurrentTab == NavigationTab.AndroidRemote;
+    public bool IsClipboardTab => CurrentTab == NavigationTab.SmartClipboard;
+    public bool IsDisplaysTab => CurrentTab == NavigationTab.DisplayMatrix;
+    public bool IsSettingsTab => CurrentTab == NavigationTab.Settings;
 
-    [ObservableProperty]
-    private bool _isOnline = true;
-
-    [ObservableProperty]
-    private int _connectedCount = 3;
-
-    public MainViewModel()
+    public MainViewModel(MouserHost host, SettingsStore settings, ClipboardStorageService clipboardStorage)
     {
-        _currentPage = MonitorLayout;
+        _host = host;
+        AndroidRemote = new AndroidRemoteViewModel(host, settings);
+        ClipboardHistory = new ClipboardHistoryViewModel(clipboardStorage, settings);
+        Settings = new SettingsViewModel(settings, host);
+        _currentPage = AndroidRemote;
+        Refresh();
+    }
+
+    /// <summary>Pulls live state from the network services. Called once a second by the app.</summary>
+    public void Refresh()
+    {
+        AndroidRemote.Refresh();
+        MonitorLayout.SetPeers(_host.Peers);
+
+        if (_host.Input == null)
+        {
+            SystemStatusTitle = _host.InputError != null ? "Not listening" : "Remote input off";
+            SystemStatusText = _host.InputError ?? "Turn it on in Phone Remote";
+            StatusColor = _host.InputError != null ? "#f43f5e" : "#64748b";
+            return;
+        }
+
+        int active = AndroidRemote.ActiveClientCount;
+        SystemStatusTitle = active switch
+        {
+            0 => "Ready for phones",
+            1 => "1 device connected",
+            _ => $"{active} devices connected"
+        };
+        var ip = NetworkInfo.GetLocalIPv4Addresses().FirstOrDefault();
+        SystemStatusText = ip == null ? "No network connection" : $"{ip}:{_host.Input.BoundPort}";
+        StatusColor = active > 0 ? "#10b981" : "#6366f1";
     }
 
     [RelayCommand]
     private void Navigate(string tabName)
     {
-        switch (tabName)
+        (CurrentTab, CurrentPage) = tabName switch
         {
-            case "DisplayMatrix":
-                CurrentTab = NavigationTab.DisplayMatrix;
-                CurrentPage = MonitorLayout;
-                break;
-            case "SmartClipboard":
-                CurrentTab = NavigationTab.SmartClipboard;
-                CurrentPage = ClipboardHistory;
-                break;
-            case "AndroidRemote":
-                CurrentTab = NavigationTab.AndroidRemote;
-                CurrentPage = AndroidRemote;
-                break;
-            case "Settings":
-                CurrentTab = NavigationTab.Settings;
-                CurrentPage = Settings;
-                break;
-        }
+            "SmartClipboard" => (NavigationTab.SmartClipboard, (ViewModelBase)ClipboardHistory),
+            "DisplayMatrix" => (NavigationTab.DisplayMatrix, MonitorLayout),
+            "Settings" => (NavigationTab.Settings, Settings),
+            _ => (NavigationTab.AndroidRemote, AndroidRemote)
+        };
     }
 }
-

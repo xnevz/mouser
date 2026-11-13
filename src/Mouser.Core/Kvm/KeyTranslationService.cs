@@ -81,7 +81,27 @@ public sealed class KeyTranslationService
         { 0x0D, 0x57 }, // W
         { 0x07, 0x58 }, // X
         { 0x10, 0x59 }, // Y
-        { 0x06, 0x5A }  // Z
+        { 0x06, 0x5A }, // Z
+
+        // Digits 0-9
+        { 0x1D, 0x30 }, { 0x12, 0x31 }, { 0x13, 0x32 }, { 0x14, 0x33 }, { 0x15, 0x34 },
+        { 0x17, 0x35 }, { 0x16, 0x36 }, { 0x1A, 0x37 }, { 0x1C, 0x38 }, { 0x19, 0x39 },
+
+        // Keypad 0-9 and operators
+        { 0x52, 0x60 }, { 0x53, 0x61 }, { 0x54, 0x62 }, { 0x55, 0x63 }, { 0x56, 0x64 },
+        { 0x57, 0x65 }, { 0x58, 0x66 }, { 0x59, 0x67 }, { 0x5B, 0x68 }, { 0x5C, 0x69 },
+        { 0x43, 0x6A }, // Keypad *
+        { 0x45, 0x6B }, // Keypad +
+        { 0x4E, 0x6D }, // Keypad -
+        { 0x41, 0x6E }, // Keypad .
+        { 0x4B, 0x6F }, // Keypad /
+
+        // Navigation
+        { 0x75, 0x2E }, // Forward delete
+        { 0x73, 0x24 }, // Home
+        { 0x77, 0x23 }, // End
+        { 0x74, 0x21 }, // Page up
+        { 0x79, 0x22 }  // Page down
     };
 
     private static readonly Dictionary<uint, uint> WindowsToMacMap = new();
@@ -111,6 +131,15 @@ public sealed class KeyTranslationService
     public uint TranslateWindowsToMac(uint winKeycode)
     {
         return WindowsToMacMap.TryGetValue(winKeycode, out var macKey) ? macKey : winKeycode;
+    }
+
+    /// <summary>
+    /// Translates a Windows Virtual Key into a macOS keycode; false when there is no mapping
+    /// (injecting the raw value would press an unrelated key).
+    /// </summary>
+    public bool TryTranslateWindowsToMac(uint winKeycode, out uint macKeycode)
+    {
+        return WindowsToMacMap.TryGetValue(winKeycode, out macKeycode);
     }
 
     /// <summary>

@@ -5,6 +5,14 @@
              RequestedThemeVariant="Dark">
              <!-- Refined Modern Dark Theme (UniClipboard & Linear Aesthetic) -->
 
+    <Application.Resources>
+        <!-- Brand accent instead of the user's Windows accent colour (toggles, checkboxes, focus). -->
+        <Color x:Key="SystemAccentColor">#4f46e5</Color>
+        <Color x:Key="SystemAccentColorLight1">#6366f1</Color>
+        <Color x:Key="SystemAccentColorLight2">#818cf8</Color>
+        <Color x:Key="SystemAccentColorDark1">#4338ca</Color>
+    </Application.Resources>
+
     <Application.DataTemplates>
         <local:ViewLocator />
     </Application.DataTemplates>
@@ -15,7 +23,6 @@
         <!-- Base Window and Controls Styling -->
         <Style Selector="Window">
             <Setter Property="Background" Value="#0c0d12" />
-            <Setter Property="FontFamily" Value="SF Pro Display, -apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif" />
         </Style>
 
         <!-- Sidebar Navigation Buttons -->
@@ -29,12 +36,77 @@
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="Medium" />
         </Style>
-        <Style Selector="Button.nav-button:pointerover">
+        <Style Selector="Button.nav-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="#1c1d28" />
             <Setter Property="Foreground" Value="#ffffff" />
         </Style>
-        <Style Selector="Button.nav-button:pressed">
+        <Style Selector="Button.nav-button:pressed /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="#252838" />
+        </Style>
+        <Style Selector="Button.nav-button.active /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#1f2133" />
+            <Setter Property="Foreground" Value="#ffffff" />
+            <Setter Property="BorderBrush" Value="#4f46e5" />
+            <Setter Property="BorderThickness" Value="2,0,0,0" />
+        </Style>
+        <Style Selector="Border.nav-badge">
+            <Setter Property="Background" Value="#1c2030" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="7,1" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.nav-badge TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+
+        <!-- Page headings and helper text -->
+        <Style Selector="TextBlock.page-title">
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#f4f4f5" />
+        </Style>
+        <Style Selector="TextBlock.page-subtitle">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#94a3b8" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#f4f4f5" />
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#94a3b8" />
+        </Style>
+        <Style Selector="TextBlock.hint">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#94a3b8" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <!-- Inline banners -->
+        <Style Selector="Border.banner-error">
+            <Setter Property="Background" Value="#2a1218" />
+            <Setter Property="BorderBrush" Value="#f43f5e" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,9" />
+        </Style>
+        <Style Selector="Border.banner-warning">
+            <Setter Property="Background" Value="#2a2112" />
+            <Setter Property="BorderBrush" Value="#f59e0b" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,9" />
+        </Style>
+        <Style Selector="Border.banner-info">
+            <Setter Property="Background" Value="#141a2e" />
+            <Setter Property="BorderBrush" Value="#3b4a7a" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,9" />
         </Style>
 
         <!-- Primary Accent Buttons -->
@@ -45,10 +117,10 @@
             <Setter Property="Padding" Value="14,8" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
-        <Style Selector="Button.primary-btn:pointerover">
+        <Style Selector="Button.primary-btn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="#4338ca" />
         </Style>
-        <Style Selector="Button.primary-btn:pressed">
+        <Style Selector="Button.primary-btn:pressed /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="#3730a3" />
         </Style>
 
@@ -62,12 +134,12 @@
             <Setter Property="Padding" Value="12,7" />
             <Setter Property="FontWeight" Value="Medium" />
         </Style>
-        <Style Selector="Button.secondary-btn:pointerover">
+        <Style Selector="Button.secondary-btn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="#232535" />
             <Setter Property="BorderBrush" Value="#3f4562" />
             <Setter Property="Foreground" Value="#ffffff" />
         </Style>
-        <Style Selector="Button.secondary-btn:pressed">
+        <Style Selector="Button.secondary-btn:pressed /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="#14151e" />
         </Style>
 

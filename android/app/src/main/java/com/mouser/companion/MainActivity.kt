@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mouser.companion.model.HostConnectionState
 import com.mouser.companion.ui.components.*
 import com.mouser.companion.ui.theme.*
 
@@ -27,18 +28,22 @@ class MainActivity : ComponentActivity() {
             MouserTheme {
                 val connectionState by viewModel.connectionState.collectAsState()
                 val discoveredHosts by viewModel.discoveredHosts.collectAsState()
+                val discoveryError by viewModel.discoveryError.collectAsState()
                 val currentTab by viewModel.currentTab.collectAsState()
                 val trackpadSensitivity by viewModel.trackpadSensitivity.collectAsState()
                 val airMouseSensitivity by viewModel.airMouseSensitivity.collectAsState()
                 val isAirMouseTriggerHeld by viewModel.isAirMouseTriggerHeld.collectAsState()
+                val isConnected = connectionState is HostConnectionState.Connected
 
                 Scaffold(
                     topBar = {
                         ConnectionBar(
                             connectionState = connectionState,
                             discoveredHosts = discoveredHosts,
-                            onConnectToHost = { ip, port -> viewModel.connectToHost(ip, port) },
-                            onDisconnect = { viewModel.disconnect() }
+                            discoveryError = discoveryError,
+                            onConnect = viewModel::connect,
+                            onSubmitPin = viewModel::submitPin,
+                            onDisconnect = viewModel::disconnect
                         )
                     },
                     bottomBar = {
@@ -76,8 +81,8 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = currentTab == AppNavigationTab.MACROS,
                                 onClick = { viewModel.selectTab(AppNavigationTab.MACROS) },
-                                icon = { Icon(Icons.Default.Gamepad, contentDescription = "Macros") },
-                                label = { Text("Macros") },
+                                icon = { Icon(Icons.Default.Gamepad, contentDescription = "Keys") },
+                                label = { Text("Keys") },
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = IndigoAccent,
                                     selectedTextColor = IndigoAccent,
@@ -96,27 +101,28 @@ class MainActivity : ComponentActivity() {
                             .padding(innerPadding)
                     ) {
                         when (currentTab) {
-                            AppNavigationTab.TRACKPAD -> {
-                                TrackpadSurface(
-                                    sensitivity = trackpadSensitivity,
-                                    onMotionDelta = { dx, dy -> viewModel.sendMotion(dx, dy) },
-                                    onButtonClick = { button, isDown -> viewModel.sendButtonClick(button, isDown) }
-                                )
-                            }
-                            AppNavigationTab.AIR_MOUSE -> {
-                                AirMouseSurface(
-                                    isTriggerHeld = isAirMouseTriggerHeld,
-                                    onTriggerChanged = { held -> viewModel.setAirMouseTriggerHeld(held) },
-                                    sensitivity = airMouseSensitivity,
-                                    onSensitivityChanged = { s -> viewModel.setAirMouseSensitivity(s) },
-                                    onButtonClick = { button, isDown -> viewModel.sendButtonClick(button, isDown) }
-                                )
-                            }
-                            AppNavigationTab.MACROS -> {
-                                MediaMacrosView(
-                                    onSendKey = { keyCode, isDown -> viewModel.sendKey(keyCode, isDown) }
-                                )
-                            }
+                            AppNavigationTab.TRACKPAD -> TrackpadSurface(
+                                isConnected = isConnected,
+                                sensitivity = trackpadSensitivity,
+                                onSensitivityChanged = viewModel::setTrackpadSensitivity,
+                                onMove = viewModel::sendMotion,
+                                onScroll = viewModel::sendScroll,
+                                onClick = viewModel::click,
+                                onButton = viewModel::setButton
+                            )
+                            AppNavigationTab.AIR_MOUSE -> AirMouseSurface(
+                                hasGyroscope = viewModel.hasGyroscope,
+                                isConnected = isConnected,
+                                isTriggerHeld = isAirMouseTriggerHeld,
+                                onTriggerChanged = viewModel::setAirMouseTriggerHeld,
+                                sensitivity = airMouseSensitivity,
+                                onSensitivityChanged = viewModel::setAirMouseSensitivity,
+                                onButton = viewModel::setButton
+                            )
+                            AppNavigationTab.MACROS -> MediaMacrosView(
+                                isConnected = isConnected,
+                                onKey = viewModel::tapKey
+                            )
                         }
                     }
                 }

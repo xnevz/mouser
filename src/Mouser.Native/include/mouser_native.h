@@ -25,6 +25,8 @@ void mouser_inject_mouse_move(int32_t targetX, int32_t targetY);
 void mouser_inject_mouse_delta(int16_t dx, int16_t dy);
 void mouser_inject_mouse_button(uint8_t button, bool isDown);
 void mouser_inject_key(uint32_t keyCode, uint8_t modifiers, bool isDown);
+// Wheel deltas in Windows WHEEL_DELTA units (120 = one notch). Positive vertical = up, positive horizontal = right.
+void mouser_inject_scroll(int32_t horizontal, int32_t vertical);
 
 // Input Redirection & Virtual KVM APIs
 void mouser_set_input_redirection(bool enabled);

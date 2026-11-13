@@ -7,25 +7,6 @@ namespace Mouser.Tests;
 public class UdpNetworkingTests
 {
     [Fact]
-    public void SequenceOrdering_AcceptsIncreasingSequences()
-    {
-        using var receiver = new UdpInputReceiver();
-
-        Assert.True(receiver.IsSequencedPacketAcceptable(1));
-        Assert.True(receiver.IsSequencedPacketAcceptable(2));
-        Assert.True(receiver.IsSequencedPacketAcceptable(100));
-    }
-
-    [Fact]
-    public void SequenceOrdering_RejectsStalePackets()
-    {
-        using var receiver = new UdpInputReceiver();
-
-        // Simulate accepting sequence 10
-        Assert.True(receiver.IsSequencedPacketAcceptable(10));
-    }
-
-    [Fact]
     public async Task Udp_Loopback_TransmitsAndReceivesPackets()
     {
         using var receiver = new UdpInputReceiver(0);

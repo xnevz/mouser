@@ -1,9 +1,12 @@
 package com.mouser.companion.network
 
+import android.content.Context
+import android.net.wifi.WifiManager
 import com.mouser.companion.model.DiscoveredHost
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,90 +15,88 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.net.DatagramPacket
 import java.net.DatagramSocket
-import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.SocketTimeoutException
 
 /**
- * Service that broadcasts discovery queries and listens for Mouser desktop instances on the local network.
+ * Listens for the UDP broadcast beacons that every Mouser desktop sends once a second.
  */
 class HostDiscoveryClient(
+    context: Context,
     private val scope: CoroutineScope
 ) {
     companion object {
         const val DISCOVERY_PORT = 58490
-        const val DISCOVERY_HEADER = "MOUSER_PEER:"
-        const val DISCOVERY_QUERY = "MOUSER_DISCOVER_QUERY"
+        /** Desktops beacon every second; one that is silent this long is gone. */
+        const val HOST_TIMEOUT_MS = 5_000L
     }
+
+    private val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
     private val _discoveredHosts = MutableStateFlow<Map<String, DiscoveredHost>>(emptyMap())
     val discoveredHosts: StateFlow<Map<String, DiscoveredHost>> = _discoveredHosts.asStateFlow()
 
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
     private var listenerJob: Job? = null
     private var socket: DatagramSocket? = null
+    private var multicastLock: WifiManager.MulticastLock? = null
 
     fun startDiscovery() {
         if (listenerJob?.isActive == true) return
 
+        // Many devices filter broadcast packets in Wi-Fi power save unless a multicast lock is held.
+        multicastLock = wifi.createMulticastLock("mouser-discovery").apply {
+            setReferenceCounted(false)
+            acquire()
+        }
+
         listenerJob = scope.launch(Dispatchers.IO) {
-            try {
-                socket = DatagramSocket(null).apply {
+            val s = try {
+                DatagramSocket(null).apply {
                     reuseAddress = true
                     broadcast = true
-                    bind(java.net.InetSocketAddress(DISCOVERY_PORT))
-                    soTimeout = 3000
+                    soTimeout = 1000
+                    bind(InetSocketAddress(DISCOVERY_PORT))
                 }
+            } catch (e: Exception) {
+                _error.value = "Can't listen for computers (${e.message}). Enter the address manually."
+                return@launch
+            }
+            socket = s
+            _error.value = null
 
-                // Send immediate broadcast ping
-                sendDiscoveryBroadcast()
-
-                val buffer = ByteArray(1024)
-                val packet = DatagramPacket(buffer, buffer.size)
-
-                while (isActive && socket != null && !socket!!.isClosed) {
-                    try {
-                        socket?.receive(packet)
-                        val message = String(packet.data, 0, packet.length, Charsets.UTF_8).trim()
-                        if (message.startsWith(DISCOVERY_HEADER)) {
-                            parsePeerAnnouncement(message, packet.address.hostAddress ?: "")
-                        }
-                    } catch (_: java.net.SocketTimeoutException) {
-                        // Periodic broadcast retry
-                        sendDiscoveryBroadcast()
-                    } catch (_: Exception) {
-                        if (!isActive) break
+            val buffer = ByteArray(2048)
+            val packet = DatagramPacket(buffer, buffer.size)
+            while (isActive && !s.isClosed) {
+                try {
+                    s.receive(packet)
+                    val payload = String(packet.data, 0, packet.length, Charsets.UTF_8)
+                    val ip = packet.address?.hostAddress ?: continue
+                    BeaconParser.parse(payload, ip)?.let { host ->
+                        _discoveredHosts.update { it + (host.deviceId to host) }
                     }
+                } catch (_: SocketTimeoutException) {
+                    // fall through to pruning
+                } catch (_: Exception) {
+                    if (!isActive || s.isClosed) break
                 }
-            } catch (_: Exception) {
-                // Port in use or socket error
+                prune()
+            }
+        }
+
+        // Prune even when no packets arrive at all.
+        scope.launch {
+            while (listenerJob?.isActive == true) {
+                delay(1000)
+                prune()
             }
         }
     }
 
-    private fun sendDiscoveryBroadcast() {
-        try {
-            val queryBytes = DISCOVERY_QUERY.toByteArray(Charsets.UTF_8)
-            val broadcastAddress = InetAddress.getByName("255.255.255.255")
-            val queryPacket = DatagramPacket(queryBytes, queryBytes.size, broadcastAddress, DISCOVERY_PORT)
-            socket?.send(queryPacket)
-        } catch (_: Exception) {}
-    }
-
-    private fun parsePeerAnnouncement(payload: String, senderIp: String) {
-        // Expected format: MOUSER_PEER:{Hostname}:{Port}:{PairingPin}
-        val parts = payload.removePrefix(DISCOVERY_HEADER).split(":")
-        if (parts.size >= 2) {
-            val hostName = parts[0]
-            val port = parts[1].toIntOrNull() ?: 58490
-            val host = DiscoveredHost(
-                hostName = hostName,
-                ipAddress = senderIp,
-                port = port,
-                lastSeenTimestamp = System.currentTimeMillis()
-            )
-
-            _discoveredHosts.update { current ->
-                current + (senderIp to host)
-            }
-        }
+    private fun prune(now: Long = System.currentTimeMillis()) {
+        _discoveredHosts.update { hosts -> hosts.filterValues { now - it.lastSeenTimestamp < HOST_TIMEOUT_MS } }
     }
 
     fun stopDiscovery() {
@@ -103,7 +104,11 @@ class HostDiscoveryClient(
         listenerJob = null
         try {
             socket?.close()
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+        }
         socket = null
+        multicastLock?.let { if (it.isHeld) it.release() }
+        multicastLock = null
+        _discoveredHosts.value = emptyMap()
     }
 }

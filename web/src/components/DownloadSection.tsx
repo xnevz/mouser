@@ -2,303 +2,137 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Download,
-  Terminal,
-  ShieldCheck,
-  Check,
-  Copy,
-  Laptop,
-  Monitor,
-  Terminal as TerminalIcon,
-  Smartphone,
-  Tablet,
-  FileCheck,
-  Info,
-  Key
-} from 'lucide-react';
-import { PLATFORM_RELEASES, RELEASE_DATE } from '@/data/releases';
-import { PlatformId, DownloadArtifact } from '@/types/download';
+import { Download, Check, Copy, Monitor, Laptop, Terminal, Smartphone, CircleCheck, CircleDashed, GitBranch } from 'lucide-react';
+import { PLATFORMS, RELEASES_URL } from '@/data/releases';
+import { PlatformId } from '@/types/download';
 import { StretchyPillTabs, TabOption } from '@/components/StretchyPillTabs';
 
+const platformTabs: TabOption<PlatformId>[] = [
+  { id: 'windows', label: 'Windows', icon: Monitor, badge: PLATFORMS.windows.badge },
+  { id: 'macos', label: 'macOS', icon: Laptop, badge: PLATFORMS.macos.badge },
+  { id: 'linux', label: 'Linux', icon: Terminal, badge: PLATFORMS.linux.badge },
+  { id: 'android', label: 'Android', icon: Smartphone, badge: PLATFORMS.android.badge },
+];
+
 export const DownloadSection = () => {
-  const [selectedPlatform, setSelectedPlatform] = useState<PlatformId>('macos');
-  const [copiedSha, setCopiedSha] = useState<string | null>(null);
-  const [copiedPkgCmd, setCopiedPkgCmd] = useState<string | null>(null);
-  const [activeChecksumModal, setActiveChecksumModal] = useState<DownloadArtifact | null>(null);
+  const [selected, setSelected] = useState<PlatformId>('windows');
+  const [copied, setCopied] = useState(false);
+  const platform = PLATFORMS[selected];
 
-  const currentData = PLATFORM_RELEASES[selectedPlatform];
-
-  const handleCopySha = (sha: string) => {
-    navigator.clipboard.writeText(sha);
-    setCopiedSha(sha);
-    setTimeout(() => setCopiedSha(null), 2500);
+  const copyCommand = async () => {
+    try {
+      await navigator.clipboard.writeText(platform.buildCommand);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard permission denied: the command is still selectable on screen.
+    }
   };
-
-  const handleCopyPkgCmd = (cmd: string, id: string) => {
-    navigator.clipboard.writeText(cmd);
-    setCopiedPkgCmd(id);
-    setTimeout(() => setCopiedPkgCmd(null), 2500);
-  };
-
-  const platformTabs: TabOption<PlatformId>[] = [
-    { id: 'macos', label: 'macOS', icon: Laptop, badge: 'Apple Silicon / Intel' },
-    { id: 'windows', label: 'Windows', icon: Monitor, badge: 'MSI x64 / ARM64' },
-    { id: 'linux', label: 'Linux', icon: TerminalIcon, badge: 'AppImage / deb' },
-    { id: 'android', label: 'Android', icon: Smartphone, badge: 'Companion APK' },
-    { id: 'ios', label: 'iOS / iPadOS', icon: Tablet, badge: 'TestFlight' },
-  ];
 
   return (
     <section id="downloads" className="py-24 relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Heading */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
-            <Download className="w-3.5 h-3.5" />
-            Universal Multi-Platform Binaries
-          </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-3xl mx-auto mb-12">
           <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Download Mouser for Every Screen
+            Get Mouser
           </h2>
           <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300">
-            Native, cryptographically signed binaries compiled for macOS, Windows, Linux, Android, and iOS. Zero telemetry, zero bloat, completely free and open source.
+            Mouser is early, open-source software. There are no prebuilt downloads yet. Build it from source with one
+            command, or check the releases page for builds.
           </p>
         </div>
 
-        {/* Elastic Stretchy Tabs with Full Corner Radius */}
-        <div className="flex justify-center mb-12">
+        <div className="flex justify-center mb-10">
           <StretchyPillTabs
             tabs={platformTabs}
-            activeId={selectedPlatform}
-            onChange={(id) => setSelectedPlatform(id)}
+            activeId={selected}
+            onChange={setSelected}
             pillColor="from-cyan-500 via-indigo-500 to-blue-600"
             layoutId="platform-download-active-pill"
           />
         </div>
 
-        {/* Selected Platform Detailed Card with Bouncy Switch Transitions */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={selectedPlatform}
-            initial={{ opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -16, scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-            className="rounded-3xl bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-6 sm:p-10 shadow-xl dark:shadow-2xl backdrop-blur-2xl relative overflow-hidden"
+            key={selected}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.2 }}
+            className="rounded-3xl bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-6 sm:p-10 shadow-xl"
           >
-            {/* Subtle background glow */}
-            <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 blur-[100px] pointer-events-none rounded-full" />
-            <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500/10 blur-[100px] pointer-events-none rounded-full" />
-
-          {/* Platform Header Info */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-slate-200 dark:border-slate-800">
-            <div>
-              <div className="flex items-center gap-3">
-                <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">{currentData.name}</h3>
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30">
-                  {currentData.badge}
-                </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                  {currentData.latestVersion} ({RELEASE_DATE})
-                </span>
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-8 border-b border-slate-200 dark:border-slate-800">
+              <div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">{platform.name}</h3>
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
+                    {platform.badge}
+                  </span>
+                </div>
+                <p className="mt-2 text-slate-600 dark:text-slate-300 max-w-2xl">{platform.summary}</p>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Requires: {platform.requirements}</p>
               </div>
-              <p className="mt-2 text-slate-600 dark:text-slate-300 text-sm sm:text-base max-w-2xl">
-                {currentData.subtitle}
-              </p>
-              <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
-                <Info className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
-                <span>Compatible with: {currentData.supportedVersions}</span>
-              </div>
-            </div>
-
-            {/* Quick Primary Download CTA */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <a
-                href={currentData.primaryArtifact.downloadUrl}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5"
+                href={RELEASES_URL}
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold text-sm whitespace-nowrap hover:opacity-90 transition-opacity"
               >
-                <Download className="w-4 h-4" />
-                <span>Download Primary Installer</span>
-                <span className="text-xs bg-white/20 text-white border border-white/25 px-2 py-0.5 rounded font-mono">
-                  {currentData.primaryArtifact.size}
-                </span>
+                <GitBranch className="w-4 h-4" />
+                Releases on GitHub
               </a>
             </div>
-          </div>
 
-          {/* Artifacts Grid & Architectures */}
-          <div className="mt-8">
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
-              <FileCheck className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
-              Available Architectures & Packages
-            </h4>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {currentData.artifacts.map((artifact, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 p-5 flex flex-col justify-between transition-all group"
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="font-bold text-slate-900 dark:text-white text-base group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition-colors">
-                        {artifact.title}
-                      </span>
-                      {artifact.recommended && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
-                          RECOMMENDED
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1 font-mono text-xs text-slate-500 dark:text-slate-400 truncate">
-                      {artifact.filename}
-                    </p>
-                    <div className="mt-3 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
-                      <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
-                        {artifact.archLabel}
-                      </span>
-                      <span>•</span>
-                      <span>{artifact.size}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between gap-2">
-                    <button
-                      onClick={() => setActiveChecksumModal(artifact)}
-                      className="text-xs text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 flex items-center gap-1 transition-colors font-mono"
-                    >
-                      <Key className="w-3.5 h-3.5" />
-                      <span>SHA256</span>
-                    </button>
-
-                    <a
-                      href={artifact.downloadUrl}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-xs font-semibold transition-colors"
-                    >
-                      <Download className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                      <span>Get File</span>
-                    </a>
-                  </div>
-                </div>
-              ))}
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Works today</h4>
+                <ul className="space-y-2">
+                  {platform.works.map((item) => (
+                    <li key={item} className="flex gap-2 text-sm text-slate-700 dark:text-slate-200">
+                      <CircleCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-emerald-500" aria-hidden />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Not yet</h4>
+                <ul className="space-y-2">
+                  {platform.notYet.map((item) => (
+                    <li key={item} className="flex gap-2 text-sm text-slate-500 dark:text-slate-400">
+                      <CircleDashed className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
 
-          {/* Package Managers Section */}
-          {currentData.packageManagers.length > 0 && (
             <div className="mt-10 pt-8 border-t border-slate-200 dark:border-slate-800">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
-                Package Manager & CLI Installation
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
+                <Download className="w-4 h-4" aria-hidden />
+                Build from source
               </h4>
+              <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono text-sm text-slate-800 dark:text-cyan-300">
+                <code className="overflow-x-auto whitespace-nowrap select-all">{platform.buildCommand}</code>
+                <button
+                  onClick={copyCommand}
+                  className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400"
+                  aria-label="Copy build command"
+                >
+                  {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                Run from the repository root. Output: <code className="font-mono">{platform.buildOutput}</code>
+              </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {currentData.packageManagers.map((pkg, idx) => (
-                  <div
-                    key={idx}
-                    className="rounded-xl bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-900 dark:text-white text-sm">{pkg.name}</span>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400">{pkg.description}</span>
-                      </div>
-                      <div className="mt-2 flex items-center justify-between px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/90 font-mono text-xs text-slate-800 dark:text-cyan-300">
-                        <span className="truncate">{pkg.command}</span>
-                        <button
-                          onClick={() => handleCopyPkgCmd(pkg.command, `${selectedPlatform}-${idx}`)}
-                          className="ml-2 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-                          title="Copy command"
-                        >
-                          {copiedPkgCmd === `${selectedPlatform}-${idx}` ? (
-                            <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+              <ol className="mt-6 list-decimal list-inside space-y-1 text-sm text-slate-600 dark:text-slate-300">
+                {platform.setup.map((step) => (
+                  <li key={step}>{step}</li>
                 ))}
-              </div>
+              </ol>
             </div>
-          )}
-
-          {/* Quick Setup Instructions */}
-          <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
-            <span className="font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
-              Setup Instructions:
-            </span>
-            <ul className="list-disc list-inside space-y-1">
-              {currentData.quickInstructions.map((step, idx) => (
-                <li key={idx} className="leading-relaxed">
-                  {step}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </motion.div>
+          </motion.div>
         </AnimatePresence>
-
-        {/* SHA-256 Checksum Modal */}
-        {activeChecksumModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
-                  <ShieldCheck className="w-5 h-5 text-cyan-500 dark:text-cyan-400" />
-                  <span>Verify SHA-256 Checksum</span>
-                </div>
-                <button
-                  onClick={() => setActiveChecksumModal(null)}
-                  className="text-slate-400 hover:text-slate-900 dark:hover:text-white text-lg font-bold"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                <div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 block">Filename:</span>
-                  <span className="font-mono text-xs text-slate-800 dark:text-white">{activeChecksumModal.filename}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 block">SHA-256 Checksum:</span>
-                  <div className="mt-1 p-2.5 rounded-lg bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono text-[11px] text-cyan-700 dark:text-cyan-300 break-all select-all flex items-center justify-between gap-2">
-                    <span>{activeChecksumModal.sha256}</span>
-                    <button
-                      onClick={() => handleCopySha(activeChecksumModal.sha256)}
-                      className="p-1 rounded bg-slate-200 dark:bg-slate-900 hover:bg-slate-300 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex-shrink-0"
-                    >
-                      {copiedSha === activeChecksumModal.sha256 ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 space-y-1">
-                  <span className="font-semibold text-slate-800 dark:text-slate-300 block">How to verify on your terminal:</span>
-                  <p className="font-mono text-cyan-700 dark:text-cyan-400">
-                    shasum -a 256 {activeChecksumModal.filename}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={() => setActiveChecksumModal(null)}
-                  className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-semibold transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );

@@ -1,37 +1,16 @@
-export type PlatformId = 'macos' | 'windows' | 'linux' | 'android' | 'ios';
+export type PlatformId = 'windows' | 'macos' | 'linux' | 'android';
 
-export type Architecture = 'arm64' | 'x64' | 'universal' | 'apk' | 'all';
-
-export interface DownloadArtifact {
-  title: string;
-  filename: string;
-  extension: string;
-  size: string;
-  arch: Architecture;
-  archLabel: string;
-  recommended?: boolean;
-  downloadUrl: string;
-  sha256: string;
-  notes?: string;
-}
-
-export interface PackageManagerOption {
-  name: string;
-  command: string;
-  description: string;
-}
-
-export interface PlatformRelease {
+export interface PlatformInfo {
   id: PlatformId;
   name: string;
+  /** Short state shown on the tab, e.g. "Works today". */
   badge: string;
-  iconName: string;
-  subtitle: string;
-  supportedVersions: string;
-  latestVersion: string;
-  releaseDate: string;
-  primaryArtifact: DownloadArtifact;
-  artifacts: DownloadArtifact[];
-  packageManagers: PackageManagerOption[];
-  quickInstructions: string[];
+  summary: string;
+  requirements: string;
+  works: string[];
+  notYet: string[];
+  /** Command run from the repository root. */
+  buildCommand: string;
+  buildOutput: string;
+  setup: string[];
 }

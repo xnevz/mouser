@@ -1,4 +1,4 @@
-name: Deploy Mouser Web Landing to GitHub Pages / Vercel
+name: Deploy website to GitHub Pages
 
 on:
   push:
@@ -39,17 +39,21 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build Next.js Web
+      - name: Lint
+        run: npm run lint
+
+      - name: Build static export for GitHub Pages
         run: npm run build
+        env:
+          GITHUB_PAGES: 'true'
 
       - name: Upload Artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: web/out
-        continue-on-error: true
 
   deploy-pages:
-    name: Deploy to GitHub Pages (Optional)
+    name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
@@ -60,4 +64,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-        continue-on-error: true

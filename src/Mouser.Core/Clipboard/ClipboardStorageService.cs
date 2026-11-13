@@ -13,7 +13,6 @@ public sealed class ClipboardStorageService : IAsyncDisposable
 {
     private readonly string _connectionString;
     private SqliteConnection? _connection;
-    private readonly object _lock = new();
 
     public ClipboardStorageService(string? databasePath = null)
     {
@@ -137,14 +136,15 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         }
     }
 
-    public async Task<List<ClipboardPayload>> GetRecentClipsAsync(int limit = 50)
+    public async Task<List<ClipboardPayload>> GetRecentClipsAsync(int limit = 50, bool favoritesOnly = false)
     {
         if (_connection == null) await InitializeAsync();
 
         var list = new List<ClipboardPayload>();
-        const string sql = @"
+        string sql = $@"
             SELECT id, timestamp, content_type, text_content, html_content, source_device, is_favorite
             FROM clips
+            {(favoritesOnly ? "WHERE is_favorite = 1" : "")}
             ORDER BY timestamp DESC
             LIMIT @limit;";
 
@@ -238,6 +238,55 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             var result = await selectCmd.ExecuteScalarAsync();
             return result is long val && val == 1;
         }
+    }
+
+    public async Task<(int Total, int Favorites)> GetCountsAsync()
+    {
+        if (_connection == null) await InitializeAsync();
+
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*), COALESCE(SUM(is_favorite), 0) FROM clips;";
+        using var reader = await cmd.ExecuteReaderAsync();
+        await reader.ReadAsync();
+        return (reader.GetInt32(0), reader.GetInt32(1));
+    }
+
+    public async Task DeleteClipAsync(string clipId)
+    {
+        if (_connection == null) await InitializeAsync();
+
+        using var transaction = _connection!.BeginTransaction();
+        foreach (var sql in new[] { "DELETE FROM clips WHERE id = @id;", "DELETE FROM clips_fts WHERE id = @id;" })
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("@id", clipId);
+            await cmd.ExecuteNonQueryAsync();
+        }
+        await transaction.CommitAsync();
+    }
+
+    /// <summary>Deletes history. Starred clips survive unless <paramref name="includeFavorites"/> is set.</summary>
+    public async Task<int> ClearAsync(bool includeFavorites = false)
+    {
+        if (_connection == null) await InitializeAsync();
+
+        string filter = includeFavorites ? "" : " WHERE is_favorite = 0";
+        using var transaction = _connection!.BeginTransaction();
+
+        using var ftsCmd = _connection.CreateCommand();
+        ftsCmd.Transaction = transaction;
+        ftsCmd.CommandText = $"DELETE FROM clips_fts WHERE id IN (SELECT id FROM clips{filter});";
+        await ftsCmd.ExecuteNonQueryAsync();
+
+        using var cmd = _connection.CreateCommand();
+        cmd.Transaction = transaction;
+        cmd.CommandText = $"DELETE FROM clips{filter};";
+        int count = await cmd.ExecuteNonQueryAsync();
+
+        await transaction.CommitAsync();
+        return count;
     }
 
     public async Task<int> PurgeClipsOlderThanAsync(int daysToKeep)

@@ -3,155 +3,107 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Mouser.UI.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="640"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="640"
              x:Class="Mouser.UI.Views.AndroidRemoteView"
              x:DataType="vm:AndroidRemoteViewModel">
 
-    <Grid RowDefinitions="Auto,*,Auto" Margin="24">
-        <!-- Header -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,18">
-            <StackPanel Grid.Column="0" Spacing="4">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="Android Remote Hub" FontSize="20" FontWeight="Bold" Foreground="#f4f4f5" />
-                    <Border Background="#232533" CornerRadius="6" Padding="8,2" VerticalAlignment="Center">
-                        <TextBlock Text="120Hz UDP Stream" FontSize="11" FontWeight="SemiBold" Foreground="#38bdf8" />
-                    </Border>
-                </StackPanel>
-                <TextBlock Text="Wireless trackpad, 3D gyro air-mouse presentation pointer, and media macro controller"
-                           FontSize="13" Foreground="#94a3b8" />
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="16">
+            <StackPanel Spacing="4">
+                <TextBlock Classes="page-title" Text="Phone Remote" />
+                <TextBlock Classes="page-subtitle"
+                           Text="Use the Mouser Android app as a trackpad, air mouse and media remote for this computer." />
             </StackPanel>
 
-            <Border Grid.Column="1" Classes="status-pill" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <Ellipse Width="6" Height="6" Fill="#10b981" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding BatteryLevel, StringFormat='Phone Connected ({0})'}"
-                               FontSize="11" FontWeight="SemiBold" Foreground="#10b981" VerticalAlignment="Center" />
-                </StackPanel>
+            <Border Classes="banner-error" IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="#fecdd3" FontSize="12" TextWrapping="Wrap" />
             </Border>
-        </Grid>
 
-        <!-- Main Workspace: Device Diagnostics + Simulated Trackpad Area + Controls -->
-        <Grid Grid.Row="1" ColumnDefinitions="320,*">
-            <!-- Left Panel: Device Info & Calibration -->
-            <Border Grid.Column="0" Classes="glass-card" Padding="18" Margin="0,0,16,0">
-                <ScrollViewer>
-                    <StackPanel Spacing="16">
-                        <TextBlock Text="Connected Controller" FontSize="14" FontWeight="SemiBold" Foreground="#f4f4f5" />
+            <Border Classes="banner-warning" IsVisible="{Binding !CanInject}">
+                <TextBlock Foreground="#fde68a" FontSize="12" TextWrapping="Wrap"
+                           Text="Mouser can't control the mouse on this operating system yet (Windows and macOS are supported). Phones can pair, but input won't reach the desktop." />
+            </Border>
 
-                        <!-- Device Info Box -->
-                        <Border Background="#161722" BorderBrush="#272a38" BorderThickness="1" CornerRadius="8" Padding="12">
-                            <StackPanel Spacing="8">
-                                <Grid ColumnDefinitions="Auto,*">
-                                    <TextBlock Grid.Column="0" Text="📱 " FontSize="20" VerticalAlignment="Center" />
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding DeviceModel}" FontWeight="SemiBold" FontSize="13" Foreground="#f8fafc" />
-                                        <TextBlock Text="{Binding IpAddress}" FontSize="11" Foreground="#94a3b8" />
-                                    </StackPanel>
-                                </Grid>
+            <Grid ColumnDefinitions="*,16,*">
+                <!-- Pairing -->
+                <Border Grid.Column="0" Classes="glass-card" Padding="20">
+                    <StackPanel Spacing="14">
+                        <TextBlock Classes="section-title" Text="Pair a phone" />
 
-                                <Separator Background="#272a38" />
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="hint" Text="1.  Connect the phone to the same Wi-Fi network as this computer." />
+                            <TextBlock Classes="hint" Text="2.  Open Mouser on the phone and pick this computer from the list." />
+                            <TextBlock Classes="hint" Text="3.  Enter this PIN when asked:" />
+                        </StackPanel>
 
-                                <Grid ColumnDefinitions="*,*">
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="Direct Ping" FontSize="11" Foreground="#64748b" />
-                                        <TextBlock Text="{Binding LatencyMs, StringFormat='{}{0} ms'}" FontWeight="Bold" Foreground="#10b981" />
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="Battery" FontSize="11" Foreground="#64748b" />
-                                        <TextBlock Text="{Binding BatteryLevel}" FontWeight="Bold" Foreground="#f4f4f5" />
-                                    </StackPanel>
-                                </Grid>
-                            </StackPanel>
+                        <Border Background="#0f1018" BorderBrush="#2e3248" BorderThickness="1" CornerRadius="10" Padding="16,12">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <SelectableTextBlock Grid.Column="0" Text="{Binding PairingPinText}"
+                                                     FontSize="34" FontWeight="Bold" LetterSpacing="4"
+                                                     Foreground="#f8fafc" VerticalAlignment="Center" />
+                                <Button Grid.Column="1" Classes="secondary-btn" Content="New PIN"
+                                        Command="{Binding RegeneratePinCommand}" VerticalAlignment="Center"
+                                        ToolTip.Tip="Create a new PIN. Phones paired with the old one are disconnected." />
+                            </Grid>
                         </Border>
 
                         <Separator Background="#272a38" />
 
-                        <!-- Sensitivity Sliders -->
-                        <TextBlock Text="Sensor Calibration" FontSize="12" FontWeight="SemiBold" Foreground="#cbd5e1" />
-                        <StackPanel Spacing="4">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Text="Pointer Sensitivity" FontSize="11" Foreground="#94a3b8" />
-                                <TextBlock Grid.Column="1" Text="{Binding TrackpadSensitivity, StringFormat='{}{0:F1}x'}" FontSize="11" Foreground="#cbd5e1" />
-                            </Grid>
-                            <Slider Value="{Binding TrackpadSensitivity}" Minimum="0.5" Maximum="3.0" />
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="label" Text="Not listed on the phone? Enter this address manually:" />
+                            <SelectableTextBlock Text="{Binding AddressText}" FontSize="15" FontWeight="SemiBold"
+                                                 Foreground="#e2e8f0" TextWrapping="Wrap" />
+                            <TextBlock Classes="label" Text="{Binding Port, StringFormat='Port {0}'}" />
                         </StackPanel>
 
-                        <StackPanel Spacing="4">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Text="Scroll Velocity" FontSize="11" Foreground="#94a3b8" />
-                                <TextBlock Grid.Column="1" Text="{Binding ScrollSpeed, StringFormat='{}{0:F1}x'}" FontSize="11" Foreground="#cbd5e1" />
-                            </Grid>
-                            <Slider Value="{Binding ScrollSpeed}" Minimum="0.5" Maximum="2.5" />
-                        </StackPanel>
-
-                        <Separator Background="#272a38" />
-
-                        <!-- Gyro Mode Toggle -->
-                        <Button Classes="secondary-btn" Command="{Binding ToggleGyroPointerCommand}" HorizontalAlignment="Stretch">
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-                                <TextBlock Text="🎯" FontSize="14" />
-                                <TextBlock Text="{Binding IsGyroPointerActive, Converter={x:Null}, StringFormat='Toggle 3D Air Mouse'}" />
-                            </StackPanel>
-                        </Button>
+                        <TextBlock Classes="hint" FontSize="11"
+                                   Text="Still can't connect? Allow Mouser through your firewall for private networks, and make sure the Wi-Fi isn't a guest network that isolates devices." />
                     </StackPanel>
-                </ScrollViewer>
-            </Border>
-
-            <!-- Right Panel: Interactive Trackpad & Macro Controller -->
-            <Grid Grid.Column="1" RowDefinitions="*,Auto">
-                <!-- Touchpad Simulation Card -->
-                <Border Grid.Row="0" Classes="glass-card" Margin="0,0,0,14" Padding="20">
-                    <Grid RowDefinitions="Auto,*,Auto">
-                        <TextBlock Grid.Row="0" Text="Virtual Multi-Touch Surface (120Hz UDP Stream)"
-                                   FontSize="13" FontWeight="SemiBold" Foreground="#94a3b8" HorizontalAlignment="Center" />
-
-                        <!-- Tactile Surface Area -->
-                        <Border Grid.Row="1"
-                                Background="#101118"
-                                BorderBrush="#2e3248"
-                                BorderThickness="2"
-                                CornerRadius="16"
-                                Margin="0,16">
-                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10">
-                                <TextBlock Text="TOUCHPAD ZONE" FontSize="18" FontWeight="Bold" Foreground="#475569" HorizontalAlignment="Center" />
-                                <TextBlock Text="1 Finger: Move Cursor &amp; Left Click" FontSize="12" Foreground="#64748b" HorizontalAlignment="Center" />
-                                <TextBlock Text="2 Fingers: Kinetic Scroll &amp; Right Click" FontSize="12" Foreground="#64748b" HorizontalAlignment="Center" />
-                                <TextBlock Text="Pinch: Zoom Desktop" FontSize="12" Foreground="#64748b" HorizontalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
-
-                        <TextBlock Grid.Row="2"
-                                   Text="{Binding LastInputEvent, StringFormat='Live Telemetry: {0}'}"
-                                   FontSize="11"
-                                   Foreground="#38bdf8"
-                                   HorizontalAlignment="Center" />
-                    </Grid>
                 </Border>
 
-                <!-- Media Remote Bar -->
-                <Border Grid.Row="1" Classes="glass-card" Padding="14">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                            <TextBlock Text="Host Media Remote Controls" FontSize="12" FontWeight="SemiBold" Foreground="#f1f5f9" />
-                            <TextBlock Text="Dispatches global media keystrokes to active player" FontSize="11" Foreground="#94a3b8" />
-                        </StackPanel>
+                <!-- Paired devices -->
+                <Border Grid.Column="2" Classes="glass-card" Padding="20">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Classes="section-title" Text="Paired devices" VerticalAlignment="Center" />
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding IsAccepting, Mode=OneWay}"
+                                          Command="{Binding ToggleAcceptingCommand}"
+                                          OnContent="Accepting input" OffContent="Remote input off" />
+                        </Grid>
 
-                        <!-- Macro Buttons -->
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                            <Button Classes="secondary-btn" Command="{Binding SendMediaActionCommand}" CommandParameter="Previous" Content="⏮" Width="40" />
-                            <Button Classes="primary-btn" Command="{Binding SendMediaActionCommand}" CommandParameter="PlayPause" Content="⏯" Width="44" />
-                            <Button Classes="secondary-btn" Command="{Binding SendMediaActionCommand}" CommandParameter="Next" Content="⏭" Width="40" />
-                            <Button Classes="secondary-btn" Command="{Binding SendMediaActionCommand}" CommandParameter="VolumeDown" Content="🔉" Width="40" />
-                            <Button Classes="secondary-btn" Command="{Binding SendMediaActionCommand}" CommandParameter="VolumeUp" Content="🔊" Width="40" />
-                        </StackPanel>
-                    </Grid>
+                        <TextBlock Classes="hint" IsVisible="{Binding !HasClients}"
+                                   Text="No phones paired yet. Paired phones appear here with their live status." />
+
+                        <ItemsControl ItemsSource="{Binding Clients}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="vm:RemoteClientItem">
+                                    <Border Background="#181922" BorderBrush="#272a38" BorderThickness="1"
+                                            CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Ellipse Grid.Column="0" Width="9" Height="9" Fill="{Binding StatusColor}"
+                                                     VerticalAlignment="Center" Margin="0,0,12,0" />
+                                            <StackPanel Grid.Column="1" Spacing="2">
+                                                <TextBlock Text="{Binding Address}" FontWeight="SemiBold" Foreground="#f1f5f9" />
+                                                <TextBlock FontSize="11" Foreground="#94a3b8">
+                                                    <Run Text="{Binding LastSeenText}" />
+                                                    <Run Text=" • " />
+                                                    <Run Text="{Binding LastEvent}" />
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <Button Grid.Column="2" Classes="secondary-btn" Content="Unpair"
+                                                    Command="{Binding $parent[ItemsControl].((vm:AndroidRemoteViewModel)DataContext).ForgetCommand}"
+                                                    CommandParameter="{Binding}" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                 </Border>
             </Grid>
-        </Grid>
 
-        <!-- Status Bottom Bar -->
-        <Border Grid.Row="2" Margin="0,14,0,0" Padding="12,8" Background="#14151d" CornerRadius="8" BorderBrush="#272a38" BorderThickness="1">
-            <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="#94a3b8" VerticalAlignment="Center" />
-        </Border>
-    </Grid>
+            <TextBlock Classes="hint" Text="{Binding StatusMessage}"
+                       IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>

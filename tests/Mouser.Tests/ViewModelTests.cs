@@ -1,302 +1,333 @@
-using System;
-using System.Linq;
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.Presenters;
-using Avalonia.VisualTree;
+using System.Net;
+using Mouser.Core.Clipboard;
+using Mouser.Core.Input;
+using Mouser.Core.Networking;
+using Mouser.UI.Services;
 using Mouser.UI.ViewModels;
 using Mouser.UI.Views;
-using Xunit;
-using Xunit.Abstractions;
 
 namespace Mouser.Tests;
 
+public sealed class FakeClipboard : IClipboardAccess
+{
+    public string? Text { get; set; }
+    public Task<string?> GetTextAsync() => Task.FromResult(Text);
+    public Task SetTextAsync(string text) { Text = text; return Task.CompletedTask; }
+}
+
+/// <summary>A full app instance on temp storage with networking on random ports.</summary>
+public sealed class AppFixture : IAsyncDisposable
+{
+    private readonly string _dir = Path.Combine(Path.GetTempPath(), "mouser_vm_" + Guid.NewGuid().ToString("N"));
+
+    public SettingsStore Settings { get; }
+    public MouserHost Host { get; }
+    public ClipboardStorageService Storage { get; }
+    public RecordingSink Sink { get; } = new();
+    public FakeClipboard Clipboard { get; } = new();
+    public MainViewModel Main { get; }
+
+    public AppFixture()
+    {
+        Settings = new SettingsStore(Path.Combine(_dir, "settings.json"));
+        Settings.Current.InputPort = 0; // any free port
+        Host = new MouserHost(Settings, Sink, discoveryPort: Random.Shared.Next(40_000, 50_000));
+        Host.Restart();
+        Storage = new ClipboardStorageService(Path.Combine(_dir, "clipboard.db"));
+        Main = new MainViewModel(Host, Settings, Storage);
+        Main.ClipboardHistory.AttachClipboard(Clipboard);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Host.Dispose();
+        await Storage.DisposeAsync();
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        try { Directory.Delete(_dir, recursive: true); } catch { }
+    }
+}
+
 public class ViewModelTests
 {
-    private readonly ITestOutputHelper _output;
-
-    public ViewModelTests(ITestOutputHelper output)
-    {
-        _output = output;
-    }
     [Fact]
-    public void MainViewModel_Navigation_SwitchesPagesCorrectly()
+    public async Task Navigation_SwitchesPagesAndActiveTab()
     {
-        var vm = new MainViewModel();
+        await using var app = new AppFixture();
+        var vm = app.Main;
 
-        Assert.Equal(NavigationTab.DisplayMatrix, vm.CurrentTab);
-        Assert.IsType<MonitorLayoutViewModel>(vm.CurrentPage);
-
-        vm.NavigateCommand.Execute("SmartClipboard");
-        Assert.Equal(NavigationTab.SmartClipboard, vm.CurrentTab);
-        Assert.IsType<ClipboardHistoryViewModel>(vm.CurrentPage);
-
-        vm.NavigateCommand.Execute("AndroidRemote");
-        Assert.Equal(NavigationTab.AndroidRemote, vm.CurrentTab);
+        Assert.True(vm.IsRemoteTab);
         Assert.IsType<AndroidRemoteViewModel>(vm.CurrentPage);
 
+        vm.NavigateCommand.Execute("SmartClipboard");
+        Assert.True(vm.IsClipboardTab);
+        Assert.False(vm.IsRemoteTab);
+        Assert.IsType<ClipboardHistoryViewModel>(vm.CurrentPage);
+
+        vm.NavigateCommand.Execute("DisplayMatrix");
+        Assert.IsType<MonitorLayoutViewModel>(vm.CurrentPage);
+
         vm.NavigateCommand.Execute("Settings");
-        Assert.Equal(NavigationTab.Settings, vm.CurrentTab);
         Assert.IsType<SettingsViewModel>(vm.CurrentPage);
     }
 
     [Fact]
-    public void MonitorLayoutViewModel_AutoArrange_PositionsScreensHorizontally()
+    public async Task NoFakeDataOnFirstRun()
+    {
+        await using var app = new AppFixture();
+        await app.Main.ClipboardHistory.InitializeAsync();
+
+        Assert.Empty(app.Main.AndroidRemote.Clients);
+        Assert.Empty(app.Main.ClipboardHistory.FilteredClips);
+        Assert.Empty(app.Main.MonitorLayout.Screens);
+        Assert.Equal("Ready for phones", app.Main.SystemStatusTitle);
+    }
+
+    [Fact]
+    public async Task PhoneRemote_ShowsPinAndListsAPairedPhone()
+    {
+        await using var app = new AppFixture();
+        var remote = app.Main.AndroidRemote;
+        Assert.Equal(PairingGate.FormatPin(app.Settings.Current.PairingPin), remote.PairingPinText);
+        Assert.True(remote.IsAccepting);
+
+        using var phone = new FakePhone(app.Host.Input!.BoundPort);
+        Assert.True(await phone.PairAsync(app.Settings.Current.PairingPin));
+        phone.Send(InputMotionPacket.TypeMotion, 3, 4);
+        await Wait.UntilAsync(() => app.Sink.Snapshot().Length == 1);
+
+        app.Main.Refresh();
+        var client = Assert.Single(remote.Clients);
+        Assert.Equal("127.0.0.1", client.Address);
+        Assert.True(client.IsActive);
+        Assert.Equal(1, remote.ActiveClientCount);
+        Assert.Equal("1 device connected", app.Main.SystemStatusTitle);
+
+        remote.ForgetCommand.Execute(client);
+        Assert.Empty(remote.Clients);
+    }
+
+    [Fact]
+    public async Task PhoneRemote_NewPinUnpairsPhonesAndIsSaved()
+    {
+        await using var app = new AppFixture();
+        int oldPin = app.Settings.Current.PairingPin;
+        app.Host.Pairing.TryPair(IPAddress.Loopback, oldPin);
+
+        app.Main.AndroidRemote.RegeneratePinCommand.Execute(null);
+
+        Assert.NotEqual(oldPin, app.Settings.Current.PairingPin);
+        Assert.False(app.Host.Pairing.IsTrusted(IPAddress.Loopback));
+        var reloaded = new SettingsStore(app.Settings.FilePath);
+        Assert.Equal(app.Settings.Current.PairingPin, reloaded.Current.PairingPin);
+    }
+
+    [Fact]
+    public async Task PhoneRemote_ToggleStopsAndStartsListening()
+    {
+        await using var app = new AppFixture();
+        var remote = app.Main.AndroidRemote;
+
+        remote.ToggleAcceptingCommand.Execute(null);
+        Assert.False(remote.IsAccepting);
+        Assert.Null(app.Host.Input);
+        app.Main.Refresh();
+        Assert.Equal("Remote input off", app.Main.SystemStatusTitle);
+
+        remote.ToggleAcceptingCommand.Execute(null);
+        Assert.True(remote.IsAccepting);
+    }
+
+    [Fact]
+    public async Task Host_ReportsPortInUse()
+    {
+        await using var first = new AppFixture();
+        await using var second = new AppFixture();
+        second.Settings.Current.InputPort = first.Host.Input!.BoundPort;
+
+        second.Host.Restart();
+
+        Assert.Null(second.Host.Input);
+        Assert.Contains("already in use", second.Host.InputError);
+        second.Main.Refresh();
+        Assert.Equal("Not listening", second.Main.SystemStatusTitle);
+    }
+
+    [Fact]
+    public async Task Clipboard_CapturesCopiedText_AndSkipsSecrets()
+    {
+        await using var app = new AppFixture();
+        var clips = app.Main.ClipboardHistory;
+        await clips.InitializeAsync();
+
+        app.Clipboard.Text = "https://avaloniaui.net/docs";
+        Assert.True(await clips.PollClipboardAsync());
+        Assert.False(await clips.PollClipboardAsync()); // unchanged clipboard is not re-added
+
+        app.Clipboard.Text = "ghp_" + new string('a', 36);
+        Assert.False(await clips.PollClipboardAsync());
+        Assert.Contains("secret", clips.StatusMessage);
+
+        var clip = Assert.Single(clips.FilteredClips);
+        Assert.Equal(ClipboardContentType.Link, clip.Kind);
+        Assert.Equal(Environment.MachineName, clip.SourceDevice);
+    }
+
+    [Fact]
+    public async Task Clipboard_SearchFilterStarDeleteAndClear()
+    {
+        await using var app = new AppFixture();
+        var clips = app.Main.ClipboardHistory;
+        await clips.InitializeAsync();
+        await clips.CaptureAsync("Weekly grocery list: apples, milk");
+        await clips.CaptureAsync("var total = items.Sum(i => i.Price);");
+        await clips.CaptureAsync("https://example.com/report");
+        Assert.Equal(3, clips.AllCount);
+
+        clips.SearchQuery = "apples";
+        await clips.ReloadAsync();
+        Assert.Contains("grocery", Assert.Single(clips.FilteredClips).Content);
+
+        clips.SearchQuery = "";
+        clips.SetFilterCommand.Execute("Code");
+        await clips.ReloadAsync();
+        Assert.Equal(ClipboardContentType.Code, Assert.Single(clips.FilteredClips).Kind);
+
+        clips.SetFilterCommand.Execute("All");
+        await clips.ReloadAsync();
+        var link = clips.FilteredClips.First(c => c.Kind == ClipboardContentType.Link);
+        await clips.ToggleStarCommand.ExecuteAsync(link);
+        Assert.Equal(1, clips.StarredCount);
+
+        clips.SetLibraryCommand.Execute("Starred");
+        await clips.ReloadAsync();
+        Assert.Equal(link.Id, Assert.Single(clips.FilteredClips).Id);
+
+        clips.SetLibraryCommand.Execute("All");
+        await clips.ReloadAsync();
+        await clips.DeleteClipCommand.ExecuteAsync(clips.FilteredClips.First(c => c.Kind == ClipboardContentType.Code));
+        Assert.Equal(2, clips.AllCount);
+
+        await clips.ClearAllCommand.ExecuteAsync(null);
+        Assert.Equal(1, clips.AllCount); // starred clip survives
+    }
+
+    [Fact]
+    public async Task Clipboard_CopyBackDoesNotCreateADuplicate()
+    {
+        await using var app = new AppFixture();
+        var clips = app.Main.ClipboardHistory;
+        await clips.InitializeAsync();
+        await clips.CaptureAsync("first");
+        await clips.CaptureAsync("second");
+
+        await clips.CopyClipCommand.ExecuteAsync(clips.FilteredClips.Single(c => c.Content == "first"));
+
+        Assert.Equal("first", app.Clipboard.Text);
+        Assert.False(await clips.PollClipboardAsync());
+        Assert.Equal(2, clips.AllCount);
+    }
+
+    [Fact]
+    public async Task Clipboard_RespectsDisabledSetting()
+    {
+        await using var app = new AppFixture();
+        await app.Main.ClipboardHistory.InitializeAsync();
+        app.Main.Settings.ClipboardHistoryEnabled = false;
+
+        Assert.False(await app.Main.ClipboardHistory.CaptureAsync("should not be saved"));
+        Assert.False(app.Main.ClipboardHistory.IsCaptureEnabled);
+        Assert.False(new SettingsStore(app.Settings.FilePath).Current.ClipboardHistoryEnabled);
+    }
+
+    [Fact]
+    public void Displays_AreScaledToFitAndKeepTheirArrangement()
     {
         var vm = new MonitorLayoutViewModel();
-        Assert.True(vm.Screens.Count >= 2);
-
-        vm.AutoArrangeScreensCommand.Execute(null);
-
-        // Screens should be arranged in non-overlapping order along X axis
-        for (int i = 0; i < vm.Screens.Count - 1; i++)
+        vm.SetDisplays(new[]
         {
-            var left = vm.Screens[i];
-            var right = vm.Screens[i + 1];
-            Assert.True(right.PositionX > left.PositionX, $"Screen {right.Hostname} should be to the right of {left.Hostname}");
+            new DisplayInfo("Laptop", 0, 0, 1920, 1080, 1.25, true),
+            new DisplayInfo("External", 1920, -200, 2560, 1440, 1.0, false)
+        });
+
+        Assert.Equal(2, vm.Screens.Count);
+        var primary = vm.Screens[0];
+        var external = vm.Screens[1];
+        Assert.True(primary.IsPrimary);
+        Assert.Equal("125%", primary.ScalingText);
+        Assert.Equal("2560 × 1440", external.Resolution);
+
+        Assert.True(external.PositionX > primary.PositionX); // to the right
+        Assert.True(external.PositionY < primary.PositionY); // and higher, like the real layout
+        Assert.True(external.DisplayWidth > primary.DisplayWidth);
+        foreach (var s in vm.Screens)
+        {
+            Assert.InRange(s.PositionX, 0, MonitorLayoutViewModel.CanvasWidth - s.DisplayWidth);
+            Assert.InRange(s.PositionY, 0, MonitorLayoutViewModel.CanvasHeight - s.DisplayHeight);
+        }
+        Assert.Contains("2 displays", vm.DesktopSummary);
+        Assert.Same(primary, vm.SelectedScreen);
+
+        vm.SelectScreenCommand.Execute(external);
+        Assert.True(external.IsSelected);
+        Assert.False(primary.IsSelected);
+    }
+
+    [Fact]
+    public void Peers_AreListedFromDiscovery()
+    {
+        var vm = new MonitorLayoutViewModel();
+        vm.SetPeers(new[]
+        {
+            new DiscoveredPeer { DeviceId = "1", Hostname = "studio-mac", OperatingSystem = "macOS", IpAddress = IPAddress.Parse("192.168.1.9"), MotionPort = 58491 }
+        });
+
+        var peer = Assert.Single(vm.Peers);
+        Assert.Equal("192.168.1.9:58491", peer.Address);
+        Assert.True(vm.HasPeers);
+    }
+
+    [Fact]
+    public async Task Settings_PersistAndValidatePort()
+    {
+        await using var app = new AppFixture();
+        var settings = app.Main.Settings;
+
+        settings.ClipboardRetentionDays = 7;
+        settings.SkipSensitiveClips = false;
+        settings.InputPort = 80;
+        settings.ApplyPortCommand.Execute(null);
+        Assert.Contains("between 1024 and 65535", settings.StatusMessage);
+
+        var reloaded = new SettingsStore(app.Settings.FilePath).Current;
+        Assert.Equal(7, reloaded.ClipboardRetentionDays);
+        Assert.False(reloaded.SkipSensitiveClips);
+        Assert.NotEqual(80, reloaded.InputPort); // invalid port was not saved
+    }
+
+    [Fact]
+    public void SettingsStore_RecoversFromCorruptFile()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"mouser_settings_{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, "{ not json");
+        try
+        {
+            var store = new SettingsStore(path);
+            Assert.True(File.Exists(path + ".corrupt"));
+            Assert.InRange(store.Current.PairingPin, 0, 999_999);
+        }
+        finally
+        {
+            File.Delete(path);
+            File.Delete(path + ".corrupt");
         }
     }
 
     [Fact]
-    public void MonitorLayoutViewModel_ToggleSharing_UpdatesState()
+    public void Views_LoadTheirXaml()
     {
-        var vm = new MonitorLayoutViewModel();
-        Assert.True(vm.IsSharingActive);
-
-        vm.ToggleSharingCommand.Execute(null);
-        Assert.False(vm.IsSharingActive);
-
-        vm.ToggleSharingCommand.Execute(null);
-        Assert.True(vm.IsSharingActive);
-    }
-
-    [Fact]
-    public void MonitorLayoutViewModel_SelectScreen_MarksSelection()
-    {
-        var vm = new MonitorLayoutViewModel();
-        var secondScreen = vm.Screens[1];
-
-        vm.SelectScreenCommand.Execute(secondScreen);
-
-        Assert.Equal(secondScreen, vm.SelectedScreen);
-        Assert.True(secondScreen.IsSelected);
-        Assert.False(vm.Screens[0].IsSelected);
-    }
-
-    [Fact]
-    public void ClipboardHistoryViewModel_FilteringAndSearch_WorksAccurately()
-    {
-        var vm = new ClipboardHistoryViewModel();
-        Assert.NotEmpty(vm.FilteredClips);
-
-        // Filter by Code
-        vm.SetFilterCommand.Execute("Code");
-        Assert.All(vm.FilteredClips, clip => Assert.Equal("Code", clip.ContentType));
-
-        // Filter by Link
-        vm.SetFilterCommand.Execute("Link");
-        Assert.All(vm.FilteredClips, clip => Assert.Equal("Link", clip.ContentType));
-
-        // Search text
-        vm.SetFilterCommand.Execute("All");
-        vm.SearchQuery = "Meeting";
-        Assert.Single(vm.FilteredClips);
-        Assert.Contains("Meeting", vm.FilteredClips[0].PreviewTitle);
-    }
-
-    [Fact]
-    public void ClipboardHistoryViewModel_DeleteAndClear_ModifiesList()
-    {
-        var vm = new ClipboardHistoryViewModel();
-        int initialCount = vm.FilteredClips.Count;
-        var first = vm.FilteredClips.First();
-
-        vm.DeleteClipCommand.Execute(first);
-        Assert.Equal(initialCount - 1, vm.FilteredClips.Count);
-
-        vm.ClearAllCommand.Execute(null);
-        Assert.Empty(vm.FilteredClips);
-    }
-
-    [Fact]
-    public void SettingsViewModel_RegeneratePin_CreatesValidFormat()
-    {
-        var vm = new SettingsViewModel();
-        string initialPin = vm.PairingPin;
-
-        vm.RegeneratePinCommand.Execute(null);
-
-        Assert.NotEqual(initialPin, vm.PairingPin);
-        Assert.Matches(@"^\d{3}-\d{3}$", vm.PairingPin);
-    }
-
-    [Fact]
-    public void AndroidRemoteViewModel_ToggleGyro_SwitchesActiveState()
-    {
-        var vm = new AndroidRemoteViewModel();
-        Assert.False(vm.IsGyroPointerActive);
-
-        vm.ToggleGyroPointerCommand.Execute(null);
-        Assert.True(vm.IsGyroPointerActive);
-
-        vm.ToggleGyroPointerCommand.Execute(null);
-        Assert.False(vm.IsGyroPointerActive);
-    }
-
-    [Fact]
-    public void MonitorLayoutView_ItemContainer_HasCanvasPositionBound()
-    {
-        var view = new MonitorLayoutView();
-        var vm = new MonitorLayoutViewModel();
-        view.DataContext = vm;
-
-        var itemsControl = view.FindControl<ItemsControl>("ScreensItemsControl");
-        Assert.NotNull(itemsControl);
-
-        // Verify screens can be repositioned and letter tracking works
-        var screenA = vm.Screens[0];
-        double oldX = screenA.PositionX;
-        double oldY = screenA.PositionY;
-
-        vm.UpdateScreenPosition(screenA, 250, 180, enableSnapping: false);
-        Assert.Equal(250, screenA.PositionX);
-        Assert.Equal(180, screenA.PositionY);
-        Assert.NotEqual(oldX, screenA.PositionX);
-        Assert.NotEqual(oldY, screenA.PositionY);
-    }
-
-    [Fact]
-    public void MonitorLayoutView_SimulatedPointerDrag_MovesScreenPositionDynamically()
-    {
-        var vm = new MonitorLayoutViewModel();
-        var screenA = vm.Screens[0]; // Letter "A", Pos: (60, 120), Width: 260
-        var screenB = vm.Screens[1]; // Letter "B", Pos: (350, 100), Width: 280
-        var screenC = vm.Screens[2]; // Letter "C", Pos: (660, 130), Width: 230
-
-        _output.WriteLine("=== INITIAL MONITOR POSITIONS ===");
-        _output.WriteLine($"Screen A [{screenA.Letter}] ({screenA.Hostname}): ({screenA.PositionX}, {screenA.PositionY}) - Size: {screenA.DisplayWidth}x{screenA.DisplayHeight}");
-        _output.WriteLine($"Screen B [{screenB.Letter}] ({screenB.Hostname}): ({screenB.PositionX}, {screenB.PositionY}) - Size: {screenB.DisplayWidth}x{screenB.DisplayHeight}");
-        _output.WriteLine($"Screen C [{screenC.Letter}] ({screenC.Hostname}): ({screenC.PositionX}, {screenC.PositionY}) - Size: {screenC.DisplayWidth}x{screenC.DisplayHeight}");
-
-        Assert.Equal(60, screenA.PositionX);
-        Assert.Equal(120, screenA.PositionY);
-        Assert.Equal(350, screenB.PositionX);
-        Assert.Equal(100, screenB.PositionY);
-
-        // Step 2: Drag Screen B with delta (+100, +50)
-        _output.WriteLine("\n=== DRAG ACTION 1: Moving Screen B by (+100, +50) ===");
-        double dragTargetX = screenB.PositionX + 100; // 450
-        double dragTargetY = screenB.PositionY + 50;  // 150
-        vm.UpdateScreenPosition(screenB, dragTargetX, dragTargetY, enableSnapping: false);
-
-        _output.WriteLine($"Result: Screen B moved to ({screenB.PositionX}, {screenB.PositionY})");
-        _output.WriteLine($"Status: {vm.StatusMessage}");
-
-        Assert.Equal(450, screenB.PositionX);
-        Assert.Equal(150, screenB.PositionY);
-        Assert.Contains("Screen B", vm.StatusMessage);
-        Assert.Contains("450", vm.StatusMessage);
-
-        // Step 3: Drag Screen B into snapping proximity of Screen A's right edge (60 + 260 = 320)
-        _output.WriteLine("\n=== DRAG ACTION 2: Dragging Screen B near Screen A right edge (X=326, Y=124) ===");
-        vm.UpdateScreenPosition(screenB, 326, 124, enableSnapping: true);
-
-        _output.WriteLine($"Result: Screen B magnetically docked to Screen A at ({screenB.PositionX}, {screenB.PositionY})");
-        _output.WriteLine($"Status: {vm.StatusMessage}");
-
-        Assert.Equal(320, screenB.PositionX);
-        Assert.Equal(120, screenB.PositionY);
-
-        // Step 4: Drag Screen B to top-left boundary
-        _output.WriteLine("\n=== DRAG ACTION 3: Dragging Screen B to top edge (X=200, Y=0) ===");
-        vm.UpdateScreenPosition(screenB, 200, 0, enableSnapping: false);
-
-        _output.WriteLine($"Result: Screen B moved to ({screenB.PositionX}, {screenB.PositionY})");
-        _output.WriteLine($"Status: {vm.StatusMessage}");
-
-        Assert.Equal(200, screenB.PositionX);
-        Assert.Equal(0, screenB.PositionY);
-    }
-
-    [Fact]
-    public void MonitorLayoutViewModel_ScreensHaveIdentifierLetters()
-    {
-        var vm = new MonitorLayoutViewModel();
-        Assert.Equal("A", vm.Screens[0].Letter);
-        Assert.Equal("B", vm.Screens[1].Letter);
-        Assert.Equal("C", vm.Screens[2].Letter);
-
-        Assert.True(vm.ShowScreenLetters);
-        vm.ToggleScreenLettersCommand.Execute(null);
-        Assert.False(vm.ShowScreenLetters);
-        vm.ToggleScreenLettersCommand.Execute(null);
-        Assert.True(vm.ShowScreenLetters);
-    }
-
-    [Fact]
-    public void MonitorLayoutViewModel_UpdateScreenPosition_DragsAndClampsCorrectly()
-    {
-        var vm = new MonitorLayoutViewModel();
-        var screen = vm.Screens[0];
-
-        // Drag to free position without snapping
-        vm.UpdateScreenPosition(screen, 200, 250, enableSnapping: false);
-        Assert.Equal(200, screen.PositionX);
-        Assert.Equal(250, screen.PositionY);
-
-        // Clamping to canvas bounds (canvas 1000 x 600)
-        vm.UpdateScreenPosition(screen, -100, 1500, enableSnapping: false);
-        Assert.Equal(0, screen.PositionX);
-        Assert.Equal(600 - screen.DisplayHeight, screen.PositionY);
-    }
-
-    [Fact]
-    public void MonitorLayoutViewModel_UpdateScreenPosition_SnapsToAdjacentScreen()
-    {
-        var vm = new MonitorLayoutViewModel();
-        var screenA = vm.Screens[0]; // width: 260
-        screenA.PositionX = 100;
-        screenA.PositionY = 100;
-
-        var screenB = vm.Screens[1];
-        // Position screenB close to screenA's right edge (100 + 260 = 360, close at 365)
-        vm.UpdateScreenPosition(screenB, 365, 105, enableSnapping: true);
-
-        // Should snap X to 360 and Y to 100 (aligned top edge)
-        Assert.Equal(360, screenB.PositionX);
-        Assert.Equal(100, screenB.PositionY);
-    }
-
-    [Fact]
-    public void ClipboardHistoryViewModel_UniClipboard_FeaturesWork()
-    {
-        var vm = new ClipboardHistoryViewModel();
-        Assert.True(vm.AllCount > 0);
-        Assert.True(vm.StarredCount > 0);
-
-        // Test Star toggling
-        var clip = vm.FilteredClips.First(c => !c.IsPinned);
-        int initialStarred = vm.StarredCount;
-        vm.ToggleStarCommand.Execute(clip);
-        Assert.True(clip.IsPinned);
-        Assert.Equal(initialStarred + 1, vm.StarredCount);
-
-        // Test Library filter: Starred
-        vm.SetLibraryCommand.Execute("Starred");
-        Assert.All(vm.FilteredClips, c => Assert.True(c.IsPinned));
-
-        // Test Device filter
-        vm.SetLibraryCommand.Execute("All");
-        vm.SetDeviceFilterCommand.Execute("Android");
-        Assert.All(vm.FilteredClips, c => Assert.Contains("Android", c.SourceDevice));
-
-        // Test Send to Device command
-        vm.SendToDeviceCommand.Execute("Windows Workstation");
-        Assert.Contains("Dispatched", vm.StatusMessage);
-
-        // Test metadata properties
-        Assert.NotEmpty(clip.Sha256Checksum);
-        Assert.True(clip.ByteCount > 0);
-        Assert.NotEmpty(clip.FormattedSize);
+        Assert.NotNull(new MonitorLayoutView());
+        Assert.NotNull(new ClipboardHistoryView());
+        Assert.NotNull(new AndroidRemoteView());
+        Assert.NotNull(new SettingsView());
     }
 }

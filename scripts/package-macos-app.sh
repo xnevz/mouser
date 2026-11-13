@@ -38,7 +38,7 @@ dotnet publish "${PROJECT_ROOT}/src/Mouser.Desktop/Mouser.Desktop.csproj" \
     -p:IncludeNativeLibrariesForSelfExtract=true \
     -o "${OUTPUT_DIR}/publish"
 
-cp "${OUTPUT_DIR}/publish/Mouser.Desktop" "${CONTENTS}/MacOS/${APP_NAME}"
+cp "${OUTPUT_DIR}/publish/Mouser" "${CONTENTS}/MacOS/${APP_NAME}"
 chmod +x "${CONTENTS}/MacOS/${APP_NAME}"
 
 # 3. Create Info.plist with TCC permissions (Accessibility & Input Monitoring)

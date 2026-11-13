@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Mouser.Core.Geometry;
-using Mouser.Core.Interop;
 
 namespace Mouser.Core.Kvm;
 
@@ -25,8 +24,8 @@ public sealed class CursorTransitionEventArgs : EventArgs
 }
 
 /// <summary>
-/// Orchestrates the desktop-to-desktop Virtual KVM switch:
-/// boundary collision detection, edge resistance, screen pinning locks, and coordinate calculation.
+/// Desktop-to-desktop switching logic: edge collision, edge resistance, screen lock and entry-point calculation.
+/// Pure state machine; the platform capture layer performs suppression, key release and cursor warping.
 /// </summary>
 public sealed class VirtualKvmManager
 {
@@ -135,12 +134,12 @@ public sealed class VirtualKvmManager
                 _accumulatedEdgePush = 0;
             }
 
-                double pushDelta = hitEdge switch
+            double pushDelta = hitEdge switch
             {
-                    ScreenEdge.Right => Math.Max(0d, deltaX),
-                        ScreenEdge.Left => Math.Max(0, -(int)deltaX),
-                        ScreenEdge.Bottom => Math.Max(0, (int)deltaY),
-                        ScreenEdge.Top => Math.Max(0, -(int)deltaY),
+                ScreenEdge.Right => Math.Max(0, (int)deltaX),
+                ScreenEdge.Left => Math.Max(0, -(int)deltaX),
+                ScreenEdge.Bottom => Math.Max(0, (int)deltaY),
+                ScreenEdge.Top => Math.Max(0, -(int)deltaY),
                 _ => 0
             };
 
@@ -197,16 +196,6 @@ public sealed class VirtualKvmManager
         _activeCollisionEdge = ScreenEdge.None;
         _accumulatedEdgePush = 0;
 
-        // Drain any stuck keys before crossing
-        var stuckKeys = KeyTranslator.DrainStuckKeys();
-        foreach (var key in stuckKeys)
-        {
-            NativeDriver.InjectKey(key, 0, false);
-        }
-
-        // Suppress local events
-        NativeDriver.SetInputRedirection(true);
-
         // Calculate entry position on target screen
         var (entryX, entryY) = CoordinateTransformationEngine.CalculateEntryPosition(
             exitX, exitY, LocalScreen!, target, edge);
@@ -216,23 +205,15 @@ public sealed class VirtualKvmManager
     }
 
     /// <summary>
-    /// Returns focus to the local machine at the specified coordinate.
+    /// Returns focus to the local machine. The platform layer listening to <see cref="ReturnedToLocalScreen"/>
+    /// stops suppressing local input and warps the cursor.
     /// </summary>
-    public void SwitchBackToLocal(double? entryX = null, double? entryY = null)
+    public void SwitchBackToLocal()
     {
         lock (_lock)
         {
             IsRedirected = false;
             CurrentFocusedHostId = LocalScreen?.HostId ?? "local";
-
-            // Un-suppress local input events
-            NativeDriver.SetInputRedirection(false);
-
-            if (entryX.HasValue && entryY.HasValue)
-            {
-                NativeDriver.SetCursorPosition((int)entryX.Value, (int)entryY.Value);
-            }
-
             ReturnedToLocalScreen?.Invoke(this, EventArgs.Empty);
         }
     }

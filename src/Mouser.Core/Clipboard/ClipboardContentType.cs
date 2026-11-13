@@ -10,5 +10,6 @@ public enum ClipboardContentType
     Html = 3,
     Rtf = 4,
     Image = 5,
-    FileUri = 6
+    FileUri = 6,
+    Link = 7
 }
