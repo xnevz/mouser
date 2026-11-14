@@ -24,7 +24,17 @@ public sealed class AppSettings
     public int ClipboardRetentionHours { get; set; } = 720;
     public bool ClearOnExit { get; set; } = false;
     public string PanicWipeHotkey { get; set; } = string.Empty;
-    public string QuickPasteHotkey { get; set; } = "Win+Alt+V";
+    public HotkeySettings Hotkeys { get; set; } = new();
+    private string _quickPasteHotkey = "Win+Alt+V";
+    public string QuickPasteHotkey
+    {
+        get => Hotkeys?.QuickPaste ?? _quickPasteHotkey;
+        set
+        {
+            _quickPasteHotkey = value;
+            if (Hotkeys != null) Hotkeys.QuickPaste = value;
+        }
+    }
     public bool StartAtLogin { get; set; }
     public string Theme { get; set; } = "System";
 
@@ -63,6 +73,14 @@ public sealed class AppSettings
     {
         "keepass", "keepassxc", "1password", "bitwarden", "lastpass", "dashlane", "enpass"
     };
+}
+
+public sealed class HotkeySettings
+{
+    public string ReturnControl { get; set; } = "Ctrl+Alt+Esc";
+    public string LockCursor { get; set; } = "";
+    public string QuickPaste { get; set; } = "Win+Alt+V";
+    public bool PanicDoublePressCtrl { get; set; } = true;
 }
 
 public sealed class PeerSettings
@@ -128,6 +146,24 @@ public sealed class SettingsStore
                     settings.ClipboardRetentionHours = 720;
                 }
             }
+            settings.Hotkeys ??= new();
+            if (string.IsNullOrWhiteSpace(settings.Hotkeys.ReturnControl))
+                settings.Hotkeys.ReturnControl = "Ctrl+Alt+Esc";
+            if (settings.Hotkeys.LockCursor == null)
+                settings.Hotkeys.LockCursor = "";
+
+            if (!rawJson.Contains(nameof(AppSettings.Hotkeys)))
+            {
+                if (!string.IsNullOrWhiteSpace(settings.QuickPasteHotkey))
+                    settings.Hotkeys.QuickPaste = settings.QuickPasteHotkey;
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(settings.Hotkeys.QuickPaste))
+                    settings.Hotkeys.QuickPaste = "Win+Alt+V";
+                settings.QuickPasteHotkey = settings.Hotkeys.QuickPaste;
+            }
+
             if (string.IsNullOrWhiteSpace(settings.QuickPasteHotkey)) settings.QuickPasteHotkey = "Win+Alt+V";
             // SaveImages default is true
             if (settings.AutoLockMinutes < 0) settings.AutoLockMinutes = 0;

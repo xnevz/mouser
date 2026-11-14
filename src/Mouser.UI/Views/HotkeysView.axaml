@@ -1,0 +1,94 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Mouser.UI.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="400"
+             x:Class="Mouser.UI.Views.HotkeysView"
+             x:DataType="vm:HotkeysViewModel">
+
+    <Border Classes="glass-card" Padding="20">
+        <StackPanel Spacing="14">
+            <TextBlock Classes="section-title" Text="Hotkeys" />
+
+            <!-- Row 1: Return control -->
+            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="section-title" FontSize="13" Text="Return control to this computer" />
+                    <TextBlock Classes="hint" Text="Switch pointer and keyboard back from a remote computer. Secondary default: Scroll Lock." />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
+                            BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding ReturnControlDisplay}" FontSize="12"
+                                   FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+                    </Border>
+                    <Button Classes="secondary-btn" Content="{Binding ReturnControlButtonText}"
+                            Command="{Binding ToggleListeningReturnControlCommand}"
+                            ToolTip.Tip="Change return control hotkey" />
+                    <Button Classes="secondary-btn" Content="Reset"
+                            Command="{Binding ResetReturnControlCommand}"
+                            ToolTip.Tip="Reset to Ctrl+Alt+Esc" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Row 2: Lock cursor -->
+            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="section-title" FontSize="13" Text="Lock cursor to this screen" />
+                    <TextBlock Classes="hint" Text="Prevent the pointer from hopping across screen edges to remote computers." />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
+                            BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding LockCursorDisplay}" FontSize="12"
+                                   FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+                    </Border>
+                    <Button Classes="secondary-btn" Content="{Binding LockCursorButtonText}"
+                            Command="{Binding ToggleListeningLockCursorCommand}"
+                            ToolTip.Tip="Change lock cursor hotkey" />
+                    <Button Classes="secondary-btn" Content="Clear"
+                            Command="{Binding ClearLockCursorCommand}"
+                            ToolTip.Tip="Clear hotkey" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Row 3: Quick paste -->
+            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="section-title" FontSize="13" Text="Quick paste overlay" />
+                    <TextBlock Classes="hint" Text="Open the clipboard search overlay next to the cursor in any application." />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
+                            BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding QuickPasteDisplay}" FontSize="12"
+                                   FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+                    </Border>
+                    <Button Classes="secondary-btn" Content="{Binding QuickPasteButtonText}"
+                            Command="{Binding ToggleListeningQuickPasteCommand}"
+                            ToolTip.Tip="Change quick paste hotkey" />
+                    <Button Classes="secondary-btn" Content="Reset"
+                            Command="{Binding ResetQuickPasteCommand}"
+                            ToolTip.Tip="Reset to Win+Alt+V" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Row 4: Panic escape -->
+            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="section-title" FontSize="13" Text="Panic escape (press Ctrl twice quickly)" />
+                    <TextBlock Classes="hint" Text="Press Ctrl twice within 300 ms to return control if a remote computer is unresponsive." />
+                </StackPanel>
+                <ToggleSwitch Grid.Column="1" IsChecked="{Binding PanicDoublePressCtrl}" OnContent="" OffContent="" />
+            </Grid>
+
+            <!-- Conflict message -->
+            <TextBlock Text="{Binding ConflictMessage}" Foreground="{DynamicResource Danger}"
+                       FontSize="12" IsVisible="{Binding !!ConflictMessage}" Margin="0,4,0,0" />
+        </StackPanel>
+    </Border>
+</UserControl>

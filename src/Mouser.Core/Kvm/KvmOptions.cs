@@ -1,3 +1,5 @@
+using Mouser.Core.Input;
+
 namespace Mouser.Core.Kvm;
 
 public sealed class KvmOptions
@@ -10,6 +12,11 @@ public sealed class KvmOptions
     public bool BlockInCorners { get; init; } = false;
     public string RequireModifier { get; init; } = "None"; // "None", "Ctrl", "Alt", "Shift"
     public bool DoubleTapOverride { get; init; } = true;
+
+    public HotkeyBinding ReturnControlHotkey { get; init; } = HotkeyBinding.TryParse("Ctrl+Alt+Esc", out var b) ? b : default;
+    public HotkeyBinding SecondaryReturnControlHotkey { get; init; } = HotkeyBinding.TryParse("Scroll Lock", out var b) ? b : default;
+    public HotkeyBinding LockCursorHotkey { get; init; } = default;
+    public bool PanicDoublePressCtrl { get; init; } = true;
 
     public static KvmOptions FromFeel(string? feel) => feel switch
     {

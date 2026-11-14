@@ -244,6 +244,19 @@ public partial class App : Application
                     ? $"Press {hotkey.HotkeyText} in any app to search this history and paste."
                     : $"{hotkey.HotkeyText} is taken by another app, so quick paste is unavailable.";
 
+                vm.Settings.Hotkeys.QuickPasteHotkeyChanged += () =>
+                {
+                    if (!OperatingSystem.IsWindows()) return;
+                    _hotkey?.Dispose();
+                    var newString = settings.Current.QuickPasteHotkey;
+                    var newHotkey = new QuickPasteHotkey(newString);
+                    newHotkey.Pressed += previous => Dispatcher.UIThread.Post(() => ShowQuickPaste(previous, vm));
+                    _hotkey = newHotkey;
+                    vm.ClipboardHistory.QuickPasteHint = newHotkey.IsRegistered
+                        ? $"Press {newHotkey.HotkeyText} in any app to search this history and paste."
+                        : $"{newHotkey.HotkeyText} is taken by another app, so quick paste is unavailable.";
+                };
+
                 if (!string.IsNullOrWhiteSpace(settings.Current.PanicWipeHotkey))
                 {
                     var panic = new PanicWipeHotkey(settings.Current.PanicWipeHotkey);

@@ -17,8 +17,6 @@ public sealed class KvmController : IDisposable
 {
     public static readonly TimeSpan WatchdogInterval = TimeSpan.FromMilliseconds(250);
 
-    private const ushort VkEscape = 0x1B;
-    private const ushort VkScrollLock = 0x91;
 
     private sealed record Peer(string Id, string Name, PeerLink Link, ScreenBounds Remote, PeerPlacement Placement, ScreenBounds Placed);
 
@@ -40,6 +38,7 @@ public sealed class KvmController : IDisposable
     private (bool Fullscreen, bool Maximized) _cachedForeground;
     private DateTime _lastForegroundCheck = DateTime.MinValue;
     private static readonly TimeSpan ForegroundCacheDuration = TimeSpan.FromMilliseconds(100);
+    private DateTime _lastCtrlPress = DateTime.MinValue;
 
     public bool IsRunning { get; private set; }
     public bool IsScreenLocked => _edges.IsScreenLocked;
@@ -187,12 +186,48 @@ public sealed class KvmController : IDisposable
             if (e.IsDown) _physicalKeys.Add(e.Key);
             else _physicalKeys.Remove(e.Key);
 
-            if (e.IsDown && IsHotkey(e.Key))
+            if (e.IsDown)
             {
-                if (_active != null) ReturnToLocal(null);
-                else _edges.ToggleScreenLock();
-                _stateDirty = true;
-                return true;
+                if (Options.PanicDoublePressCtrl && (e.Key is 0x11 or 0xA2 or 0xA3))
+                {
+                    var now = DateTime.UtcNow;
+                    if ((now - _lastCtrlPress).TotalMilliseconds <= 300)
+                    {
+                        _lastCtrlPress = DateTime.MinValue;
+                        if (_active != null)
+                        {
+                            ReturnToLocal(null);
+                            _stateDirty = true;
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        _lastCtrlPress = now;
+                    }
+                }
+                else if (e.Key is not (0x11 or 0xA2 or 0xA3))
+                {
+                    _lastCtrlPress = DateTime.MinValue;
+                }
+
+                bool isReturnHotkey = Options.ReturnControlHotkey.Matches(e.Key, _physicalKeys) ||
+                                      Options.SecondaryReturnControlHotkey.Matches(e.Key, _physicalKeys);
+                bool isLockHotkey = !Options.LockCursorHotkey.IsEmpty && Options.LockCursorHotkey.Matches(e.Key, _physicalKeys);
+
+                if (_active != null && isReturnHotkey)
+                {
+                    ReturnToLocal(null);
+                    _stateDirty = true;
+                    return true;
+                }
+
+                if (_active == null && (isLockHotkey || (Options.LockCursorHotkey.IsEmpty && isReturnHotkey)))
+                {
+                    _edges.ToggleScreenLock();
+                    _stateDirty = true;
+                    return true;
+                }
             }
         }
 
@@ -277,14 +312,6 @@ public sealed class KvmController : IDisposable
         return false;
     }
 
-    private bool IsHotkey(ushort key)
-    {
-        if (key == VkScrollLock) return true;
-        if (key != VkEscape) return false;
-        bool ctrl = _physicalKeys.Contains(0x11) || _physicalKeys.Contains(0xA2) || _physicalKeys.Contains(0xA3);
-        bool alt = _physicalKeys.Contains(0x12) || _physicalKeys.Contains(0xA4) || _physicalKeys.Contains(0xA5);
-        return ctrl && alt;
-    }
 
     /// <summary>True when the virtual cursor crossed the peer's edge that faces this computer.</summary>
     private bool LeftThroughReturnEdge(out int localX, out int localY)

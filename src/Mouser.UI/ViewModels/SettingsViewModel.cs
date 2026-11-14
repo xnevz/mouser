@@ -85,6 +85,7 @@ public partial class SettingsViewModel : ViewModelBase
     public bool IsStartAtLoginSupported => StartupRegistration.IsSupported;
     public string[] ThemeOptions => ThemeService.Options;
     public string DataDirectory => _store.DataDirectory;
+    public HotkeysViewModel Hotkeys { get; }
 
     public SettingsViewModel(SettingsStore store, MouserHost host, AppLockService? appLock = null, ClipboardStorageService? clipboardStorage = null)
     {
@@ -92,6 +93,7 @@ public partial class SettingsViewModel : ViewModelBase
         _host = host;
         _appLock = appLock;
         _clipboardStorage = clipboardStorage;
+        Hotkeys = new HotkeysViewModel(store, host);
         var s = store.Current;
         _inputPort = s.InputPort;
         _acceptRemoteInput = s.AcceptRemoteInput;

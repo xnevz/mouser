@@ -309,4 +309,96 @@ public class KvmControllerTests
         Assert.True(rig.Capture.Move(1925, 540, 35, 0));
         Assert.Equal("peer", rig.Kvm.ActivePeerId);
     }
+
+    [Fact]
+    public async Task CustomReturnHotkey_SwitchesBackFromPeer()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        rig.CrossRight();
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+
+        Assert.True(HotkeyBinding.TryParse("Alt+X", out var altX));
+        rig.Kvm.ApplyOptions(new KvmOptions
+        {
+            ReturnControlHotkey = altX
+        });
+
+        rig.Capture.Key(0xA4, true); // Alt
+        Assert.True(rig.Capture.Key((ushort)'X', true)); // X
+        Assert.Null(rig.Kvm.ActivePeerId);
+    }
+
+    [Fact]
+    public async Task SecondaryReturnControlHotkey_ScrollLock_StillWorksWithCustomPrimary()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        rig.CrossRight();
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+
+        Assert.True(HotkeyBinding.TryParse("F12", out var f12));
+        rig.Kvm.ApplyOptions(new KvmOptions
+        {
+            ReturnControlHotkey = f12
+        });
+
+        // Scroll Lock (secondary default) still returns control
+        Assert.True(rig.Capture.Key(0x91, true));
+        Assert.Null(rig.Kvm.ActivePeerId);
+    }
+
+    [Fact]
+    public async Task PanicDoublePressCtrl_Within300ms_ReturnsControlFromPeer()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        rig.CrossRight();
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+
+        // First Ctrl press and release
+        rig.Capture.Key(0x11, true);
+        rig.Capture.Key(0x11, false);
+
+        // Second Ctrl press immediately (< 300 ms) triggers panic return
+        bool swallowed = rig.Capture.Key(0x11, true);
+        Assert.True(swallowed);
+        Assert.Null(rig.Kvm.ActivePeerId);
+    }
+
+    [Fact]
+    public async Task PanicDoublePressCtrl_Over300ms_DoesNotReturnControl()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        rig.CrossRight();
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+
+        // First Ctrl press and release
+        rig.Capture.Key(0x11, true);
+        rig.Capture.Key(0x11, false);
+
+        await Task.Delay(350);
+
+        // Second Ctrl press after >300 ms forwards to peer, does not return control
+        rig.Capture.Key(0x11, true);
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+    }
+
+    [Fact]
+    public async Task CustomLockCursorHotkey_WhileLocal_TogglesScreenLock()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        Assert.True(HotkeyBinding.TryParse("Ctrl+Alt+L", out var ctrlAltL));
+        rig.Kvm.ApplyOptions(new KvmOptions
+        {
+            LockCursorHotkey = ctrlAltL
+        });
+
+        // Press Ctrl+Alt+L while local
+        rig.Capture.Key(0xA2, true); // left Ctrl
+        rig.Capture.Key(0xA4, true); // left Alt
+        Assert.True(rig.Capture.Key((ushort)'L', true));
+        Assert.True(rig.Kvm.IsScreenLocked);
+
+        // Toggle again
+        rig.Capture.Key((ushort)'L', true);
+        Assert.False(rig.Kvm.IsScreenLocked);
+    }
 }

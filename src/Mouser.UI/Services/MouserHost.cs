@@ -444,6 +444,7 @@ public sealed class MouserHost : IDisposable
     {
         if (Kvm == null) return;
         var feel = KvmOptions.FromFeel(_settings.Current.SwitchFeel);
+        var hotkeys = _settings.Current.Hotkeys;
         Kvm.ApplyOptions(new KvmOptions
         {
             EdgeResistanceMs = feel.EdgeResistanceMs,
@@ -452,7 +453,11 @@ public sealed class MouserHost : IDisposable
             BlockInMaximized = _settings.Current.BlockInMaximized,
             BlockInCorners = _settings.Current.BlockInCorners,
             RequireModifier = _settings.Current.RequireModifier,
-            DoubleTapOverride = _settings.Current.DoubleTapOverride
+            DoubleTapOverride = _settings.Current.DoubleTapOverride,
+            ReturnControlHotkey = HotkeyBinding.TryParse(hotkeys.ReturnControl, out var ret) ? ret : (HotkeyBinding.TryParse("Ctrl+Alt+Esc", out var defRet) ? defRet : default),
+            SecondaryReturnControlHotkey = HotkeyBinding.TryParse("Scroll Lock", out var sec) ? sec : default,
+            LockCursorHotkey = HotkeyBinding.TryParse(hotkeys.LockCursor, out var lockHk) ? lockHk : default,
+            PanicDoublePressCtrl = hotkeys.PanicDoublePressCtrl
         });
     }
 
