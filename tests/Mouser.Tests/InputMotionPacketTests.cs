@@ -77,4 +77,16 @@ public class InputMotionPacketTests
         Assert.Equal(1, parsed.DeltaY);
         Assert.Equal(1, parsed.ButtonFlags);
     }
+
+    [Fact]
+    public void TypeLaser_Packet_RoundTripsState()
+    {
+        var packet = InputMotionPacket.Create(InputMotionPacket.TypeLaser, 456, 0, 1, 1);
+        Span<byte> buffer = stackalloc byte[InputMotionPacket.PacketSize];
+        Assert.True(packet.TryWrite(buffer));
+        Assert.True(InputMotionPacket.TryRead(buffer, out var parsed));
+        Assert.Equal(InputMotionPacket.TypeLaser, parsed.PacketType);
+        Assert.Equal(1, parsed.DeltaY);
+        Assert.Equal(1, parsed.ButtonFlags);
+    }
 }

@@ -42,6 +42,7 @@ public partial class App : Application
     private ClipboardWatcher? _clipboardWatcher;
     private IClipboardAccess? _clipboardAccess;
     private DimOverlayService? _dimOverlayService;
+    private LaserOverlayService? _laserOverlayService;
     private DateTime _lastElevatedToastUtc = DateTime.MinValue;
 
     public override void Initialize()
@@ -177,6 +178,12 @@ public partial class App : Application
                 return Array.Empty<OverlayScreen>();
             });
             vm.Settings.DimSettingsChanged += () => Dispatcher.UIThread.Post(() => _dimOverlayService?.Update(_host?.Kvm?.ActivePeerName));
+
+            _laserOverlayService = new LaserOverlayService();
+            if (_host.Input != null)
+            {
+                _host.Input.LaserStateChanged += active => _laserOverlayService?.SetLaserActive(active);
+            }
 
             if (_host.Kvm != null)
             {
@@ -461,6 +468,7 @@ public partial class App : Application
                 _hotkey?.Dispose();
                 _pasteFromPeerHotkey?.Dispose();
                 _panicHotkey?.Dispose();
+                _laserOverlayService?.Dispose();
                 _host.Dispose();
                 _clipboardStorage?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(2));
             };

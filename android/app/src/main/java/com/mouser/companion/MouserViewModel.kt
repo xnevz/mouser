@@ -23,6 +23,7 @@ import com.mouser.companion.network.ClipboardBridge
 enum class AppNavigationTab {
     TRACKPAD,
     AIR_MOUSE,
+    SLIDES,
     MACROS,
     TYPE
 }
@@ -219,6 +220,11 @@ class MouserViewModel(application: Application) : AndroidViewModel(application) 
     fun tapKey(virtualKey: Short) {
         if (isLocked.value) return
         connection.tapKey(virtualKey)
+    }
+
+    fun setLaser(isOn: Boolean) {
+        if (isLocked.value) return
+        connection.setLaser(isOn)
     }
 
     fun setScrollSensitivity(value: Float) {

@@ -1,0 +1,34 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Mouser.UI.Views.LaserOverlayWindow"
+        Title="Laser Overlay"
+        Width="40"
+        Height="40"
+        WindowDecorations="None"
+        ShowInTaskbar="False"
+        Topmost="True"
+        CanResize="False"
+        ShowActivated="False"
+        IsHitTestVisible="False"
+        Background="Transparent">
+
+    <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+        <!-- Outer laser beam halo/glow -->
+        <Ellipse Width="32" Height="32"
+                 Fill="#40FF0033"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center" />
+
+        <!-- Mid glow -->
+        <Ellipse Width="20" Height="20"
+                 Fill="#80FF0033"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center" />
+
+        <!-- Core bright laser dot -->
+        <Ellipse Width="10" Height="10"
+                 Fill="#FFFF1A4B"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center" />
+    </Panel>
+</Window>

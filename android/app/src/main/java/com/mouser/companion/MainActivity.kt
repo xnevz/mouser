@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Gamepad
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Slideshow
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -131,6 +132,20 @@ class MainActivity : FragmentActivity() {
                                 )
 
                                 NavigationBarItem(
+                                    selected = currentTab == AppNavigationTab.SLIDES,
+                                    onClick = { viewModel.selectTab(AppNavigationTab.SLIDES) },
+                                    icon = { Icon(Icons.Default.Slideshow, contentDescription = "Slides") },
+                                    label = { Text("Slides") },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = RoseAccent,
+                                        selectedTextColor = RoseAccent,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        indicatorColor = MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                )
+
+                                NavigationBarItem(
                                     selected = currentTab == AppNavigationTab.MACROS,
                                     onClick = { viewModel.selectTab(AppNavigationTab.MACROS) },
                                     icon = { Icon(Icons.Default.Gamepad, contentDescription = "Keys") },
@@ -200,7 +215,13 @@ class MainActivity : FragmentActivity() {
                                     onTriggerChanged = viewModel::setAirMouseTriggerHeld,
                                     sensitivity = airMouseSensitivity,
                                     onSensitivityChanged = viewModel::setAirMouseSensitivity,
-                                    onButton = viewModel::setButton
+                                    onButton = viewModel::setButton,
+                                    onLaserChanged = viewModel::setLaser
+                                )
+                                AppNavigationTab.SLIDES -> SlideRemoteView(
+                                    isConnected = isConnected,
+                                    onKey = viewModel::tapKey,
+                                    onLaser = viewModel::setLaser
                                 )
                                 AppNavigationTab.MACROS -> MediaMacrosView(
                                     isConnected = isConnected,

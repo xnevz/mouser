@@ -89,6 +89,7 @@ public sealed class InputInjectionService : IDisposable
 
     public event Action<InputMotionPacket, IPEndPoint>? PacketProcessed;
     public event Action<string, IPEndPoint>? PeerAuthenticated;
+    public event Action<bool>? LaserStateChanged;
 
     public InputInjectionService(IInputSink sink, int listenPort = 0, Func<DateTime>? clock = null, string? ownDeviceId = null, IPAddress? bindAddress = null)
     {
@@ -308,6 +309,14 @@ public sealed class InputInjectionService : IDisposable
                     _sink.Scroll(packet.DeltaX, packet.DeltaY);
                     description = "Scroll";
                     break;
+
+                case InputMotionPacket.TypeLaser:
+                {
+                    bool isOn = packet.DeltaY == 1 || (packet.ButtonFlags & 0x01) != 0;
+                    LaserStateChanged?.Invoke(isOn);
+                    description = isOn ? "Laser ON" : "Laser OFF";
+                    break;
+                }
 
                 default:
                     return;

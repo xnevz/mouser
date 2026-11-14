@@ -30,6 +30,7 @@ public struct InputMotionPacket : IEquatable<InputMotionPacket>
     public const byte TypePong = 0x08;
     public const byte TypeMoveAbsolute = 0x09;
     public const byte TypeChar = 0x0A;
+    public const byte TypeLaser = 0x0B;
 
     public uint Magic;
     public byte Version;

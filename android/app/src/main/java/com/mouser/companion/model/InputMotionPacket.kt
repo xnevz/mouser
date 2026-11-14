@@ -50,6 +50,7 @@ data class InputMotionPacket(
         const val TYPE_PONG: Byte = 0x08
         const val TYPE_MOVE_ABSOLUTE: Byte = 0x09
         const val TYPE_CHAR: Byte = 0x0A
+        const val TYPE_LASER: Byte = 0x0B
 
         const val BUTTON_LEFT: Byte = 0x01
         const val BUTTON_RIGHT: Byte = 0x02
@@ -95,6 +96,7 @@ object VirtualKey {
     const val LWIN: Short = 0x5B
     const val RWIN: Short = 0x5C
     const val NUMPAD0: Short = 0x60
+    const val F5: Short = 0x74
     const val MULTIPLY: Short = 0x6A
     const val ADD: Short = 0x6B
     const val SUBTRACT: Short = 0x6D

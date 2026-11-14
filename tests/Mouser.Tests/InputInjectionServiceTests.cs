@@ -90,6 +90,22 @@ public class InputInjectionServiceTests
     }
 
     [Fact]
+    public void TypeLaser_Packet_FiresLaserStateChanged()
+    {
+        var (service, sink) = Create();
+        using var _s = service;
+
+        bool? state = null;
+        service.LaserStateChanged += s => state = s;
+
+        service.HandlePacket(P(InputMotionPacket.TypeLaser, 1, dx: 0, dy: 1, buttons: 1), Phone);
+        Assert.True(state);
+
+        service.HandlePacket(P(InputMotionPacket.TypeLaser, 2, dx: 0, dy: 0, buttons: 0), Phone);
+        Assert.False(state);
+    }
+
+    [Fact]
     public void DuplicateAndReorderedPackets_AreDropped()
     {
         var (service, sink) = Create();

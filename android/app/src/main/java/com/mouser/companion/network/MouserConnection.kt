@@ -155,6 +155,15 @@ class MouserConnection(
         }
     }
 
+    fun setLaser(isOn: Boolean) {
+        send(InputMotionPacket(
+            packetType = InputMotionPacket.TYPE_LASER,
+            sequenceId = sequence.next(),
+            deltaY = if (isOn) 1 else 0,
+            buttonFlags = if (isOn) 1 else 0
+        ))
+    }
+
     private fun releaseButtons() {
         if (buttons.mask != 0.toByte()) {
             buttons.clear()

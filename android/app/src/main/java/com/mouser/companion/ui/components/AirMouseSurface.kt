@@ -33,6 +33,7 @@ fun AirMouseSurface(
     sensitivity: Float,
     onSensitivityChanged: (Float) -> Unit,
     onButton: (button: Byte, isDown: Boolean) -> Unit,
+    onLaserChanged: ((Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -81,10 +82,12 @@ fun AirMouseSurface(
                     if (!enabled) return@pointerInput
                     detectTapGestures(onPress = {
                         onTriggerChanged(true)
+                        onLaserChanged?.invoke(true)
                         try {
                             tryAwaitRelease()
                         } finally {
                             onTriggerChanged(false)
+                            onLaserChanged?.invoke(false)
                         }
                     })
                 },
