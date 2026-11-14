@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Mouser.Core.Clipboard;
 using Mouser.UI.Services;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Mouser.Tests;
 
