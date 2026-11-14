@@ -75,7 +75,11 @@ public sealed class MouserHost : IDisposable
         _sink = sink;
         _discoveryPort = discoveryPort;
         Pairing = new PairingGate(settings.Current.PairingPin);
-        if (capture != null) Kvm = new KvmController(capture);
+        if (capture != null)
+        {
+            Kvm = new KvmController(capture);
+            Kvm.ApplyOptions(KvmOptions.FromFeel(_settings.Current.SwitchFeel));
+        }
     }
 
     /// <summary>(Re)starts or stops networking to match the current settings.</summary>
@@ -430,6 +434,14 @@ public sealed class MouserHost : IDisposable
         _settings.Current.KvmEnabled = enabled;
         _settings.Save();
         SyncPeers();
+    }
+
+    public void SetSwitchFeel(string feel)
+    {
+        if (feel != "Relaxed" && feel != "Normal" && feel != "Careful") feel = "Normal";
+        _settings.Current.SwitchFeel = feel;
+        _settings.Save();
+        Kvm?.ApplyOptions(KvmOptions.FromFeel(feel));
     }
 
     /// <summary>

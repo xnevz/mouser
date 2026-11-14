@@ -157,6 +157,17 @@
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1" IsChecked="{Binding AcceptRemoteInput}" OnContent="" OffContent="" />
                     </Grid>
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Switching feel" />
+                            <TextBlock Classes="hint" Text="How hard you must push the cursor against the edge before it moves to the other computer." />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                            <RadioButton Content="Relaxed" GroupName="SwitchFeel" IsChecked="{Binding IsSwitchFeelRelaxed}" />
+                            <RadioButton Content="Normal" GroupName="SwitchFeel" IsChecked="{Binding IsSwitchFeelNormal}" />
+                            <RadioButton Content="Careful" GroupName="SwitchFeel" IsChecked="{Binding IsSwitchFeelCareful}" />
+                        </StackPanel>
+                    </Grid>
                     <Expander Header="Advanced" IsExpanded="False">
                         <StackPanel Spacing="12" Margin="0,8,0,0">
                             <Grid ColumnDefinitions="*,Auto" Margin="0,4">

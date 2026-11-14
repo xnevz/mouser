@@ -47,6 +47,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _notifications;
     [ObservableProperty] private string _theme;
     [ObservableProperty] private string _deviceName;
+    [ObservableProperty] private string _switchFeel = "Normal";
     [ObservableProperty] private string? _statusMessage;
 
     public event Func<Task>? HistoryCleared;
@@ -103,6 +104,7 @@ public partial class SettingsViewModel : ViewModelBase
         _notifications = s.Notifications;
         _theme = s.Theme;
         _deviceName = s.DeviceName;
+        _switchFeel = s.SwitchFeel;
         _lockWithWindows = s.LockWithWindows;
         _autoLockMinutes = s.AutoLockMinutes;
 
@@ -144,6 +146,31 @@ public partial class SettingsViewModel : ViewModelBase
     {
         Save(s => s.AcceptRemoteInput = value);
         _host.Restart();
+    }
+    partial void OnSwitchFeelChanged(string value)
+    {
+        _host?.SetSwitchFeel(value);
+        OnPropertyChanged(nameof(IsSwitchFeelRelaxed));
+        OnPropertyChanged(nameof(IsSwitchFeelNormal));
+        OnPropertyChanged(nameof(IsSwitchFeelCareful));
+    }
+
+    public bool IsSwitchFeelRelaxed
+    {
+        get => SwitchFeel == "Relaxed";
+        set { if (value) SwitchFeel = "Relaxed"; }
+    }
+
+    public bool IsSwitchFeelNormal
+    {
+        get => SwitchFeel == "Normal";
+        set { if (value) SwitchFeel = "Normal"; }
+    }
+
+    public bool IsSwitchFeelCareful
+    {
+        get => SwitchFeel == "Careful";
+        set { if (value) SwitchFeel = "Careful"; }
     }
     partial void OnCloseToTrayChanged(bool value) => Save(s => s.CloseToTray = value);
     partial void OnMinimizeToTrayChanged(bool value) => Save(s => s.MinimizeToTray = value);

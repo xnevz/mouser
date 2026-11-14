@@ -40,6 +40,7 @@ public sealed class KvmController : IDisposable
     public bool IsScreenLocked => _edges.IsScreenLocked;
     public string? ActivePeerId { get { lock (_lock) return _active?.Id; } }
     public string? ActivePeerName { get { lock (_lock) return _active?.Name; } }
+    public KvmOptions Options { get; private set; } = new();
 
     /// <summary>Raised (on the capture or timer thread) when control moves between computers or the lock toggles.</summary>
     public event Action? StateChanged;
@@ -71,6 +72,16 @@ public sealed class KvmController : IDisposable
         _capture.Stop();
         IsRunning = false;
         RaiseIfDirty();
+    }
+
+    public void ApplyOptions(KvmOptions o)
+    {
+        lock (_lock)
+        {
+            Options = o;
+            _edges.EdgeResistanceMs = o.EdgeResistanceMs;
+            _edges.EdgePushDistanceThreshold = o.EdgePushPixels;
+        }
     }
 
     /// <summary>Bounding box of this computer's whole desktop, in physical pixels.</summary>

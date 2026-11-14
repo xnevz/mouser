@@ -1109,6 +1109,54 @@ public class ViewModelTests
     }
 
     [Fact]
+    public async Task SettingsViewModel_SwitchFeel_Persisted()
+    {
+        await using var app = new AppFixture();
+        var s = app.Main.Settings;
+
+        Assert.Equal("Normal", s.SwitchFeel);
+        Assert.True(s.IsSwitchFeelNormal);
+        Assert.False(s.IsSwitchFeelRelaxed);
+        Assert.False(s.IsSwitchFeelCareful);
+
+        s.IsSwitchFeelRelaxed = true;
+        Assert.Equal("Relaxed", s.SwitchFeel);
+        Assert.Equal("Relaxed", app.Settings.Current.SwitchFeel);
+        Assert.True(s.IsSwitchFeelRelaxed);
+        Assert.False(s.IsSwitchFeelNormal);
+        Assert.False(s.IsSwitchFeelCareful);
+
+        s.IsSwitchFeelCareful = true;
+        Assert.Equal("Careful", s.SwitchFeel);
+        Assert.Equal("Careful", app.Settings.Current.SwitchFeel);
+        Assert.True(s.IsSwitchFeelCareful);
+        Assert.False(s.IsSwitchFeelRelaxed);
+        Assert.False(s.IsSwitchFeelNormal);
+    }
+
+    [Fact]
+    public void SettingsStore_SwitchFeel_Validation()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), $"mouser_feel_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string file = Path.Combine(dir, "settings.json");
+            File.WriteAllText(file, "{\"SwitchFeel\": \"InvalidFeel\"}");
+            var store = new SettingsStore(file);
+            Assert.Equal("Normal", store.Current.SwitchFeel);
+
+            File.WriteAllText(file, "{\"SwitchFeel\": \"Relaxed\"}");
+            var storeRelaxed = new SettingsStore(file);
+            Assert.Equal("Relaxed", storeRelaxed.Current.SwitchFeel);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
     public async Task App_StartsLocked_ServicesStayStopped()
     {
         string dir = Path.Combine(Path.GetTempPath(), $"mouser_lock_test_{Guid.NewGuid():N}");

@@ -44,6 +44,9 @@ public sealed class AppSettings
     /// <summary>Share this computer's mouse and keyboard with placed peers.</summary>
     public bool KvmEnabled { get; set; } = true;
 
+    /// <summary>Edge resistance feel when crossing to a peer ("Relaxed", "Normal", "Careful").</summary>
+    public string SwitchFeel { get; set; } = "Normal";
+
     /// <summary>Other Mouser computers, keyed by device id.</summary>
     public Dictionary<string, PeerSettings> Peers { get; set; } = new();
 
@@ -123,6 +126,10 @@ public sealed class SettingsStore
             // SaveImages default is true
             if (settings.AutoLockMinutes < 0) settings.AutoLockMinutes = 0;
             if (!ThemeService.Options.Contains(settings.Theme)) settings.Theme = "System";
+            if (settings.SwitchFeel != "Relaxed" && settings.SwitchFeel != "Normal" && settings.SwitchFeel != "Careful")
+            {
+                settings.SwitchFeel = "Normal";
+            }
             // Pre-existing settings files from before B13 do not nag existing users.
             if (!rawJson.Contains(nameof(AppSettings.FirstRunDone)))
             {

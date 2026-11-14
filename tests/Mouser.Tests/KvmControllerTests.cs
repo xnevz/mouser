@@ -251,4 +251,62 @@ public class KvmControllerTests
         Assert.Null(rig.Kvm.ActivePeerId);
         Assert.False(rig.Capture.Move(1925, 540, 30, 0));
     }
+
+    [Theory]
+    [InlineData("Careful", 300, 60.0)]
+    [InlineData("Relaxed", 0, 1.0)]
+    [InlineData("Normal", 80, 15.0)]
+    [InlineData("unknown", 80, 15.0)]
+    [InlineData(null, 80, 15.0)]
+    public void KvmOptions_FromFeel_ReturnsExpectedPresets(string? feel, int expectedMs, double expectedPixels)
+    {
+        var options = KvmOptions.FromFeel(feel);
+        Assert.Equal(expectedMs, options.EdgeResistanceMs);
+        Assert.Equal(expectedPixels, options.EdgePushPixels);
+    }
+
+    [Fact]
+    public async Task KvmController_ApplyOptions_UpdatesOptionsAndEdgeResistance()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        var careful = KvmOptions.FromFeel("Careful");
+        rig.Kvm.ApplyOptions(careful);
+
+        Assert.Same(careful, rig.Kvm.Options);
+        Assert.Equal(300, rig.Kvm.Options.EdgeResistanceMs);
+        Assert.Equal(60, rig.Kvm.Options.EdgePushPixels);
+
+        var relaxed = KvmOptions.FromFeel("Relaxed");
+        rig.Kvm.ApplyOptions(relaxed);
+
+        Assert.Same(relaxed, rig.Kvm.Options);
+        Assert.Equal(0, rig.Kvm.Options.EdgeResistanceMs);
+        Assert.Equal(1, rig.Kvm.Options.EdgePushPixels);
+    }
+
+    [Fact]
+    public async Task RelaxedFeel_CrossesImmediatelyOnEdgeContact()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        rig.Kvm.ApplyOptions(KvmOptions.FromFeel("Relaxed"));
+
+        // A single pixel push at the edge crosses immediately with Relaxed preset (threshold = 1 px, 0 ms)
+        Assert.True(rig.Capture.Move(1920, 540, 1, 0));
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+    }
+
+    [Fact]
+    public async Task CarefulFeel_RequiresHigherPushThresholdToCross()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        rig.Kvm.ApplyOptions(KvmOptions.FromFeel("Careful"));
+
+        // Push of 30px is below Careful threshold (60px, 300ms) - should NOT cross yet
+        Assert.False(rig.Capture.Move(1925, 540, 30, 0));
+        Assert.Null(rig.Kvm.ActivePeerId);
+
+        // Additional push bringing accumulated total to 65px (>= 60px) - should cross now!
+        Assert.True(rig.Capture.Move(1925, 540, 35, 0));
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+    }
 }

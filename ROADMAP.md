@@ -50,7 +50,7 @@ run in CI (`.github/workflows/ci.yml`, `deploy-web.yml`); they were not re-run f
 | 🟡 | Item | What exists | What is missing |
 | :-: | :--- | :--- | :--- |
 | 🟡 | Theme | Desktop is forced **Dark** with ~100 raw hex colours; Android only has a dark scheme; website has both | Tracks A1–A9, A13, A14 |
-| 🟡 | Edge resistance | `VirtualKvmManager.EdgeResistanceMs = 80` and push threshold exist | No setting reaches them (E1) |
+| 🟢 | Edge resistance | `VirtualKvmManager.EdgeResistanceMs = 80` and push threshold exist | Presets (Relaxed/Normal/Careful) reach them via `KvmOptions` (E1) |
 | 🟡 | Clipboard payload types | `ClipboardContentType` has Html/Rtf/Image/FileUri; `HtmlContent` column exists | Nothing captures or shows them (D4–D8) |
 | 🟡 | Encryption of clipboard traffic | AES-GCM frames exist | Key comes from a 6-digit PIN (F-track replaces) |
 | 🟡 | macOS | Code written (`MacInputSink`, `MacInputCapture`, `platform_mac.mm`) | Never run on a Mac: 🅿️ [roadmap/backlog-macos.md](roadmap/backlog-macos.md) |
@@ -145,7 +145,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 ### Track E: Mouse and keyboard sharing ([E-kvm.md](roadmap/tasks/E-kvm.md))
 | Status | ID | Task | Needs | Size |
 | :-: | :-: | :--- | :--- | :-: |
-| ⬜ | E1 | Switching feel (Relaxed/Normal/Careful) + `KvmOptions` | B11 | M |
+| ✅ | E1 | Switching feel (Relaxed/Normal/Careful) + `KvmOptions` | B11 | M |
 | ⬜ | E2 | Prevent switching (full-screen, maximized, corners, modifier, double-tap) | E1 | L |
 | ⬜ | E3 | Hotkeys page, configurable hotkeys, panic double-press | D15 parser | L |
 | ⬜ | E4 | Jump hotkeys and "next computer" | E3 | M |
