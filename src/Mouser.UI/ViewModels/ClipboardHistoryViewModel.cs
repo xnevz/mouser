@@ -460,43 +460,34 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
         }
     }
 
+    private static bool MatchesType(ClipboardContentType contentType, string typeFilter)
+    {
+        return typeFilter.ToLowerInvariant() switch
+        {
+            "image" => contentType == ClipboardContentType.Image,
+            "text" => contentType == ClipboardContentType.Text,
+            "code" => contentType == ClipboardContentType.Code,
+            "link" => contentType == ClipboardContentType.Link,
+            "file" or "folder" => contentType == ClipboardContentType.FileUri,
+            _ => false
+        };
+    }
+
     public async Task ReloadAsync()
     {
         (AllCount, StarredCount) = await _storage.GetCountsAsync();
 
-        string? tagFromSearch = null;
-        string cleanedSearch = SearchQuery?.Trim() ?? string.Empty;
-
-        if (!string.IsNullOrEmpty(cleanedSearch))
-        {
-            var tokens = cleanedSearch.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var hashToken = tokens.FirstOrDefault(t => t.StartsWith("#") && t.Length > 1);
-            if (hashToken != null)
-            {
-                tagFromSearch = hashToken.TrimStart('#');
-                cleanedSearch = string.Join(" ", tokens.Where(t => t != hashToken));
-            }
-        }
-
-        string? activeTag = !string.IsNullOrEmpty(tagFromSearch) ? tagFromSearch : SelectedTag;
+        var parsed = Mouser.Core.Clipboard.SearchQuery.Parse(SearchQuery);
+        string? activeTag = !string.IsNullOrEmpty(parsed.Tag) ? parsed.Tag : SelectedTag;
 
         List<ClipboardPayload> results;
-        if (!string.IsNullOrEmpty(activeTag))
+        if (!string.IsNullOrWhiteSpace(parsed.Text))
         {
-            var tagResults = (await _storage.GetClipsByTagAsync(activeTag, PageSize)).ToList();
-            if (!string.IsNullOrWhiteSpace(cleanedSearch))
-            {
-                tagResults = tagResults
-                    .Where(c => (c.TextContent != null && c.TextContent.Contains(cleanedSearch, StringComparison.OrdinalIgnoreCase))
-                             || (!string.IsNullOrEmpty(c.SourceDevice) && c.SourceDevice.Contains(cleanedSearch, StringComparison.OrdinalIgnoreCase))
-                             || (!string.IsNullOrEmpty(c.SourceApp) && c.SourceApp.Contains(cleanedSearch, StringComparison.OrdinalIgnoreCase)))
-                    .ToList();
-            }
-            results = tagResults;
+            results = await _storage.SearchClipsAsync(parsed.Text, PageSize);
         }
-        else if (!string.IsNullOrWhiteSpace(cleanedSearch))
+        else if (!string.IsNullOrEmpty(activeTag))
         {
-            results = await _storage.SearchClipsAsync(cleanedSearch, PageSize);
+            results = (await _storage.GetClipsByTagAsync(activeTag, PageSize)).ToList();
         }
         else
         {
@@ -507,6 +498,30 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
 
         var items = results.AsEnumerable();
         if (SelectedLibrary == "Starred") items = items.Where(c => c.IsFavorite);
+
+        // Operator filters
+        if (!string.IsNullOrEmpty(parsed.Type))
+        {
+            items = items.Where(c => MatchesType(c.ContentType, parsed.Type));
+        }
+        if (!string.IsNullOrEmpty(parsed.App))
+        {
+            items = items.Where(c => !string.IsNullOrEmpty(c.SourceApp) && c.SourceApp.Contains(parsed.App, StringComparison.OrdinalIgnoreCase));
+        }
+        if (!string.IsNullOrEmpty(parsed.Device))
+        {
+            items = items.Where(c => !string.IsNullOrEmpty(c.SourceDevice) && c.SourceDevice.Contains(parsed.Device, StringComparison.OrdinalIgnoreCase));
+        }
+        if (parsed.Before.HasValue)
+        {
+            items = items.Where(c => c.CreatedTime < parsed.Before.Value);
+        }
+        if (parsed.After.HasValue)
+        {
+            items = items.Where(c => c.CreatedTime >= parsed.After.Value);
+        }
+
+        // Dropdown UI filters
         if (SelectedFilter != "All types" && SelectedFilter != "All")
         {
             if (SelectedFilter is "Files" or "File") items = items.Where(c => c.ContentType == ClipboardContentType.FileUri);
@@ -523,13 +538,37 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
             _ => items
         };
 
+        var clipList = items.ToList();
+
+        var tagsCache = new Dictionary<string, IReadOnlyList<TagInfo>>();
+        if (!string.IsNullOrEmpty(activeTag))
+        {
+            var tagFiltered = new List<ClipboardPayload>();
+            foreach (var clip in clipList)
+            {
+                var clipTags = await _storage.GetClipTagsAsync(clip.Id);
+                tagsCache[clip.Id] = clipTags;
+                bool matchesTag = clipTags.Any(t =>
+                    string.Equals(t.Name, activeTag, StringComparison.OrdinalIgnoreCase) ||
+                    (t.Name == "File" && (string.Equals(activeTag, "files", StringComparison.OrdinalIgnoreCase) || string.Equals(activeTag, "folder", StringComparison.OrdinalIgnoreCase))));
+                if (matchesTag)
+                {
+                    tagFiltered.Add(clip);
+                }
+            }
+            clipList = tagFiltered;
+        }
+
         string? selectedId = SelectedClip?.Id;
         foreach (var oldItem in FilteredClips) oldItem.Dispose();
         FilteredClips.Clear();
-        foreach (var payload in items)
+        foreach (var payload in clipList)
         {
             var itemVm = new ClipboardItemViewModel(payload);
-            var clipTags = await _storage.GetClipTagsAsync(itemVm.Id);
+            if (!tagsCache.TryGetValue(itemVm.Id, out var clipTags))
+            {
+                clipTags = await _storage.GetClipTagsAsync(itemVm.Id);
+            }
             itemVm.SetTags(clipTags.Select(t => new TagViewModel(t)));
             FilteredClips.Add(itemVm);
         }

@@ -47,7 +47,7 @@
             <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*">
                 <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
                     <TextBox x:Name="SearchBox" Grid.Column="0"
-                             PlaceholderText="Search clips… (Ctrl+F to focus)"
+                             PlaceholderText="Search, or type # @ type: on:"
                              Text="{Binding SearchQuery}" />
                     <Button Grid.Column="1" Classes="secondary-btn" Content="Clear history" Margin="8,0,0,0"
                             Command="{Binding ClearAllCommand}" ToolTip.Tip="Delete all clips except starred ones" />
