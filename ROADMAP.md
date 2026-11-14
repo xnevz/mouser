@@ -213,7 +213,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | Q3 | Two-instance integration scenarios | B10 | M |
 | ✅ | Q4 | Performance budget tests | – | M |
 | ✅ | Q5 | Soak and chaos tests | – | M |
-| ⬜ | Q6 | User guide, FAQ, architecture, contributing, changelog | – | M |
+| ✅ | Q6 | User guide, FAQ, architecture, contributing, changelog | – | M |
 | ⬜ | Q7 | Website text and old phase docs match reality | – | M |
 
 ### 🅿️ macOS backlog
@@ -320,3 +320,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - Q3: Extended TwoComputerTests with 4 end-to-end integration scenarios (AddByIp across different discovery ports, KvmCrossing input injection to remote peer sink with FakeCapture, ClipboardImageSync with PNG payload transfer, and LockAll remote lock request); all tests pass in ~1s each.
 - Q4: Created PerfTests with [Trait("Category", "Perf")] covering input path (KvmController.Handle 10k moves <= 50ms), clipboard capture (100 clips <= 2s), FTS search over 10k clips (<= 50ms), MoveCoalescer 100k posts (<= 100ms, <= 1us/post), SearchQuery.Parse 10k parses (<= 200ms), and memory growth across 1k clips/refreshes (<= 20MB); all passed in 1s.
 - Q5: Implemented soak-two-instances.ps1 measuring key/button state, bounded memory growth, and log exceptions across long-running pairs; added ChaosTests covering LossyChannel sequence/anti-replay filtering, partial file deletion on interrupted file transfer in FileStreamingService, and KVM return/resume on mid-session endpoint changes (all tests pass in 91 ms).
+- Q6: Authored user-guide.md, faq.md, protocol.md, architecture.md with Mermaid threading/project diagram, CONTRIBUTING.md, CHANGELOG.md (Keep-a-Changelog), and .github/ISSUE_TEMPLATE/bug_report.md.
