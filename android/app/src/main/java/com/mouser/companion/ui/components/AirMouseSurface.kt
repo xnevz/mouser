@@ -43,7 +43,7 @@ fun AirMouseSurface(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Zinc800)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -53,18 +53,18 @@ fun AirMouseSurface(
                         else -> "Air mouse"
                     },
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (isTriggerHeld) EmeraldAccent else Zinc100
+                    color = if (isTriggerHeld) EmeraldAccent else MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = if (hasGyroscope) "Hold the big button and turn the phone like a laser pointer. Release to stop."
                     else "Use the Trackpad tab instead.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Zinc400
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Icon(Icons.Default.Speed, contentDescription = "Pointer speed", tint = Zinc400)
+                    Icon(Icons.Default.Speed, contentDescription = "Pointer speed", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Slider(value = sensitivity, onValueChange = onSensitivityChanged, valueRange = 10f..60f, modifier = Modifier.weight(1f))
-                    Text("${sensitivity.toInt()}", style = MaterialTheme.typography.labelSmall, color = Zinc100)
+                    Text("${sensitivity.toInt()}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -74,8 +74,8 @@ fun AirMouseSurface(
             modifier = Modifier
                 .size(200.dp)
                 .clip(CircleShape)
-                .background(if (isTriggerHeld) BluePrimary else Zinc800)
-                .border(3.dp, if (isTriggerHeld) EmeraldAccent else Zinc700, CircleShape)
+                .background(if (isTriggerHeld) BluePrimary else MaterialTheme.colorScheme.surface)
+                .border(3.dp, if (isTriggerHeld) EmeraldAccent else MaterialTheme.colorScheme.outline, CircleShape)
                 .semantics { contentDescription = "Hold to point" }
                 .pointerInput(enabled) {
                     if (!enabled) return@pointerInput
@@ -91,7 +91,12 @@ fun AirMouseSurface(
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Default.Navigation, contentDescription = null, tint = if (enabled) Zinc100 else Zinc600, modifier = Modifier.size(40.dp))
+                Icon(
+                    Icons.Default.Navigation,
+                    contentDescription = null,
+                    tint = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(40.dp)
+                )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = when {
@@ -101,7 +106,7 @@ fun AirMouseSurface(
                     },
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
-                    color = if (enabled) Zinc100 else Zinc600
+                    color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

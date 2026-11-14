@@ -9,6 +9,13 @@ val Zinc600 = Color(0xFF52525B)
 val Zinc400 = Color(0xFFA1A1AA)
 val Zinc100 = Color(0xFFF4F4F5)
 
+val Slate50 = Color(0xFFF5F6FA)
+val SlateSurface = Color(0xFFFFFFFF)
+val SlateRaised = Color(0xFFF3F4F9)
+val SlateText = Color(0xFF14151F)
+val SlateMuted = Color(0xFF5B6478)
+val SlateBorder = Color(0xFFDDE1EC)
+
 val BluePrimary = Color(0xFF3B82F6)
 val BlueHover = Color(0xFF2563EB)
 val EmeraldAccent = Color(0xFF10B981)

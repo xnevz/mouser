@@ -53,6 +53,13 @@ class MouserViewModel(application: Application) : AndroidViewModel(application) 
     private val _isAirMouseTriggerHeld = MutableStateFlow(false)
     val isAirMouseTriggerHeld: StateFlow<Boolean> = _isAirMouseTriggerHeld.asStateFlow()
 
+    val themeMode = MutableStateFlow(prefs.getString("theme", "System") ?: "System")
+
+    fun setThemeMode(m: String) {
+        prefs.edit().putString("theme", m).apply()
+        themeMode.value = m
+    }
+
     private val motionX = SubpixelAccumulator()
     private val motionY = SubpixelAccumulator()
     private val scrollX = SubpixelAccumulator()

@@ -29,8 +29,9 @@ import com.mouser.companion.model.InputMotionPacket
 import com.mouser.companion.ui.theme.*
 
 /**
- * Touch trackpad: 1 finger moves, 2 fingers scroll, tap = left click, 2-finger tap = right click.
- * The buttons below are press-and-hold, so holding Left while moving a finger drags.
+ * Laptop-style trackpad surface.
+ * Single finger moves the remote cursor; two fingers scroll vertically/horizontally.
+ * Tap clicks left; two-finger tap clicks right.
  */
 @Composable
 fun TrackpadSurface(
@@ -55,8 +56,8 @@ fun TrackpadSurface(
                 .weight(1f)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(Zinc800)
-                .border(1.dp, if (isConnected) Zinc700 else Zinc800, RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, if (isConnected) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
                 .semantics { contentDescription = "Trackpad" }
                 .pointerInput(Unit) {
                     val slop = viewConfiguration.touchSlop
@@ -105,18 +106,18 @@ fun TrackpadSurface(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(24.dp)
             ) {
-                Icon(Icons.Default.TouchApp, contentDescription = null, tint = Zinc600, modifier = Modifier.size(44.dp))
+                Icon(Icons.Default.TouchApp, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(44.dp))
                 Text(
                     text = if (isConnected) "Move with one finger • scroll with two" else "Connect to a computer to start",
                     style = MaterialTheme.typography.titleMedium,
-                    color = Zinc400,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
                 if (isConnected) {
                     Text(
                         text = "Tap to click • two-finger tap to right-click • hold Left below to drag",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Zinc600,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -124,14 +125,14 @@ fun TrackpadSurface(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(Icons.Default.Speed, contentDescription = "Pointer speed", tint = Zinc400)
+            Icon(Icons.Default.Speed, contentDescription = "Pointer speed", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Slider(
                 value = sensitivity,
                 onValueChange = onSensitivityChanged,
                 valueRange = 0.5f..4f,
                 modifier = Modifier.weight(1f)
             )
-            Text("%.1f×".format(sensitivity), style = MaterialTheme.typography.labelSmall, color = Zinc100)
+            Text("%.1f×".format(sensitivity), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface)
         }
 
         Row(
@@ -158,8 +159,8 @@ fun HoldButton(label: String, modifier: Modifier = Modifier, onStateChange: (isD
         modifier = modifier
             .fillMaxHeight()
             .clip(RoundedCornerShape(12.dp))
-            .background(if (pressed) Zinc700 else Zinc800)
-            .border(1.dp, Zinc700, RoundedCornerShape(12.dp))
+            .background(if (pressed) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
             .semantics { contentDescription = "$label mouse button" }
             .pointerInput(Unit) {
                 detectTapGestures(onPress = {
@@ -175,6 +176,6 @@ fun HoldButton(label: String, modifier: Modifier = Modifier, onStateChange: (isD
             },
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = Zinc100, fontWeight = FontWeight.SemiBold)
+        Text(label, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
     }
 }

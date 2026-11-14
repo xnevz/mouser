@@ -41,16 +41,16 @@ fun MediaMacrosView(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (!isConnected) {
-            Text("Connect to a computer to use these keys.", style = MaterialTheme.typography.bodyMedium, color = Zinc400)
+            Text("Connect to a computer to use these keys.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Zinc800)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Media", style = MaterialTheme.typography.titleMedium, color = Zinc100)
+                Text("Media", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                     MediaButton(Icons.Default.SkipPrevious, "Previous track", isConnected) { onKey(VirtualKey.MEDIA_PREV) }
                     MediaButton(Icons.Default.PlayArrow, "Play or pause", isConnected) { onKey(VirtualKey.MEDIA_PLAY_PAUSE) }
@@ -61,7 +61,7 @@ fun MediaMacrosView(
                     MediaButton(Icons.AutoMirrored.Filled.VolumeDown, "Volume down", isConnected) { onKey(VirtualKey.VOLUME_DOWN) }
                     MediaButton(Icons.AutoMirrored.Filled.VolumeUp, "Volume up", isConnected) { onKey(VirtualKey.VOLUME_UP) }
                 }
-                HorizontalDivider(color = Zinc700)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                     MediaButton(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Left arrow", isConnected) { onKey(VirtualKey.LEFT) }
                     MediaButton(Icons.Default.KeyboardArrowUp, "Up arrow", isConnected) { onKey(VirtualKey.UP) }
@@ -75,10 +75,10 @@ fun MediaMacrosView(
         Card(
             modifier = Modifier.fillMaxWidth().weight(1f),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Zinc800)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(16.dp).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Number pad", style = MaterialTheme.typography.titleMedium, color = Zinc100)
+                Text("Number pad", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                 for (row in keypad) {
                     Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         for (key in row) {
@@ -87,9 +87,9 @@ fun MediaMacrosView(
                                 enabled = isConnected,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = if (key.accent) BluePrimary else Zinc700)
+                                colors = ButtonDefaults.buttonColors(containerColor = if (key.accent) BluePrimary else MaterialTheme.colorScheme.surfaceVariant)
                             ) {
-                                Text(key.label, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Zinc100)
+                                Text(key.label, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
@@ -104,8 +104,8 @@ private fun MediaButton(icon: ImageVector, label: String, enabled: Boolean, onCl
     IconButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.size(52.dp).background(Zinc700, RoundedCornerShape(12.dp))
+        modifier = Modifier.size(52.dp).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
     ) {
-        Icon(icon, contentDescription = label, tint = if (enabled) Zinc100 else Zinc600, modifier = Modifier.size(26.dp))
+        Icon(icon, contentDescription = label, tint = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(26.dp))
     }
 }

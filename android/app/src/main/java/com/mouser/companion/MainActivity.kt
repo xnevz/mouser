@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Gamepad
@@ -13,7 +12,6 @@ import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.mouser.companion.model.HostConnectionState
 import com.mouser.companion.ui.components.*
 import com.mouser.companion.ui.theme.*
@@ -25,7 +23,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MouserTheme {
+            val themeMode by viewModel.themeMode.collectAsState()
+            MouserTheme(mode = themeMode) {
                 val connectionState by viewModel.connectionState.collectAsState()
                 val discoveredHosts by viewModel.discoveredHosts.collectAsState()
                 val discoveryError by viewModel.discoveryError.collectAsState()
@@ -41,6 +40,8 @@ class MainActivity : ComponentActivity() {
                             connectionState = connectionState,
                             discoveredHosts = discoveredHosts,
                             discoveryError = discoveryError,
+                            themeMode = themeMode,
+                            onThemeModeChanged = viewModel::setThemeMode,
                             onConnect = viewModel::connect,
                             onSubmitPin = viewModel::submitPin,
                             onDisconnect = viewModel::disconnect
@@ -48,7 +49,7 @@ class MainActivity : ComponentActivity() {
                     },
                     bottomBar = {
                         NavigationBar(
-                            containerColor = Zinc800
+                            containerColor = MaterialTheme.colorScheme.surface
                         ) {
                             NavigationBarItem(
                                 selected = currentTab == AppNavigationTab.TRACKPAD,
@@ -58,9 +59,9 @@ class MainActivity : ComponentActivity() {
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = BluePrimary,
                                     selectedTextColor = BluePrimary,
-                                    unselectedIconColor = Zinc400,
-                                    unselectedTextColor = Zinc400,
-                                    indicatorColor = Zinc700
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    indicatorColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
                             )
 
@@ -72,9 +73,9 @@ class MainActivity : ComponentActivity() {
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = EmeraldAccent,
                                     selectedTextColor = EmeraldAccent,
-                                    unselectedIconColor = Zinc400,
-                                    unselectedTextColor = Zinc400,
-                                    indicatorColor = Zinc700
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    indicatorColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
                             )
 
@@ -86,14 +87,14 @@ class MainActivity : ComponentActivity() {
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = IndigoAccent,
                                     selectedTextColor = IndigoAccent,
-                                    unselectedIconColor = Zinc400,
-                                    unselectedTextColor = Zinc400,
-                                    indicatorColor = Zinc700
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    indicatorColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
                             )
                         }
                     },
-                    containerColor = Zinc900
+                    containerColor = MaterialTheme.colorScheme.background
                 ) { innerPadding ->
                     Box(
                         modifier = Modifier

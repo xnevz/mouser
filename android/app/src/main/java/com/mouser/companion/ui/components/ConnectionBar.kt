@@ -32,6 +32,8 @@ fun ConnectionBar(
     connectionState: HostConnectionState,
     discoveredHosts: Map<String, DiscoveredHost>,
     discoveryError: String?,
+    themeMode: String = "System",
+    onThemeModeChanged: (String) -> Unit = {},
     onConnect: (HostTarget) -> Unit,
     onSubmitPin: (Int) -> Unit,
     onDisconnect: () -> Unit,
@@ -39,6 +41,7 @@ fun ConnectionBar(
 ) {
     var showHosts by remember { mutableStateOf(connectionState is HostConnectionState.Disconnected) }
 
+    val defaultMutedColor = MaterialTheme.colorScheme.onSurfaceVariant
     val (statusColor, statusText) = when (connectionState) {
         is HostConnectionState.Connected -> EmeraldAccent to buildString {
             append(connectionState.target.hostName)
@@ -47,11 +50,11 @@ fun ConnectionBar(
         is HostConnectionState.Connecting -> AmberAccent to "Connecting to ${connectionState.target.hostName}…"
         is HostConnectionState.NeedsPin -> AmberAccent to "Enter PIN for ${connectionState.target.hostName}"
         is HostConnectionState.Unreachable -> RoseAccent to "${connectionState.target.hostName} not responding…"
-        is HostConnectionState.Disconnected -> Zinc400 to "Not connected"
+        is HostConnectionState.Disconnected -> defaultMutedColor to "Not connected"
         is HostConnectionState.Error -> RoseAccent to connectionState.message
     }
 
-    Surface(color = Zinc800, modifier = modifier.fillMaxWidth()) {
+    Surface(color = MaterialTheme.colorScheme.surface, modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -66,12 +69,12 @@ fun ConnectionBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Mouser", style = MaterialTheme.typography.titleMedium, color = Zinc100)
+                Text("Mouser", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                 Box(modifier = Modifier.size(8.dp).background(statusColor, CircleShape))
                 Text(statusText, style = MaterialTheme.typography.labelSmall, color = statusColor, maxLines = 1)
             }
             IconButton(onClick = { showHosts = true }) {
-                Icon(Icons.Default.SettingsEthernet, contentDescription = "Choose computer", tint = Zinc400)
+                Icon(Icons.Default.SettingsEthernet, contentDescription = "Choose computer", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -88,6 +91,8 @@ fun ConnectionBar(
             connectionState = connectionState,
             discoveredHosts = discoveredHosts,
             discoveryError = discoveryError,
+            themeMode = themeMode,
+            onThemeModeChanged = onThemeModeChanged,
             onDismiss = { showHosts = false },
             onConnect = {
                 onConnect(it)
@@ -106,6 +111,8 @@ fun HostSelectionDialog(
     connectionState: HostConnectionState,
     discoveredHosts: Map<String, DiscoveredHost>,
     discoveryError: String?,
+    themeMode: String = "System",
+    onThemeModeChanged: (String) -> Unit = {},
     onDismiss: () -> Unit,
     onConnect: (HostTarget) -> Unit,
     onDisconnect: () -> Unit
@@ -117,26 +124,43 @@ fun HostSelectionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Choose a computer", color = Zinc100) },
+        title = { Text("Choose a computer", color = MaterialTheme.colorScheme.onSurface) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                // Theme chooser chips (Step 5)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Theme:", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    listOf("System", "Light", "Dark").forEach { mode ->
+                        FilterChip(
+                            selected = themeMode == mode,
+                            onClick = { onThemeModeChanged(mode) },
+                            label = { Text(mode) }
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+
                 Text(
                     "Computers running Mouser on this Wi-Fi network:",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Zinc400
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 when {
                     discoveryError != null -> Text(discoveryError, style = MaterialTheme.typography.labelSmall, color = RoseAccent)
                     discoveredHosts.isEmpty() -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = Zinc400)
-                        Text("Searching… Open Mouser on your computer.", style = MaterialTheme.typography.labelSmall, color = Zinc400)
+                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Searching… Open Mouser on your computer.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
                 for (host in discoveredHosts.values.sortedBy { it.hostName.lowercase() }) {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Zinc700),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         modifier = Modifier.fillMaxWidth().clickable { onConnect(host.toTarget()) }
                     ) {
                         Row(
@@ -146,15 +170,15 @@ fun HostSelectionDialog(
                         ) {
                             Icon(Icons.Default.Computer, contentDescription = null, tint = BluePrimary)
                             Column {
-                                Text(host.hostName, color = Zinc100, fontWeight = FontWeight.Bold)
-                                Text("${host.operatingSystem} • ${host.ipAddress}", color = Zinc400, fontSize = 12.sp)
+                                Text(host.hostName, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                                Text("${host.operatingSystem} • ${host.ipAddress}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                             }
                         }
                     }
                 }
 
-                HorizontalDivider(color = Zinc700)
-                Text("Or enter the address shown in Mouser on your computer:", style = MaterialTheme.typography.bodyMedium, color = Zinc400)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                Text("Or enter the address shown in Mouser on your computer:", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
@@ -189,10 +213,10 @@ fun HostSelectionDialog(
             if (connectionState !is HostConnectionState.Disconnected) {
                 TextButton(onClick = onDisconnect) { Text("Disconnect", color = RoseAccent) }
             } else {
-                TextButton(onClick = onDismiss) { Text("Close", color = Zinc400) }
+                TextButton(onClick = onDismiss) { Text("Close", color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         },
-        containerColor = Zinc800
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 
@@ -203,13 +227,13 @@ fun PinDialog(hostName: String, wrongPin: Boolean, onSubmit: (Int) -> Unit, onCa
 
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Pair with $hostName", color = Zinc100) },
+        title = { Text("Pair with $hostName", color = MaterialTheme.colorScheme.onSurface) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     "Enter the 6-digit PIN shown in Mouser on the computer (Phone Remote page).",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Zinc400
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 OutlinedTextField(
                     value = text,
@@ -230,7 +254,7 @@ fun PinDialog(hostName: String, wrongPin: Boolean, onSubmit: (Int) -> Unit, onCa
                 Text("Pair")
             }
         },
-        dismissButton = { TextButton(onClick = onCancel) { Text("Cancel", color = Zinc400) } },
-        containerColor = Zinc800
+        dismissButton = { TextButton(onClick = onCancel) { Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant) } },
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
