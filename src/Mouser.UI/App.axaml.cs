@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -106,7 +107,21 @@ public partial class App : Application
                 _host.SetLocked(true);
             }
             _host.Restart();
-            _clipboardStorage = new ClipboardStorageService(Path.Combine(settings.DataDirectory, "clipboard.db"));
+            string dbPath = Path.Combine(settings.DataDirectory, "clipboard.db");
+            if (appLock.IsConfigured && appLock.IsLocked)
+            {
+                _clipboardStorage = new ClipboardStorageService(dbPath, null);
+            }
+            else if (appLock.IsConfigured && !appLock.IsLocked)
+            {
+                _clipboardStorage = new ClipboardStorageService(dbPath, appLock.MasterKey);
+                _ = _clipboardStorage.InitializeAsync();
+            }
+            else
+            {
+                _clipboardStorage = new ClipboardStorageService(dbPath, null);
+                _ = _clipboardStorage.InitializeAsync();
+            }
 
             var vm = new MainViewModel(_host, settings, _clipboardStorage, appLock: appLock);
             vm.EnsureWindowVisible = () => Dispatcher.UIThread.Post(ShowMainWindow);
@@ -570,12 +585,40 @@ public partial class App : Application
             _quickPaste.Close();
             _quickPaste = null;
         }
+        if (_clipboardStorage != null)
+        {
+            _ = _clipboardStorage.DisposeAsync().AsTask().ContinueWith(_ =>
+            {
+                _clipboardStorage.SetKey(null);
+            });
+        }
         UpdateLockTrayItem();
     }
 
     private void HandleUnlocked()
     {
         UpdateLockTrayItem();
+        if (_appLock is { MasterKey: not null } && _clipboardStorage != null)
+        {
+            _clipboardStorage.SetKey(_appLock.MasterKey);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _clipboardStorage.InitializeAsync();
+                    if (_mainViewModel != null)
+                    {
+                        await Dispatcher.UIThread.InvokeAsync(async () =>
+                        {
+                            await _mainViewModel.ClipboardHistory.ReloadAsync();
+                            await _mainViewModel.RefreshTagsAsync();
+                            await _mainViewModel.Snippets.LoadSnippetsAsync();
+                        });
+                    }
+                }
+                catch { }
+            });
+        }
         if (_quitAfterUnlock)
         {
             _quitting = true;

@@ -792,6 +792,14 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
 
     public async Task ReloadAsync()
     {
+        if (IsLocked)
+        {
+            FilteredClips.Clear();
+            AllCount = 0;
+            StarredCount = 0;
+            return;
+        }
+
         (AllCount, StarredCount) = await _storage.GetCountsAsync();
 
         _currentOffset = 0;

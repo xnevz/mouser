@@ -489,6 +489,19 @@ public partial class SettingsViewModel : ViewModelBase
             SavedRecoveryKey = recoveryKey;
             ShowRecoveryKeyPrompt = true;
             SetupError = null;
+            if (_clipboardStorage != null && _appLock.MasterKey != null)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _clipboardStorage.DisposeAsync();
+                        _clipboardStorage.SetKey(_appLock.MasterKey);
+                        await _clipboardStorage.InitializeAsync();
+                    }
+                    catch { }
+                });
+            }
         }
         catch (Exception ex)
         {

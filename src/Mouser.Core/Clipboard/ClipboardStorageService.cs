@@ -14,6 +14,12 @@ public sealed class ClipboardStorageService : IAsyncDisposable
     private readonly string _connectionString;
     private readonly string? _databasePath;
     private SqliteConnection? _connection;
+    private byte[]? _key;
+
+    static ClipboardStorageService()
+    {
+        SQLitePCL.Batteries_V2.Init();
+    }
 
     public const int MaxTextLength = 50 * 1024 * 1024; // 50 MB
     public const int LargeTextThreshold = 1_000_000;   // 1 MB
@@ -39,7 +45,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         return TagPalette[hash % (uint)TagPalette.Length];
     }
 
-    public ClipboardStorageService(string? databasePath = null)
+    public ClipboardStorageService(string? databasePath = null, byte[]? key = null)
     {
         databasePath ??= Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -53,6 +59,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         }
 
         _databasePath = databasePath;
+        _key = key != null ? (byte[])key.Clone() : null;
         _connectionString = new SqliteConnectionStringBuilder
         {
             DataSource = databasePath,
@@ -60,10 +67,98 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         }.ToString();
     }
 
+    public void SetKey(byte[]? key)
+    {
+        _key = key != null ? (byte[])key.Clone() : null;
+    }
+
+    private static bool IsPlaintextDatabase(string path)
+    {
+        try
+        {
+            var cs = new SqliteConnectionStringBuilder
+            {
+                DataSource = path,
+                Mode = SqliteOpenMode.ReadOnly
+            }.ToString();
+            using var conn = new SqliteConnection(cs);
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT count(*) FROM sqlite_master;";
+            cmd.ExecuteScalar();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+        }
+    }
+
+    private static void MigratePlaintextToEncrypted(string dbPath, byte[] key)
+    {
+        string encPath = dbPath + ".enc";
+        File.WriteAllBytes(encPath, Array.Empty<byte>());
+
+        var cs = new SqliteConnectionStringBuilder
+        {
+            DataSource = dbPath,
+            Mode = SqliteOpenMode.ReadWrite,
+            Pooling = false
+        }.ToString();
+
+        using (var conn = new SqliteConnection(cs))
+        {
+            conn.Open();
+            string hexKey = Convert.ToHexString(key);
+            string safeEncPath = encPath.Replace('\\', '/').Replace("'", "''");
+            using var cmd = conn.CreateCommand();
+
+            cmd.CommandText = $"ATTACH DATABASE '{safeEncPath}' AS enc KEY \"x'{hexKey}'\";";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = "SELECT sqlcipher_export('enc');";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = "DETACH DATABASE enc;";
+            cmd.ExecuteNonQuery();
+        }
+        SqliteConnection.ClearAllPools();
+
+        string bakPath = dbPath + ".bak";
+        if (File.Exists(bakPath)) File.Delete(bakPath);
+        File.Move(dbPath, bakPath);
+        if (File.Exists(dbPath + "-wal")) File.Delete(dbPath + "-wal");
+        if (File.Exists(dbPath + "-shm")) File.Delete(dbPath + "-shm");
+        File.Move(encPath, dbPath);
+    }
+
     public async Task InitializeAsync()
     {
+        if (_connection != null) return;
+
+        if (!string.IsNullOrEmpty(_databasePath) &&
+            !_databasePath.Equals(":memory:", StringComparison.OrdinalIgnoreCase) &&
+            File.Exists(_databasePath) &&
+            _key != null && _key.Length > 0 &&
+            IsPlaintextDatabase(_databasePath))
+        {
+            MigratePlaintextToEncrypted(_databasePath, _key);
+        }
+
         _connection = new SqliteConnection(_connectionString);
         await _connection.OpenAsync();
+
+        if (_key != null && _key.Length > 0)
+        {
+            string hexKey = Convert.ToHexString(_key);
+            using var keyCmd = _connection.CreateCommand();
+            keyCmd.CommandText = $"PRAGMA key = \"x'{hexKey}'\";";
+            await keyCmd.ExecuteNonQueryAsync();
+        }
 
         // Enable WAL mode for high concurrent throughput
         using (var walCmd = _connection.CreateCommand())
@@ -209,6 +304,11 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         {
             idxCmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_clips_media_hash ON clips(media_hash) WHERE media_hash IS NOT NULL;";
             await idxCmd.ExecuteNonQueryAsync();
+        }
+
+        if (!string.IsNullOrEmpty(_databasePath) && File.Exists(_databasePath + ".bak"))
+        {
+            try { File.Delete(_databasePath + ".bak"); } catch { }
         }
     }
 
@@ -1263,5 +1363,6 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             await _connection.DisposeAsync();
             _connection = null;
         }
+        SqliteConnection.ClearAllPools();
     }
 }
