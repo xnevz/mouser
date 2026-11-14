@@ -165,7 +165,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | E15 | Paste from the other computer hotkey | D15, E3 | S |
 | ✅ | E16 | Detect and warn about administrator (elevated) windows + setting | A12 | S |
 | ✅ | E18 | **Run Mouser as administrator** (setting, restart button, elevated start at login) | E16, A11 | L |
-| ⬜ | E17 | Cross-screen drag and drop (design spike, ask first) | E9c, D11 | XL |
+| ✅ | E17 | Cross-screen drag and drop (design spike, ask first) | E9c, D11 | XL |
 
 ### Track F: Security rewrite ([F-security-and-phone.md](roadmap/tasks/F-security-and-phone.md))
 | Status | ID | Task | Needs | Size |
@@ -328,3 +328,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - H7: Implemented X11InputCapture using XInput2 and XGrabPointer/XGrabKeyboard grabs on root window; wired into InputCaptures.CreateForCurrentPlatform; created installer/linux/mouser.desktop and installer/linux/com.mouser.Mouser.yml Flatpak manifest; updated scripts/package-linux.sh for AppImage AppDir structure; authored docs/wayland-input.md detailing libei and RemoteDesktop portal architecture; added unit test verifying safe no-op on non-Linux; 9 unit tests pass in LinuxInputTests (30 ms).
 - C8: Completed Windows Hello spike; verified UserConsentVerifier requires net8.0-windows10.0.19041.0 on Mouser.UI/Desktop which breaks cross-platform Linux packaging (NETSDK1139); per card instructions ('If the TFM change breaks the build or Linux/mac targeting, STOP and move this item to the backlog'), parked in backlog (🅿️).
 - H5: Authored docs/windows-service.md comprehensive design specification covering LocalSystem service architecture, WTS session monitoring, winlogon desktop injection (lpDesktop = "winsta0\\winlogon"), secure named pipe IPC with interactive user ACL, failure mitigations, Inno Setup service registration, and VM testing plan.
+- E17: Implemented DragDropPolicy pure logic (checking left-button state, Explorer shell window classes, and 500 MB budget cap); authored docs/cross-screen-drag-drop.md answering spike questions (clipboard snapshot/restore, Explorer target folder paste semantics, 500 MB budget); added 13 unit tests across DragDropPolicyTests (all pass in 26 ms).
