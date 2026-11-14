@@ -57,6 +57,55 @@ class MouserViewModel(application: Application) : AndroidViewModel(application) 
         themeMode.value = m
     }
 
+    val macros = MutableStateFlow<List<com.mouser.companion.model.Macro>>(com.mouser.companion.model.MacroStore.load(prefs))
+
+    fun saveMacro(macro: com.mouser.companion.model.Macro) {
+        val current = macros.value.toMutableList()
+        val index = current.indexOfFirst { it.id == macro.id }
+        if (index >= 0) {
+            current[index] = macro
+        } else {
+            current.add(macro)
+        }
+        macros.value = current
+        com.mouser.companion.model.MacroStore.save(prefs, current)
+    }
+
+    fun deleteMacro(id: String) {
+        val current = macros.value.filter { it.id != id }
+        macros.value = current
+        com.mouser.companion.model.MacroStore.save(prefs, current)
+    }
+
+    fun resetDefaultMacros() {
+        macros.value = com.mouser.companion.model.MacroRunner.defaultMacros
+        com.mouser.companion.model.MacroStore.save(prefs, com.mouser.companion.model.MacroRunner.defaultMacros)
+    }
+
+    fun importMacrosJson(json: String) {
+        val imported = com.mouser.companion.model.MacroStore.fromJson(json)
+        if (imported.isNotEmpty()) {
+            macros.value = imported
+            com.mouser.companion.model.MacroStore.save(prefs, imported)
+        }
+    }
+
+    fun exportMacrosJson(): String = com.mouser.companion.model.MacroStore.toJson(macros.value)
+
+    fun runMacro(macro: com.mouser.companion.model.Macro) {
+        if (isLocked.value) return
+        val actions = com.mouser.companion.model.MacroRunner.expandMacro(macro)
+        viewModelScope.launch(Dispatchers.IO) {
+            for (action in actions) {
+                when (action) {
+                    is com.mouser.companion.model.MacroAction.KeyAction -> connection.sendKey(action.vk, action.isDown)
+                    is com.mouser.companion.model.MacroAction.CharAction -> connection.sendChar(action.char, action.isDown)
+                    is com.mouser.companion.model.MacroAction.DelayAction -> kotlinx.coroutines.delay(action.ms)
+                }
+            }
+        }
+    }
+
     val lockState = com.mouser.companion.model.LockState()
     val isAppLockEnabled = MutableStateFlow(prefs.getBoolean("app_lock", false))
     val isLocked = MutableStateFlow(false)

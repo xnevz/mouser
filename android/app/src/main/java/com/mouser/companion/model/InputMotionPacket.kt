@@ -83,12 +83,17 @@ object VirtualKey {
     const val BACK: Short = 0x08
     const val TAB: Short = 0x09
     const val RETURN: Short = 0x0D
+    const val SHIFT: Short = 0x10
+    const val CONTROL: Short = 0x11
+    const val MENU: Short = 0x12 // Alt
     const val ESCAPE: Short = 0x1B
     const val SPACE: Short = 0x20
     const val LEFT: Short = 0x25
     const val UP: Short = 0x26
     const val RIGHT: Short = 0x27
     const val DOWN: Short = 0x28
+    const val LWIN: Short = 0x5B
+    const val RWIN: Short = 0x5C
     const val NUMPAD0: Short = 0x60
     const val MULTIPLY: Short = 0x6A
     const val ADD: Short = 0x6B

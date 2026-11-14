@@ -54,6 +54,7 @@ class MainActivity : FragmentActivity() {
                     val trackpadSensitivity by viewModel.trackpadSensitivity.collectAsState()
                     val airMouseSensitivity by viewModel.airMouseSensitivity.collectAsState()
                     val isAirMouseTriggerHeld by viewModel.isAirMouseTriggerHeld.collectAsState()
+                    val macros by viewModel.macros.collectAsState()
                     val isConnected = connectionState is HostConnectionState.Connected
 
                     Scaffold(
@@ -181,7 +182,31 @@ class MainActivity : FragmentActivity() {
                                 )
                                 AppNavigationTab.MACROS -> MediaMacrosView(
                                     isConnected = isConnected,
-                                    onKey = viewModel::tapKey
+                                    onKey = viewModel::tapKey,
+                                    macros = macros,
+                                    onRunMacro = viewModel::runMacro,
+                                    onSaveMacro = viewModel::saveMacro,
+                                    onDeleteMacro = viewModel::deleteMacro,
+                                    onResetDefaults = viewModel::resetDefaultMacros,
+                                    onExportJson = {
+                                        val json = viewModel.exportMacrosJson()
+                                        val sendIntent = android.content.Intent().apply {
+                                            action = android.content.Intent.ACTION_SEND
+                                            putExtra(android.content.Intent.EXTRA_TEXT, json)
+                                            type = "application/json"
+                                        }
+                                        startActivity(android.content.Intent.createChooser(sendIntent, "Export Macros JSON"))
+                                    },
+                                    onImportJson = {
+                                        val cm = getSystemService(CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                        val clipText = cm?.primaryClip?.getItemAt(0)?.text?.toString()
+                                        if (!clipText.isNullOrBlank()) {
+                                            viewModel.importMacrosJson(clipText)
+                                            android.widget.Toast.makeText(this@MainActivity, "Imported macros from clipboard", android.widget.Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            android.widget.Toast.makeText(this@MainActivity, "Copy JSON to clipboard first to import", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
                                 )
                                 AppNavigationTab.TYPE -> TypeSurface(
                                     isConnected = isConnected,
