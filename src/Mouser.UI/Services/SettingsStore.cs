@@ -107,6 +107,7 @@ public sealed class PeerSettings
     public int OffsetY { get; set; }
     /// <summary>The peer's PIN, kept so pairing survives restarts (like the phone app does).</summary>
     public int? Pin { get; set; }
+    public string Mac { get; set; } = string.Empty;
     public bool SendClipboard { get; set; } = true;
     public bool ReceiveClipboard { get; set; } = true;
     public bool SendFiles { get; set; } = true;

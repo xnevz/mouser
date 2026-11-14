@@ -1,5 +1,7 @@
 using System;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Mouser.Core.Kvm;
 using Mouser.Core.Networking;
 using Mouser.UI.Services;
@@ -14,7 +16,9 @@ public partial class DeviceDetailViewModel : ViewModelBase
     public string Id { get; }
     public DeviceKind Kind { get; }
     [ObservableProperty] private string _name = string.Empty;
-    [ObservableProperty] private bool _isOnline;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanWake))]
+    private bool _isOnline;
     [ObservableProperty] private string _ipAddress = string.Empty;
     [ObservableProperty] private string _operatingSystem = string.Empty;
     [ObservableProperty] private string _statusText = string.Empty;
@@ -36,6 +40,12 @@ public partial class DeviceDetailViewModel : ViewModelBase
 
     public bool IsComputer => Kind == DeviceKind.Computer;
     public bool IsPhone => Kind == DeviceKind.Phone;
+
+    public string Mac => _settings?.Current.Peers.TryGetValue(Id, out var s) == true ? s.Mac : string.Empty;
+    public bool CanWake => !IsOnline && !string.IsNullOrWhiteSpace(Mac);
+
+    [RelayCommand]
+    public async Task WakeAsync() => await (_host?.WakePeerAsync(Id) ?? Task.CompletedTask);
 
     public DeviceDetailViewModel(string id, DeviceKind kind, SettingsStore? settings = null, MouserHost? host = null)
     {

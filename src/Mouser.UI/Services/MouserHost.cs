@@ -30,6 +30,7 @@ public sealed class MouserHost : IDisposable
     private readonly int _discoveryPort;
     private readonly Dictionary<string, PeerLink> _links = new();
     private readonly Dictionary<string, DateTime> _lastPairAttempt = new();
+    private readonly Dictionary<string, DateTime> _lastArpAttempt = new();
     private readonly HashSet<string> _pairing = new();
     // Computers that proved (via a hello frame) they paired with us; lets us sync to them by device id.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _pairedWithUs = new();
@@ -619,6 +620,15 @@ public sealed class MouserHost : IDisposable
         ApplyKvmOptions();
     }
 
+    public async Task WakePeerAsync(string peerId)
+    {
+        if (_settings.Current.Peers.TryGetValue(peerId, out var saved) && WakeOnLan.TryParseMac(saved.Mac, out var mac))
+        {
+            await WakeOnLan.SendAsync(mac);
+            Log.Record(ActivityCategory.Network, $"Sent Wake-on-LAN magic packet to {saved.Name} ({saved.Mac})");
+        }
+    }
+
     /// <summary>
     /// Brings links and the KVM in line with discovery and settings. Called once a second from the UI:
     /// re-pairs saved peers after restarts, follows IP changes, and runs the input hooks only when needed.
@@ -634,6 +644,23 @@ public sealed class MouserHost : IDisposable
             {
                 Kvm?.RemovePeer(id); // out of sight: never try to hand control to it
                 continue;
+            }
+
+            if (peer.IpAddress.AddressFamily == AddressFamily.InterNetwork)
+            {
+                if (DateTime.UtcNow - _lastArpAttempt.GetValueOrDefault(peer.DeviceId) > TimeSpan.FromMinutes(1))
+                {
+                    _lastArpAttempt[peer.DeviceId] = DateTime.UtcNow;
+                    if (WakeOnLan.TryGetMac(peer.IpAddress, out var macBytes))
+                    {
+                        var macStr = WakeOnLan.FormatMac(macBytes);
+                        if (saved.Mac != macStr)
+                        {
+                            saved.Mac = macStr;
+                            _settings.Save();
+                        }
+                    }
+                }
             }
 
             if (_failedClips.TryRemove(peer.DeviceId, out var failed) && DateTime.UtcNow - failed.Timestamp < TimeSpan.FromMinutes(10))

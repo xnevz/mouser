@@ -179,13 +179,21 @@
                                     </Border>
 
                                     <!-- If not paired -->
-                                    <StackPanel Spacing="12" IsVisible="{Binding !IsPaired}">
+                                    <StackPanel Spacing="12" IsVisible="{Binding NeedsPin}">
                                         <TextBlock Classes="hint" Text="Enter the PIN shown on that computer to pair with it." />
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <TextBox Text="{Binding PinText}" PlaceholderText="Enter PIN" Width="140" MaxLength="7" />
                                             <Button Classes="primary-btn" Content="Pair" Command="{Binding PairCommand}"
                                                     ToolTip.Tip="Pair with this computer" />
                                         </StackPanel>
+                                    </StackPanel>
+
+                                    <!-- Wake button for offline peer with known MAC -->
+                                    <StackPanel Spacing="6" Margin="0,8,0,0" IsVisible="{Binding CanWake}">
+                                        <Button Classes="primary-btn" Content="Wake" Command="{Binding WakeCommand}"
+                                                ToolTip.Tip="Send Wake-on-LAN magic packet to this computer" />
+                                        <TextBlock Classes="hint" Text="Works only if Wake-on-LAN is enabled in that computer's BIOS and network adapter settings."
+                                                   TextWrapping="Wrap" />
                                     </StackPanel>
 
                                     <!-- If paired -->

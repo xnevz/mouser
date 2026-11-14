@@ -32,7 +32,7 @@ public partial class PeerViewModel : ViewModelBase
         new[] { PeerPlacement.Right, PeerPlacement.Left, PeerPlacement.Above, PeerPlacement.Below, PeerPlacement.None };
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsPaired), nameof(StatusText), nameof(StatusColor), nameof(NeedsPin))]
+    [NotifyPropertyChangedFor(nameof(IsPaired), nameof(StatusText), nameof(StatusColor), nameof(NeedsPin), nameof(IsOnline), nameof(CanWake))]
     private PeerLinkStatus _status;
 
     [ObservableProperty] private PeerPlacement _placement;
@@ -53,6 +53,12 @@ public partial class PeerViewModel : ViewModelBase
 
     public bool IsPaired => Status is PeerLinkStatus.Paired;
     public bool NeedsPin => Status is PeerLinkStatus.NotPaired;
+    public bool IsOnline => Status != PeerLinkStatus.Unreachable;
+    public string Mac => _owner.Settings?.Current.Peers.TryGetValue(Id, out var s) == true ? s.Mac : string.Empty;
+    public bool CanWake => !IsOnline && !string.IsNullOrWhiteSpace(Mac);
+
+    [RelayCommand]
+    public async Task WakeAsync() => await (_owner.Host?.WakePeerAsync(Id) ?? Task.CompletedTask);
 
     public bool ShareMouseAndKeyboard
     {
@@ -128,6 +134,9 @@ public partial class PeerViewModel : ViewModelBase
         OnPropertyChanged(nameof(SyncLock));
         OnPropertyChanged(nameof(SyncSleep));
         OnPropertyChanged(nameof(SyncDisplayOff));
+        OnPropertyChanged(nameof(IsOnline));
+        OnPropertyChanged(nameof(Mac));
+        OnPropertyChanged(nameof(CanWake));
     }
 
     partial void OnPlacementChanged(PeerPlacement value)
@@ -337,8 +346,14 @@ public partial class MonitorLayoutViewModel : ViewModelBase
     {
         _host?.SyncPeers();
         var current = peers.OrderBy(p => p.Hostname, StringComparer.OrdinalIgnoreCase).ToList();
+        var savedPeers = Settings?.Current.Peers;
 
-        foreach (var gone in Peers.Where(vm => current.All(p => p.DeviceId != vm.Id)).ToList()) Peers.Remove(gone);
+        foreach (var gone in Peers.Where(vm => current.All(p => p.DeviceId != vm.Id)
+                                             && (savedPeers == null || !savedPeers.ContainsKey(vm.Id))).ToList())
+        {
+            Peers.Remove(gone);
+        }
+
         for (int i = 0; i < current.Count; i++)
         {
             var peer = current[i];
@@ -347,6 +362,28 @@ public partial class MonitorLayoutViewModel : ViewModelBase
             var vm = Peers.FirstOrDefault(p => p.Id == peer.DeviceId);
             if (vm == null) Peers.Insert(Math.Min(i, Peers.Count), new PeerViewModel(this, peer, status, placement));
             else vm.Update(peer, status, placement);
+        }
+
+        if (savedPeers != null)
+        {
+            foreach (var (id, saved) in savedPeers)
+            {
+                if (current.Any(p => p.DeviceId == id)) continue;
+                var vm = Peers.FirstOrDefault(p => p.Id == id);
+                if (vm == null)
+                {
+                    var offlinePeer = new DiscoveredPeer
+                    {
+                        DeviceId = id,
+                        Hostname = string.IsNullOrWhiteSpace(saved.Name) ? id : saved.Name
+                    };
+                    Peers.Add(new PeerViewModel(this, offlinePeer, PeerLinkStatus.Unreachable, saved.Placement));
+                }
+                else
+                {
+                    vm.Update(vm.Peer, PeerLinkStatus.Unreachable, saved.Placement);
+                }
+            }
         }
 
         OnPropertyChanged(nameof(HasPeers));
