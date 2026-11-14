@@ -32,6 +32,7 @@ public partial class App : Application
     private MainViewModel? _mainViewModel;
     private SettingsStore? _settings;
     private AppLockService? _appLock;
+    private ClipboardWatcher? _clipboardWatcher;
 
     public override void Initialize()
     {
@@ -100,6 +101,12 @@ public partial class App : Application
             _clipboardStorage = new ClipboardStorageService(Path.Combine(settings.DataDirectory, "clipboard.db"));
 
             var vm = new MainViewModel(_host, settings, _clipboardStorage, appLock: appLock);
+            _clipboardWatcher = new ClipboardWatcher();
+            _clipboardWatcher.Changed += () => Dispatcher.UIThread.Post(async () =>
+            {
+                if (_appLock is { IsLocked: true }) return;
+                await vm.ClipboardHistory.PollClipboardAsync();
+            });
             var window = new MainWindow { DataContext = vm };
             if (dataDir != null) window.Title = $"Mouser ({Path.GetFileName(Path.GetFullPath(dataDir))})";
             desktop.MainWindow = window;
@@ -234,6 +241,7 @@ public partial class App : Application
             desktop.Exit += (_, _) =>
             {
                 singleInstance?.Dispose();
+                _clipboardWatcher?.Dispose();
                 _refreshTimer.Stop();
                 _hotkey?.Dispose();
                 _host.Dispose();
