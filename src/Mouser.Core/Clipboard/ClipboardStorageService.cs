@@ -194,12 +194,13 @@ public sealed class ClipboardStorageService : IAsyncDisposable
 
             if (!string.IsNullOrEmpty(existingId))
             {
-                const string updateSql = "UPDATE clips SET timestamp = @time, source_device = @source, source_app = @source_app WHERE id = @id;";
+                const string updateSql = "UPDATE clips SET timestamp = @time, source_device = @source, source_app = @source_app, html_content = COALESCE(@html, html_content) WHERE id = @id;";
                 using var updateCmd = _connection.CreateCommand();
                 updateCmd.CommandText = updateSql;
                 updateCmd.Parameters.AddWithValue("@time", payload.TimestampUtc);
                 updateCmd.Parameters.AddWithValue("@source", payload.SourceDevice);
                 updateCmd.Parameters.AddWithValue("@source_app", payload.SourceApp ?? string.Empty);
+                updateCmd.Parameters.AddWithValue("@html", (object?)payload.HtmlContent ?? DBNull.Value);
                 updateCmd.Parameters.AddWithValue("@id", existingId);
                 await updateCmd.ExecuteNonQueryAsync();
                 return false;

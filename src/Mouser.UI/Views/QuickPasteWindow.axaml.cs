@@ -23,7 +23,10 @@ public partial class QuickPasteWindow : Window
         switch (e.Key)
         {
             case Key.Escape: vm.CancelCommand.Execute(null); break;
-            case Key.Enter: vm.PasteCommand.Execute(null); break;
+            case Key.Enter:
+                bool rich = (e.KeyModifiers & KeyModifiers.Shift) != 0;
+                vm.PasteSelected(rich);
+                break;
             case Key.Down: vm.MoveSelection(1); break;
             case Key.Up: vm.MoveSelection(-1); break;
             default: return;

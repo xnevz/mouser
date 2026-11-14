@@ -22,6 +22,8 @@ public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
     public DateTime Timestamp { get; }
     public string SourceApp => _payload.SourceApp;
     public bool HasSourceApp => !string.IsNullOrWhiteSpace(SourceApp);
+    public string? HtmlContent => _payload.HtmlContent;
+    public bool HasHtml => !string.IsNullOrEmpty(HtmlContent);
     public string? MediaPath => _payload.MediaPath;
     public string? MediaHash => _payload.MediaHash;
     public int? Width => _payload.Width;

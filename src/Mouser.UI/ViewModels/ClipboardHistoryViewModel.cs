@@ -156,7 +156,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
                 StatusMessage = "Skipped a copy from a password manager.";
                 return false;
             }
-            bool captured = await CaptureAsync(text, app);
+            bool captured = await CaptureAsync(text, app, snapshot.Html);
             if (ShareCapturedText != null && IsShareable(text)) _ = ShareCapturedText(text);
             return captured;
         }
@@ -200,10 +200,10 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     {
         if (_clipboard == null) return;
         _lastSeenText = text;
-        await _clipboard.SetTextAsync(text);
+        await _clipboard.SetSnapshotAsync(new ClipboardSnapshot(text, null, null, null));
     }
 
-    public async Task<bool> CaptureAsync(string text, string? sourceApp = null)
+    public async Task<bool> CaptureAsync(string text, string? sourceApp = null, string? html = null)
     {
         OnPropertyChanged(nameof(IsCaptureEnabled));
         if (!_settings.Current.ClipboardHistoryEnabled || string.IsNullOrWhiteSpace(text)) return false;
@@ -226,6 +226,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
         {
             ContentType = ClipboardClassifier.Classify(text),
             TextContent = text,
+            HtmlContent = html,
             SourceDevice = Environment.MachineName,
             SourceApp = sourceApp ?? string.Empty
         });

@@ -11,7 +11,7 @@
 
     <Border BorderBrush="{DynamicResource Accent}" BorderThickness="1" CornerRadius="10" Padding="12">
         <StackPanel Spacing="10">
-            <TextBox x:Name="SearchBox" Text="{Binding Query}" PlaceholderText="Search clipboard history… (Enter to paste, Esc to close)" />
+            <TextBox x:Name="SearchBox" Text="{Binding Query}" PlaceholderText="Search clipboard history… (Enter to paste, Shift+Enter for rich, Esc to close)" />
 
             <TextBlock Classes="hint" IsVisible="{Binding IsEmpty}" Margin="4"
                        Text="No clips yet. Copy some text and it shows up here." />

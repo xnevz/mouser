@@ -1,4 +1,5 @@
 using System.Runtime.Versioning;
+using Mouser.Core.Clipboard;
 using Mouser.UI.Services;
 using Mouser.UI.ViewModels;
 
@@ -64,7 +65,12 @@ public class QuickPasteTests
         var (app, paste) = await SetupAsync();
         await using var _ = app;
         string? pasted = null;
-        paste.PasteRequested += text => pasted = text;
+        bool? rich = null;
+        paste.PasteRequested += (text, r) =>
+        {
+            pasted = text;
+            rich = r;
+        };
 
         paste.MoveSelection(1);
         paste.MoveSelection(5); // clamps at the last item
@@ -72,6 +78,78 @@ public class QuickPasteTests
         paste.PasteCommand.Execute(null);
 
         Assert.Equal("Meeting moved to Thursday 3pm", pasted);
+        Assert.False(rich);
+    }
+
+    [Fact]
+    public async Task QuickPaste_PasteSelected_PlainAndRich_RaisesEvent()
+    {
+        var (app, paste) = await SetupAsync();
+        await using var _ = app;
+
+        string? receivedText = null;
+        bool? receivedRich = null;
+        paste.PasteRequested += (text, rich) =>
+        {
+            receivedText = text;
+            receivedRich = rich;
+        };
+
+        // Default / plain: PasteSelected(false)
+        paste.PasteSelected(false);
+        Assert.Equal(paste.Selected?.Content, receivedText);
+        Assert.False(receivedRich);
+
+        // Rich: PasteSelected(true)
+        paste.PasteSelected(true);
+        Assert.Equal(paste.Selected?.Content, receivedText);
+        Assert.True(receivedRich);
+    }
+
+    [Fact]
+    public async Task ClipboardHistory_Poll_CapturesHtmlContent_WhenPresent()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        var history = app.Main.ClipboardHistory;
+        await history.InitializeAsync();
+
+        // FakeClipboard with text and html
+        await app.Clipboard.SetSnapshotAsync(new ClipboardSnapshot("Hello World", "<b>Hello World</b>", null, null));
+
+        bool captured = await history.PollClipboardAsync();
+        Assert.True(captured);
+
+        var clip = Assert.Single(history.FilteredClips);
+        Assert.Equal("Hello World", clip.Content);
+        Assert.Equal("<b>Hello World</b>", clip.HtmlContent);
+        Assert.True(clip.HasHtml);
+    }
+
+    [Fact]
+    public async Task ClipboardHistory_CopyClip_CopiesPlainTextOnlyByDefault()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        var history = app.Main.ClipboardHistory;
+        await history.InitializeAsync();
+
+        // Capture a clip with HTML
+        await history.CaptureAsync("Formatted snippet", html: "<p>Formatted snippet</p>");
+        var clip = Assert.Single(history.FilteredClips);
+        Assert.True(clip.HasHtml);
+
+        // Clear clipboard first
+        await app.Clipboard.SetSnapshotAsync(new ClipboardSnapshot(null, null, null, null));
+        var initial = await app.Clipboard.GetSnapshotAsync();
+        Assert.True(initial.IsEmpty);
+
+        // Copy clip from history
+        await history.CopyClipCommand.ExecuteAsync(clip);
+
+        var snapshot = await app.Clipboard.GetSnapshotAsync();
+        Assert.Equal("Formatted snippet", snapshot.Text);
+        Assert.Null(snapshot.Html);
     }
 
     [Fact]

@@ -33,6 +33,7 @@ public partial class App : Application
     private SettingsStore? _settings;
     private AppLockService? _appLock;
     private ClipboardWatcher? _clipboardWatcher;
+    private IClipboardAccess? _clipboardAccess;
 
     public override void Initialize()
     {
@@ -108,6 +109,11 @@ public partial class App : Application
                 await vm.ClipboardHistory.PollClipboardAsync();
             });
             var window = new MainWindow { DataContext = vm };
+            if (window.Clipboard is { } cb)
+            {
+                _clipboardAccess = new AvaloniaClipboardAccess(cb);
+                vm.AttachClipboard(_clipboardAccess);
+            }
             if (dataDir != null) window.Title = $"Mouser ({Path.GetFileName(Path.GetFullPath(dataDir))})";
             desktop.MainWindow = window;
 
@@ -201,8 +207,11 @@ public partial class App : Application
 
             window.Opened += async (_, _) =>
             {
-                if (window.Clipboard is { } clipboard)
-                    vm.AttachClipboard(new AvaloniaClipboardAccess(clipboard));
+                if (_clipboardAccess == null && window.Clipboard is { } clipboard)
+                {
+                    _clipboardAccess = new AvaloniaClipboardAccess(clipboard);
+                    vm.AttachClipboard(_clipboardAccess);
+                }
                 UpdateDisplays(window, vm);
                 vm.MonitorLayout.PickFile = async () =>
                 {
@@ -286,11 +295,25 @@ public partial class App : Application
         }
 
         model.Cancelled += Close;
-        model.PasteRequested += async text =>
+        model.PasteRequested += async (text, rich) =>
         {
             if (closed) return;
             Close();
-            await vm.ClipboardHistory.CopyTextAsync(text);
+            if (_clipboardAccess != null)
+            {
+                if (rich && model.Selected?.HtmlContent is { Length: > 0 } html)
+                {
+                    await _clipboardAccess.SetSnapshotAsync(new(text, html, null, null));
+                }
+                else
+                {
+                    await _clipboardAccess.SetSnapshotAsync(new(text, null, null, null));
+                }
+            }
+            else
+            {
+                await vm.ClipboardHistory.CopyTextAsync(text);
+            }
             var keys = InputSinks.CreateForCurrentPlatform();
             if (OperatingSystem.IsWindows())
             {

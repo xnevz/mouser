@@ -22,7 +22,7 @@ public partial class QuickPasteViewModel : ViewModelBase
     public bool IsEmpty => Items.Count == 0;
 
     /// <summary>The user picked a clip; the host puts it on the clipboard and pastes it.</summary>
-    public event Action<string>? PasteRequested;
+    public event Action<string, bool>? PasteRequested;
     public event Action? Cancelled;
 
     public QuickPasteViewModel(ClipboardStorageService storage) => _storage = storage;
@@ -50,10 +50,15 @@ public partial class QuickPasteViewModel : ViewModelBase
         Selected = Items[Math.Clamp(index, 0, Items.Count - 1)];
     }
 
+    public void PasteSelected(bool rich = false)
+    {
+        if (Selected is { } clip) PasteRequested?.Invoke(clip.Content, rich);
+    }
+
     [RelayCommand]
     private void Paste(ClipboardItemViewModel? item)
     {
-        if ((item ?? Selected) is { } clip) PasteRequested?.Invoke(clip.Content);
+        if ((item ?? Selected) is { } clip) PasteRequested?.Invoke(clip.Content, false);
     }
 
     [RelayCommand]

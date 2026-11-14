@@ -178,7 +178,12 @@
                                 BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8"
                                 IsVisible="{Binding !SelectedClip.IsImage}">
                             <StackPanel Spacing="4">
-                                <TextBlock Classes="label" Text="METADATA" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" />
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Classes="label" Text="METADATA" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
+                                    <Border Classes="nav-badge" IsVisible="{Binding SelectedClip.HasHtml}" Margin="4,0,0,0">
+                                        <TextBlock Text="Rich" Foreground="{DynamicResource BadgeViolet}" FontSize="11" />
+                                    </Border>
+                                </StackPanel>
                                 <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextSecondary}">
                                     <Run Text="Type: " /><Run Text="{Binding SelectedClip.ContentType}" /><Run Text=" · Source: " /><Run Text="{Binding SelectedClip.SourceDevice}" /><Run Text=" · Copied: " /><Run Text="{Binding SelectedClip.FormattedTime}" />
                                 </TextBlock>
