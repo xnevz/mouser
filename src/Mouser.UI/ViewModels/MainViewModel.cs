@@ -15,7 +15,8 @@ public enum NavigationTab
     AndroidRemote,
     SmartClipboard,
     DisplayMatrix,
-    Settings
+    Settings,
+    Activity
 }
 
 public partial class MainViewModel : ViewModelBase
@@ -31,11 +32,12 @@ public partial class MainViewModel : ViewModelBase
     public MonitorLayoutViewModel MonitorLayout { get; }
     public SettingsViewModel Settings { get; }
     public DevicesViewModel DevicesPage { get; }
+    public ActivityViewModel Activity { get; }
 
     [ObservableProperty] private ViewModelBase _currentPage;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsRemoteTab), nameof(IsClipboardTab), nameof(IsDisplaysTab), nameof(IsSettingsTab))]
+    [NotifyPropertyChangedFor(nameof(IsRemoteTab), nameof(IsClipboardTab), nameof(IsDisplaysTab), nameof(IsSettingsTab), nameof(IsActivityTab))]
     private NavigationTab _currentTab = NavigationTab.SmartClipboard;
 
     [ObservableProperty] private string _systemStatusTitle = string.Empty;
@@ -46,8 +48,9 @@ public partial class MainViewModel : ViewModelBase
     public bool IsClipboardTab => CurrentTab == NavigationTab.SmartClipboard;
     public bool IsDisplaysTab => CurrentTab == NavigationTab.DisplayMatrix;
     public bool IsSettingsTab => CurrentTab == NavigationTab.Settings;
+    public bool IsActivityTab => CurrentTab == NavigationTab.Activity;
 
-    public MainViewModel(MouserHost host, SettingsStore settings, ClipboardStorageService clipboardStorage)
+    public MainViewModel(MouserHost host, SettingsStore settings, ClipboardStorageService clipboardStorage, IClipboardAccess? clipboardAccess = null)
     {
         _host = host;
         _settings = settings;
@@ -56,10 +59,17 @@ public partial class MainViewModel : ViewModelBase
         Settings = new SettingsViewModel(settings, host);
         MonitorLayout = new MonitorLayoutViewModel(host, settings);
         DevicesPage = new DevicesViewModel(host, MonitorLayout, AndroidRemote, settings);
+        Activity = new ActivityViewModel(host.Log, host, clipboardAccess);
         ClipboardHistory.ShareCapturedText = host.ShareClipboardAsync;
         _currentPage = ClipboardHistory;
         _currentTab = NavigationTab.SmartClipboard;
         Refresh();
+    }
+
+    public void AttachClipboard(IClipboardAccess clipboard)
+    {
+        ClipboardHistory.AttachClipboard(clipboard);
+        Activity.AttachClipboard(clipboard);
     }
 
     /// <summary>Pulls live state from the network services. Called once a second by the app.</summary>
@@ -194,6 +204,7 @@ public partial class MainViewModel : ViewModelBase
             "SmartClipboard" => (NavigationTab.SmartClipboard, (ViewModelBase)ClipboardHistory),
             "DisplayMatrix" or "AndroidRemote" => (NavigationTab.DisplayMatrix, DevicesPage),
             "Settings" => (NavigationTab.Settings, Settings),
+            "Activity" => (NavigationTab.Activity, Activity),
             _ => (NavigationTab.DisplayMatrix, DevicesPage)
         };
     }

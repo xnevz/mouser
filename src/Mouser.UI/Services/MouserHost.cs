@@ -62,6 +62,8 @@ public sealed class MouserHost : IDisposable
     public IReadOnlyCollection<DiscoveredPeer> Peers =>
         Discovery?.ActivePeers ?? (IReadOnlyCollection<DiscoveredPeer>)Array.Empty<DiscoveredPeer>();
 
+    public ActivityLog Log { get; } = new();
+
     public MouserHost(SettingsStore settings, IInputSink sink, IInputCapture? capture = null,
         int discoveryPort = PeerDiscoveryService.DefaultDiscoveryPort, string? downloadDirectory = null)
     {
@@ -108,6 +110,10 @@ public sealed class MouserHost : IDisposable
         {
             Discovery = new PeerDiscoveryService(_settings.Current.DeviceId, _settings.Current.DeviceName,
                 OsName, Input.BoundPort, controlPort: Transfer?.BoundPort ?? 0, _discoveryPort);
+            Discovery.PeerDiscovered += peer =>
+            {
+                Log.Record(ActivityCategory.Discovery, $"Found peer {peer.Hostname} ({peer.Address})");
+            };
             if (_desktop is { } d) Discovery.UpdateLocalScreen((int)d.X, (int)d.Y, (int)d.Width, (int)d.Height);
             Discovery.Start();
 
@@ -172,9 +178,19 @@ public sealed class MouserHost : IDisposable
             var transfer = new PeerTransferService(_settings.Current.DeviceId, ReceiveKeys, _downloadDirectory, port);
             transfer.ClipReceived += (sender, clip) =>
             {
-                if (_settings.Current.ClipboardSyncEnabled) ClipReceived?.Invoke(PeerName(sender), clip);
+                if (_settings.Current.ClipboardSyncEnabled)
+                {
+                    string from = PeerName(sender);
+                    Log.Record(ActivityCategory.Clipboard, $"Received clip from {from}");
+                    ClipReceived?.Invoke(from, clip);
+                }
             };
-            transfer.FileReceived += (sender, path) => FileReceived?.Invoke(PeerName(sender), path);
+            transfer.FileReceived += (sender, path) =>
+            {
+                string from = PeerName(sender);
+                Log.Record(ActivityCategory.File, $"Received file {Path.GetFileName(path)} from {from}");
+                FileReceived?.Invoke(from, path);
+            };
             transfer.HelloReceived += (sender, key) =>
             {
                 if (key.AsSpan().SequenceEqual(OwnKey)) _pairedWithUs[sender] = true;
@@ -269,7 +285,11 @@ public sealed class MouserHost : IDisposable
         _pairing.Add(peer.DeviceId);
         try
         {
-            if (!await link.PairAsync(pin)) return false;
+            if (!await link.PairAsync(pin))
+            {
+                Log.Record(ActivityCategory.Error, $"Pairing failed with {peer.Hostname}");
+                return false;
+            }
         }
         finally
         {
@@ -282,6 +302,7 @@ public sealed class MouserHost : IDisposable
         if (saved.Placement == PeerPlacement.None) saved.Placement = PeerPlacement.Right;
         _settings.Save();
         SyncPeers();
+        Log.Record(ActivityCategory.Pairing, $"Paired with {peer.Hostname}");
         return true;
     }
 
@@ -364,9 +385,14 @@ public sealed class MouserHost : IDisposable
             _settings.Current.Peers.Any(p => p.Value.Placement != PeerPlacement.None && p.Value.Pin != null);
         try
         {
+            bool wasRunning = Kvm.IsRunning;
             if (shouldRun) Kvm.Start();
             else Kvm.Stop();
             KvmError = null;
+            if (wasRunning != shouldRun)
+            {
+                Log.Record(ActivityCategory.Input, shouldRun ? "Input capture started" : "Input capture stopped");
+            }
         }
         catch (InvalidOperationException e)
         {

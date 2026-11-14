@@ -145,7 +145,7 @@ public partial class App : Application
             window.Opened += async (_, _) =>
             {
                 if (window.Clipboard is { } clipboard)
-                    vm.ClipboardHistory.AttachClipboard(new AvaloniaClipboardAccess(clipboard));
+                    vm.AttachClipboard(new AvaloniaClipboardAccess(clipboard));
                 UpdateDisplays(window, vm);
                 vm.MonitorLayout.PickFile = async () =>
                 {

@@ -2,6 +2,7 @@ using System.Net;
 using Mouser.Core.Clipboard;
 using Mouser.Core.Input;
 using Mouser.Core.Networking;
+using Mouser.Core.Services;
 using Mouser.UI.Services;
 using Mouser.UI.ViewModels;
 using Mouser.UI.Views;
@@ -39,6 +40,7 @@ public sealed class AppFixture : IAsyncDisposable
         Storage = new ClipboardStorageService(Path.Combine(_dir, "clipboard.db"));
         Main = new MainViewModel(Host, Settings, Storage);
         Main.ClipboardHistory.AttachClipboard(Clipboard);
+        Main.Activity.AttachClipboard(Clipboard);
     }
 
     public async ValueTask DisposeAsync()
@@ -72,6 +74,10 @@ public class ViewModelTests
         vm.NavigateCommand.Execute("Settings");
         Assert.True(vm.IsSettingsTab);
         Assert.IsType<SettingsViewModel>(vm.CurrentPage);
+
+        vm.NavigateCommand.Execute("Activity");
+        Assert.True(vm.IsActivityTab);
+        Assert.IsType<ActivityViewModel>(vm.CurrentPage);
     }
 
     [Fact]
@@ -652,5 +658,32 @@ public class ViewModelTests
 
         Assert.Empty(vm.Devices);
         Assert.False(app.Settings.Current.Peers.ContainsKey("saved-1"));
+    }
+
+    [Fact]
+    public void ActivityLog_CapsAt200()
+    {
+        var log = new ActivityLog();
+        for (int i = 0; i < 250; i++)
+        {
+            log.Record(ActivityCategory.Input, $"Event {i}");
+        }
+
+        var snapshot = log.Snapshot();
+        Assert.Equal(200, snapshot.Count);
+        Assert.Equal("Event 249", snapshot[0].Message);
+    }
+
+    [Fact]
+    public async Task CopyDiagnostics_ContainsVersionAndRecentEvents()
+    {
+        await using var app = new AppFixture();
+        app.Host.Log.Record(ActivityCategory.Discovery, "Found peer Desk (192.168.1.50)");
+
+        await app.Main.Activity.CopyDiagnosticsCommand.ExecuteAsync(null);
+
+        Assert.NotNull(app.Clipboard.Text);
+        Assert.Contains("# Mouser Diagnostics", app.Clipboard.Text);
+        Assert.Contains("Found peer Desk (192.168.1.50)", app.Clipboard.Text);
     }
 }

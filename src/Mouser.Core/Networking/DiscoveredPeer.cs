@@ -11,6 +11,7 @@ public sealed class DiscoveredPeer
     public string Hostname { get; set; } = string.Empty;
     public string OperatingSystem { get; set; } = string.Empty;
     public IPAddress IpAddress { get; set; } = IPAddress.Loopback;
+    public IPAddress Address => IpAddress;
     public int MotionPort { get; set; }
     public int ControlPort { get; set; }
     public DateTime LastSeenUtc { get; set; } = DateTime.UtcNow;

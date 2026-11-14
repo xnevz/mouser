@@ -96,6 +96,14 @@
                         </Grid>
                     </Button>
 
+                    <Button Classes="nav-button" Classes.active="{Binding IsActivityTab}"
+                            Command="{Binding NavigateCommand}" CommandParameter="Activity">
+                        <Grid ColumnDefinitions="24,*">
+                            <TextBlock Grid.Column="0" Text="⏱" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Activity" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+
                     <Button Classes="nav-button" Classes.active="{Binding IsSettingsTab}"
                             Command="{Binding NavigateCommand}" CommandParameter="Settings">
                         <Grid ColumnDefinitions="24,*,Auto">

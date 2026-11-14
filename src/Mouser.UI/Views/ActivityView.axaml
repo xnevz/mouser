@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Mouser.UI.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="640"
+             x:Class="Mouser.UI.Views.ActivityView"
+             x:DataType="vm:ActivityViewModel">
+
+    <Grid RowDefinitions="Auto,*" Margin="24">
+        <!-- Header Row -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,20">
+            <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Classes="page-title" Text="Activity" />
+                <TextBlock Classes="page-subtitle" Text="History of connections, transfers and events." />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock Text="{Binding StatusMessage}" Classes="hint" VerticalAlignment="Center"
+                           IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <Button Classes="secondary-btn" Command="{Binding CopyDiagnosticsCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="📋" VerticalAlignment="Center" />
+                        <TextBlock Text="Copy diagnostics" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Events List -->
+        <Border Grid.Row="1" Classes="glass-card" Padding="0">
+            <Grid>
+                <ListBox ItemsSource="{Binding Entries}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="Auto,Auto,*" Margin="8,4">
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding Timestamp, StringFormat='{}{0:HH:mm:ss}'}"
+                                           FontFamily="Cascadia Mono, Consolas, Menlo, monospace"
+                                           Classes="label"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,12,0" />
+
+                                <Border Grid.Column="1"
+                                        Classes="nav-badge"
+                                        Background="{DynamicResource BgRaised}"
+                                        BorderBrush="{DynamicResource BorderSubtle}"
+                                        BorderThickness="1"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,12,0">
+                                    <TextBlock Text="{Binding Category}"
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Margin="6,2" />
+                                </Border>
+
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding Message}"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           FontSize="13"
+                                           TextWrapping="Wrap"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <TextBlock Classes="hint"
+                           Text="No activity recorded yet."
+                           IsVisible="{Binding !Entries.Count}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
