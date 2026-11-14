@@ -118,12 +118,11 @@
 
             <ContentControl Content="{Binding Selected}">
                 <ContentControl.DataTemplates>
-                    <!-- Template 1: This Device ("this") -->
-                    <DataTemplate DataType="x:String">
+                    <!-- Template 1: This Device -->
+                    <DataTemplate DataType="vm:ThisDeviceViewModel">
                         <ScrollViewer>
                             <Border Classes="glass-card" Padding="24"
-                                    DataContext="{Binding $parent[UserControl].((vm:DevicesViewModel)DataContext)}"
-                                    x:DataType="vm:DevicesViewModel">
+                                    x:DataType="vm:ThisDeviceViewModel">
                                 <StackPanel Spacing="16">
                                     <StackPanel Spacing="4">
                                         <TextBlock Classes="label" Text="THIS DEVICE" />
@@ -144,8 +143,6 @@
                                     </Grid>
 
                                     <Separator Background="{DynamicResource BorderSubtle}" />
-
-
 
                                     <!-- Address text and port -->
                                     <StackPanel Spacing="6">

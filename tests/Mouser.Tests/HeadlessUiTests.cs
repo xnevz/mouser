@@ -88,6 +88,26 @@ public class HeadlessUiTests
     }
 
     [AvaloniaFact]
+    public async Task MainWindow_WithMainViewModel_RendersWithoutStackOverflow()
+    {
+        await using var fixture = new AppFixture();
+        var vm = fixture.Main;
+        var window = new MainWindow { DataContext = vm };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        string[] tabs = ["DisplayMatrix", "AndroidRemote", "Settings", "Activity", "Snippets", "SmartClipboard"];
+        foreach (var tab in tabs)
+        {
+            vm.NavigateCommand.Execute(tab);
+            Dispatcher.UIThread.RunJobs();
+        }
+
+        Assert.NotNull(window);
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void ThemeSwitching_LightAndDark_RendersNonBlankFramesAndSavesSnapshots()
     {
         var window = new MainWindow();

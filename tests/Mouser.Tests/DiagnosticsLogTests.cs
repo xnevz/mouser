@@ -181,6 +181,39 @@ public class DiagnosticsLogTests
     }
 
     [Fact]
+    public void CrashReporter_Handle_IsReentrancySafe_DoesNotStackOverflow()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), "mouser_crash_reentrant_" + Guid.NewGuid());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var logger = new FileLogger(tempDir);
+            var reporter = new CrashReporter(logger);
+            int callCount = 0;
+            CrashReporter.ToastAction = (t, b) =>
+            {
+                callCount++;
+                if (callCount < 50)
+                {
+                    reporter.Handle(new InvalidOperationException("Nested exception inside toast"), "Nested");
+                }
+            };
+
+            reporter.Handle(new InvalidOperationException("Initial exception"), "Initial");
+
+            Assert.Equal(1, callCount);
+        }
+        finally
+        {
+            CrashReporter.ToastAction = (title, body) => ToastService.Show(title, body);
+            if (Directory.Exists(tempDir))
+            {
+                try { Directory.Delete(tempDir, true); } catch { }
+            }
+        }
+    }
+
+    [Fact]
     public void FileLogger_RollsOver_WhenFileExceedsMaxSizeBytes()
     {
         string tempDir = Path.Combine(Path.GetTempPath(), "mouser-test-roll-" + Guid.NewGuid().ToString("N"));

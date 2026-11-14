@@ -17,6 +17,7 @@ public sealed class CrashReporter
 {
     private static readonly object SyncLock = new();
     private static bool _handlersInstalled;
+    [ThreadStatic] private static bool _isHandling;
 
     public static CrashReporter? Instance { get; set; }
 
@@ -80,6 +81,8 @@ public sealed class CrashReporter
 
     public void Handle(Exception ex, string source, bool isTerminating = false)
     {
+        if (_isHandling) return;
+        _isHandling = true;
         try
         {
             string? clipboardText = null;
@@ -150,6 +153,10 @@ public sealed class CrashReporter
         catch
         {
             // Catastrophic crash handling failure must never rethrow
+        }
+        finally
+        {
+            _isHandling = false;
         }
     }
 

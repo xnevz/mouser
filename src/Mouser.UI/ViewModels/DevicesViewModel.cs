@@ -11,25 +11,47 @@ using Mouser.UI.Services;
 
 namespace Mouser.UI.ViewModels;
 
+public sealed class ThisDeviceViewModel : ViewModelBase
+{
+    private readonly DevicesViewModel _owner;
+    public ThisDeviceViewModel(DevicesViewModel owner) => _owner = owner;
+    public string ThisDeviceName => _owner.ThisDeviceName;
+    public AndroidRemoteViewModel Remote => _owner.Remote;
+    internal void NotifyChanged() => OnPropertyChanged(nameof(ThisDeviceName));
+}
+
 public partial class DevicesViewModel : ViewModelBase
 {
     private readonly MouserHost _host;
     private readonly SettingsStore _settings;
 
+    public ThisDeviceViewModel ThisDevice { get; }
     public MonitorLayoutViewModel Layout { get; }
     public AndroidRemoteViewModel Remote { get; }
     public string ThisDeviceName => _host.DeviceName;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsThisDeviceSelected), nameof(IsComputerSelected), nameof(IsPhoneSelected))]
-    private object? _selected = "this";
+    private object? _selected;
 
-    public bool IsThisDeviceSelected => Selected is string s && s == "this";
+    partial void OnSelectedChanged(object? value)
+    {
+        if (value is string s && s == "this")
+        {
+            Selected = ThisDevice;
+        }
+    }
+
+    public bool IsThisDeviceSelected => Selected is ThisDeviceViewModel || (Selected is string s && s == "this");
     public bool IsComputerSelected => Selected is PeerViewModel;
     public bool IsPhoneSelected => Selected is RemoteClientItem;
 
     [RelayCommand]
-    private void Select(object? item) => Selected = item;
+    private void Select(object? item)
+    {
+        if (item is string s && s == "this") Selected = ThisDevice;
+        else Selected = item;
+    }
 
     public ObservableCollection<DeviceDetailViewModel> Devices { get; } = new();
     [ObservableProperty] private DeviceDetailViewModel? _selectedDevice;
@@ -74,6 +96,8 @@ public partial class DevicesViewModel : ViewModelBase
         Layout = layout;
         Remote = remote;
         _settings = settings;
+        ThisDevice = new ThisDeviceViewModel(this);
+        _selected = ThisDevice;
 
         _host.PairingRequested += OnHostPairingRequested;
         _host.PairingWindowChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(UpdatePairingWindowState);
@@ -94,6 +118,7 @@ public partial class DevicesViewModel : ViewModelBase
     public void Refresh()
     {
         OnPropertyChanged(nameof(ThisDeviceName));
+        ThisDevice?.NotifyChanged();
         UpdatePairingWindowState();
 
         var currentIds = new HashSet<string>();
