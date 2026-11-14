@@ -39,3 +39,9 @@ _deps/
 !.vscode/tasks.json
 *.swp
 *.lock
+
+# Android and signing
+*.keystore
+*.jks
+local.properties
+.gradle/
