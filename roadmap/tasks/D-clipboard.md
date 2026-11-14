@@ -113,6 +113,28 @@ public sealed record ClipboardSnapshot(string? Text, string? Html, byte[]? Image
 
 **Done when:** build; existing tests pass; a short manual harness (temporary `--clip-dump` argument is NOT allowed: use a unit test marked `[WindowsFact]` that is skipped in CI and prints format availability) proves you can read an image copied from the Snipping Tool. Report which approach worked.
 
+**Spike findings and resolution:**
+- **Avalonia 12.1.6 Platform Clipboard APIs:**
+  - `_clipboard` (`Avalonia.Input.Platform.IClipboard`) provides `ClearAsync()`, `FlushAsync()`, `SetDataAsync(IAsyncDataTransfer)`, `TryGetDataAsync()`.
+  - Extension methods on `ClipboardExtensions` provide `TryGetTextAsync`, `SetTextAsync`, `TryGetBitmapAsync` (`Task<Bitmap?>`), `SetBitmapAsync`, `TryGetFilesAsync` (`Task<IEnumerable<IStorageItem>?>`), and generic `TryGetValueAsync<T>` / `SetValueAsync<T>`.
+  - Avalonia's universal formats (`DataFormat`) only include built-ins for `Text`, `Bitmap`, and `File`. Avalonia lacks built-in HTML format support.
+  - Avalonia's `Bitmap` supports decoding from stream and saving to stream via `bitmap.Save(ms, new PngBitmapEncoderOptions())` without requiring external packages like `SixLabors.ImageSharp` (Skia encodes to PNG). However, `Bitmap` operations require Avalonia's rendering subsystem (`IPlatformRenderInterface`) to be initialized, failing in headless tests.
+  - `SetFilesAsync` accepts `IEnumerable<IStorageItem>`, which cannot be constructed from raw string paths without a storage provider.
+- **Win32 P/Invoke Solution (`Win32Clipboard`):**
+  - Implemented `src/Mouser.UI/Services/Win32Clipboard.cs` with retry-locking (5 retries, 20 ms delay) to avoid collisions with other applications holding the clipboard lock.
+  - Registered `"HTML Format"`: reads raw UTF-8 string, writes standard CF_HTML header (`Version:0.9`, `StartHTML`, `EndHTML`, `StartFragment`, `EndFragment`).
+  - Registered `"PNG"`: reads and writes raw PNG bytes directly without re-encoding or Skia dependency.
+  - `CF_HDROP` (15): reads file lists via `shell32!DragQueryFileW`, writes via `DROPFILES` struct with null-terminated Unicode paths.
+  - `CF_DIB` (8) / `CF_DIBV5` (17): detected via `IsClipboardFormatAvailable`, decoded via Avalonia's `TryGetBitmapAsync` into `Bitmap`, saved to PNG via `bitmap.Save(ms, new PngBitmapEncoderOptions())`.
+  - `CF_UNICODETEXT` (13): reads and writes standard UTF-16 strings.
+- **Interface & Test Double:**
+  - Added `Mouser.Core.Clipboard.ClipboardSnapshot(string? Text, string? Html, byte[]? ImagePng, IReadOnlyList<string>? Files)`.
+  - Widened `IClipboardAccess` with `Task<ClipboardSnapshot> GetSnapshotAsync()` and `Task SetSnapshotAsync(ClipboardSnapshot s)`.
+  - Implemented `AvaloniaClipboardAccess` combining `Win32Clipboard` and Avalonia clipboard extensions with non-Windows fallback.
+  - Updated `FakeClipboard` in `tests/Mouser.Tests/ViewModelTests.cs` to back both text and snapshot operations, keeping all existing tests passing.
+  - Added unit tests in `tests/Mouser.Tests/ClipboardSnapshotTests.cs` including snapshot condition tests, `FakeClipboard` tests, `Win32Clipboard` CF_HTML header formatting and round-trip tests, and a `ManualHarness_SnippingTool_ImageCapture` test marked `[WindowsFact(Skip = "...")]`.
+  - All 215 tests pass. No external packages required.
+
 ---
 
 ## D5: Image clips: store
