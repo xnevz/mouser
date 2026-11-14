@@ -12,7 +12,8 @@ public enum ActivityCategory
     Clipboard,
     File,
     Error,
-    Network
+    Network,
+    Security
 }
 
 public record ActivityEvent(DateTime Timestamp, ActivityCategory Category, string Message);

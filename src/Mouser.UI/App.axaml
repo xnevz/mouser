@@ -211,6 +211,7 @@
                         <NativeMenuItem Header="Pause clipboard" ToggleType="CheckBox" Click="OnTrayPauseClipboard" />
                         <NativeMenuItemSeparator />
                         <NativeMenuItem Header="Lock" Click="OnTrayLock" />
+                        <NativeMenuItem Header="Lock all devices" Click="OnTrayLockAllDevices" />
                         <NativeMenuItem Header="Quit" Click="OnTrayQuit" />
                     </NativeMenu>
                 </TrayIcon.Menu>

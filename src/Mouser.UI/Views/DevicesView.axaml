@@ -30,7 +30,13 @@
                 </Button>
 
                 <!-- Computers section header -->
-                <TextBlock Classes="label" Text="COMPUTERS" Margin="12,12,0,4" />
+                <Grid ColumnDefinitions="*,Auto" Margin="12,12,0,4">
+                    <TextBlock Classes="label" Text="COMPUTERS" VerticalAlignment="Center" />
+                    <Button Classes="secondary-btn" Content="Lock all"
+                            Command="{Binding LockAllDevicesCommand}"
+                            ToolTip.Tip="Send lock request to all paired computers"
+                            Padding="8,2" FontSize="11" Margin="0,0,4,0" />
+                </Grid>
                 <ItemsControl ItemsSource="{Binding Layout.Peers}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="vm:PeerViewModel">

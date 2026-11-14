@@ -49,6 +49,7 @@ public sealed class AppSettings
 
     public int AutoLockMinutes { get; set; } = 0;
     public bool LockWithWindows { get; set; } = true;
+    public bool AllowRemoteLock { get; set; } = false;
 
     /// <summary>Send copied text to paired computers and accept theirs.</summary>
     public bool ClipboardSyncEnabled { get; set; } = true;

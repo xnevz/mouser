@@ -258,4 +258,10 @@ public partial class DevicesViewModel : ViewModelBase
             _host.SyncPeers();
         }
     }
+
+    [RelayCommand]
+    public async Task LockAllDevicesAsync()
+    {
+        await _host.LockPeersAsync();
+    }
 }

@@ -75,6 +75,7 @@ public partial class SettingsViewModel : ViewModelBase
 
     // Security & App Lock properties
     [ObservableProperty] private bool _lockWithWindows;
+    [ObservableProperty] private bool _allowRemoteLock;
     [ObservableProperty] private int _autoLockMinutes;
 
     [ObservableProperty] private bool _isSettingPassphrase;
@@ -140,6 +141,7 @@ public partial class SettingsViewModel : ViewModelBase
         _dimScreensOnControl = s.DimScreensOnControl;
         _dimScreensOpacity = s.DimScreensOpacity;
         _lockWithWindows = s.LockWithWindows;
+        _allowRemoteLock = s.AllowRemoteLock;
         _autoLockMinutes = s.AutoLockMinutes;
 
         if (_appLock != null)
@@ -275,6 +277,7 @@ public partial class SettingsViewModel : ViewModelBase
     partial void OnNotificationsChanged(bool value) => Save(s => s.Notifications = value);
     partial void OnWarnElevatedWindowsChanged(bool value) => Save(s => s.WarnElevatedWindows = value);
     partial void OnLockWithWindowsChanged(bool value) => Save(s => s.LockWithWindows = value);
+    partial void OnAllowRemoteLockChanged(bool value) => Save(s => s.AllowRemoteLock = value);
     partial void OnAutoLockMinutesChanged(int value)
     {
         if (value >= 0) Save(s => s.AutoLockMinutes = value);

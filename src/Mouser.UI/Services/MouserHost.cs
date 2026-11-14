@@ -50,6 +50,9 @@ public sealed class MouserHost : IDisposable
     /// <summary>A file from a paired computer was verified and saved (sender name, path). Background thread.</summary>
     public event Action<string, string>? FileReceived;
 
+    /// <summary>A lock request arrived from a paired computer (sender device id). Background thread.</summary>
+    public event Action<string>? LockRequestedByPeer;
+
     public static string DefaultDownloadDirectory { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "Mouser");
 
@@ -231,6 +234,12 @@ public sealed class MouserHost : IDisposable
             transfer.HelloReceived += (sender, key) =>
             {
                 if (key.AsSpan().SequenceEqual(OwnKey)) _pairedWithUs[sender] = true;
+            };
+            transfer.LockRequested += sender =>
+            {
+                string from = PeerName(sender);
+                Log.Record(ActivityCategory.Security, $"Lock request received from {from}");
+                LockRequestedByPeer?.Invoke(sender);
             };
             transfer.PowerReceived += (sender, kind) =>
             {
@@ -444,6 +453,37 @@ public sealed class MouserHost : IDisposable
                 }));
             }
         }
+        if (tasks.Count > 0)
+        {
+            await Task.WhenAll(tasks);
+        }
+    }
+
+    public async Task LockPeersAsync()
+    {
+        if (Transfer == null) return;
+
+        var tasks = new List<Task>();
+        foreach (var peer in Peers)
+        {
+            if (peer.ControlPort <= 0) continue;
+            var key = SendKey(peer);
+            if (key == null) continue;
+
+            tasks.Add(Task.Run(async () =>
+            {
+                try
+                {
+                    await Transfer.SendLockAsync(new IPEndPoint(peer.IpAddress, peer.ControlPort), key);
+                    Log.Record(ActivityCategory.Security, $"Sent lock request to {peer.Hostname}");
+                }
+                catch (Exception e) when (e is SocketException or IOException)
+                {
+                    // Ignore unreachable peers
+                }
+            }));
+        }
+
         if (tasks.Count > 0)
         {
             await Task.WhenAll(tasks);

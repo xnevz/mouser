@@ -23,7 +23,7 @@ public sealed class PeerTransferService : IDisposable
     private const int KdfIterations = 200_000;
     private static readonly byte[] Magic = "MCH1"u8.ToArray();
 
-    private enum FrameType : byte { Clip = 1, FileStart = 2, FileChunk = 3, FileEnd = 4, Hello = 5, PowerEvent = 7 }
+    private enum FrameType : byte { Clip = 1, FileStart = 2, FileChunk = 3, FileEnd = 4, Hello = 5, LockRequest = 6, PowerEvent = 7 }
 
     private static readonly ConcurrentDictionary<(int, string), byte[]> KeyCache = new();
 
@@ -49,6 +49,9 @@ public sealed class PeerTransferService : IDisposable
 
     /// <summary>A power event arrived from a paired computer (sender device id, power event kind).</summary>
     public event Action<string, PowerEventKind>? PowerReceived;
+
+    /// <summary>A lock request arrived from a paired computer (sender device id).</summary>
+    public event Action<string>? LockRequested;
 
     /// <param name="receiveKeys">Keys that may have encrypted traffic from this sender (empty = not paired, reject).</param>
     public PeerTransferService(string deviceId, Func<string, IPAddress, IReadOnlyList<byte[]>> receiveKeys,
@@ -90,6 +93,14 @@ public sealed class PeerTransferService : IDisposable
         await client.ConnectAsync(target, ct);
         await using var stream = client.GetStream();
         await WriteFrameAsync(stream, FrameType.PowerEvent, key, new[] { (byte)kind }, ct);
+    }
+
+    public async Task SendLockAsync(IPEndPoint target, byte[] key, CancellationToken ct = default)
+    {
+        using var client = new TcpClient();
+        await client.ConnectAsync(target, ct);
+        await using var stream = client.GetStream();
+        await WriteFrameAsync(stream, FrameType.LockRequest, key, Array.Empty<byte>(), ct);
     }
 
     public async Task SendFileAsync(IPEndPoint target, byte[] key, string path, IProgress<FileTransferProgress>? progress = null,
@@ -171,6 +182,10 @@ public sealed class PeerTransferService : IDisposable
                 else if (type == FrameType.Hello)
                 {
                     HelloReceived?.Invoke(sender, key);
+                }
+                else if (type == FrameType.LockRequest)
+                {
+                    LockRequested?.Invoke(sender);
                 }
                 else if (type == FrameType.PowerEvent)
                 {

@@ -149,6 +149,30 @@ public sealed class PeerTransferTests : IDisposable
         Assert.False(received);
     }
 
+    [Fact]
+    public async Task LockRequest_IsDeliveredToThePairedPeer()
+    {
+        var received = new TaskCompletionSource<string>();
+        _b.LockRequested += sender => received.TrySetResult(sender);
+
+        await _a.SendLockAsync(B, _pairKey);
+
+        var from = await received.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.Equal("device-a", from);
+    }
+
+    [Fact]
+    public async Task LockRequest_WithWrongKey_IsDropped()
+    {
+        bool received = false;
+        _b.LockRequested += _ => received = true;
+
+        await _a.SendLockAsync(B, PeerTransferService.DeriveKey(111_111, "device-b"));
+        await Task.Delay(300);
+
+        Assert.False(received);
+    }
+
     public void Dispose()
     {
         _a.Dispose();

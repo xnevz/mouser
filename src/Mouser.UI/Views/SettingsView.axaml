@@ -449,6 +449,13 @@
                             </Grid>
                             <Grid ColumnDefinitions="*,Auto" Margin="0,4">
                                 <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Let other devices lock this computer" />
+                                    <TextBlock Classes="hint" Text="Automatically lock Mouser on this computer when you trigger Lock All on another device." />
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding AllowRemoteLock}" OnContent="" OffContent="" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                <StackPanel Spacing="2">
                                     <TextBlock Classes="section-title" FontSize="13" Text="Lock after inactivity" />
                                     <TextBlock Classes="hint" Text="Lock Mouser after this many minutes of inactivity (0 = never)." />
                                 </StackPanel>

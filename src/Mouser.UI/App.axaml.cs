@@ -30,6 +30,7 @@ public partial class App : Application
     private bool _quitAfterUnlock;
     private bool _hasShownTrayToast;
     private NativeMenuItem? _lockItem;
+    private NativeMenuItem? _lockAllItem;
     private NativeMenuItem? _pauseSharingItem;
     private NativeMenuItem? _pauseClipboardItem;
     private MainViewModel? _mainViewModel;
@@ -216,6 +217,11 @@ public partial class App : Application
                         _lockItem = item;
                         item.IsVisible = _appLock?.IsConfigured ?? false;
                     }
+                    else if (item.Header == "Lock all devices")
+                    {
+                        _lockAllItem = item;
+                        item.IsVisible = _appLock?.IsConfigured ?? false;
+                    }
                     else if (item.Header == "Pause sharing")
                     {
                         _pauseSharingItem = item;
@@ -235,6 +241,14 @@ public partial class App : Application
                 }
             }
         }
+
+            _host.LockRequestedByPeer += sender =>
+            {
+                if (settings.Current.AllowRemoteLock && _appLock is { IsConfigured: true })
+                {
+                    Dispatcher.UIThread.Post(() => _appLock.Lock());
+                }
+            };
 
             window.Opened += async (_, _) =>
             {
@@ -570,22 +584,38 @@ public partial class App : Application
 
     private void UpdateLockTrayItem()
     {
-        if (_lockItem == null) return;
+        void Update()
+        {
+            bool visible = _appLock?.IsConfigured ?? false;
+            if (_lockItem != null) _lockItem.IsVisible = visible;
+            if (_lockAllItem != null) _lockAllItem.IsVisible = visible;
+        }
+
+        if (_lockItem == null && _lockAllItem == null) return;
         try
         {
             if (Dispatcher.UIThread.CheckAccess())
-                _lockItem.IsVisible = _appLock?.IsConfigured ?? false;
+                Update();
             else
-                Dispatcher.UIThread.Post(() => _lockItem.IsVisible = _appLock?.IsConfigured ?? false);
+                Dispatcher.UIThread.Post(Update);
         }
         catch
         {
-            _lockItem.IsVisible = _appLock?.IsConfigured ?? false;
+            Update();
         }
     }
 
     private void OnTrayLock(object? sender, EventArgs e)
     {
+        if (_appLock is { IsConfigured: true })
+        {
+            _appLock.Lock();
+        }
+    }
+
+    private void OnTrayLockAllDevices(object? sender, EventArgs e)
+    {
+        _ = _host?.LockPeersAsync();
         if (_appLock is { IsConfigured: true })
         {
             _appLock.Lock();
