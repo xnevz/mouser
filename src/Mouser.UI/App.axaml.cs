@@ -22,6 +22,7 @@ public partial class App : Application
     private ClipboardStorageService? _clipboardStorage;
     private DispatcherTimer? _refreshTimer;
     private IDisposable? _hotkey;
+    private IDisposable? _pasteFromPeerHotkey;
     private IDisposable? _panicHotkey;
     private QuickPasteWindow? _quickPaste;
     private MainWindow? _window;
@@ -290,6 +291,31 @@ public partial class App : Application
                         : $"{newHotkey.HotkeyText} is taken by another app, so quick paste is unavailable.";
                 };
 
+                void RegisterPasteFromPeerHotkey()
+                {
+                    _pasteFromPeerHotkey?.Dispose();
+                    _pasteFromPeerHotkey = null;
+                    var peerHotkeyString = settings.Current.Hotkeys.PasteFromPeer;
+                    if (!string.IsNullOrWhiteSpace(peerHotkeyString))
+                    {
+                        var peerHotkey = new QuickPasteHotkey(peerHotkeyString);
+                        peerHotkey.Pressed += previous =>
+                        {
+                            var peerName = _host?.Kvm?.LastPeerName;
+                            Dispatcher.UIThread.Post(() => ShowQuickPaste(previous, vm, peerName));
+                        };
+                        _pasteFromPeerHotkey = peerHotkey;
+                    }
+                }
+
+                RegisterPasteFromPeerHotkey();
+
+                vm.Settings.Hotkeys.PasteFromPeerHotkeyChanged += () =>
+                {
+                    if (!OperatingSystem.IsWindows()) return;
+                    RegisterPasteFromPeerHotkey();
+                };
+
                 if (!string.IsNullOrWhiteSpace(settings.Current.PanicWipeHotkey))
                 {
                     var panic = new PanicWipeHotkey(settings.Current.PanicWipeHotkey);
@@ -359,6 +385,7 @@ public partial class App : Application
                 _clipboardWatcher?.Dispose();
                 _refreshTimer.Stop();
                 _hotkey?.Dispose();
+                _pasteFromPeerHotkey?.Dispose();
                 _panicHotkey?.Dispose();
                 _host.Dispose();
                 _clipboardStorage?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(2));
@@ -369,17 +396,25 @@ public partial class App : Application
     }
 
     /// <summary>Opens the quick-paste overlay; picking a clip pastes it into <paramref name="previous"/>.</summary>
-    internal bool ShowQuickPaste(nint previous, MainViewModel vm)
+    internal bool ShowQuickPaste(nint previous, MainViewModel vm, string? deviceFilter = null)
     {
         if (_appLock is { IsLocked: true }) return false;
         if (!OperatingSystem.IsWindows() || _clipboardStorage == null) return false;
         if (_quickPaste != null)
         {
+            if (!string.IsNullOrWhiteSpace(deviceFilter) && _quickPaste.DataContext is QuickPasteViewModel existingModel)
+            {
+                existingModel.DeviceFilter = deviceFilter;
+            }
             _quickPaste.Activate();
             return true;
         }
 
         var model = new QuickPasteViewModel(_clipboardStorage, _clipboardAccess);
+        if (!string.IsNullOrWhiteSpace(deviceFilter))
+        {
+            model.DeviceFilter = deviceFilter;
+        }
         var window = new QuickPasteWindow { DataContext = model };
         _quickPaste = window;
         bool closed = false;

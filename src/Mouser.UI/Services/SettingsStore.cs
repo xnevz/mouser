@@ -86,6 +86,7 @@ public sealed class HotkeySettings
     public string ReturnControl { get; set; } = "Ctrl+Alt+Esc";
     public string LockCursor { get; set; } = "";
     public string QuickPaste { get; set; } = "Win+Alt+V";
+    public string PasteFromPeer { get; set; } = "Ctrl+Shift+V";
     public bool PanicDoublePressCtrl { get; set; } = true;
     public string Jump1 { get; set; } = "Ctrl+Alt+1";
     public string Jump2 { get; set; } = "Ctrl+Alt+2";

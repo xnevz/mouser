@@ -22,6 +22,23 @@ public partial class QuickPasteViewModel : ViewModelBase
     [ObservableProperty] private ClipboardItemViewModel? _selected;
     [ObservableProperty] private string? _activeTransformName;
     [ObservableProperty] private string _selectedTab = "All";
+    [ObservableProperty] private string? _deviceFilter;
+
+    public bool HasDeviceFilter => !string.IsNullOrWhiteSpace(DeviceFilter);
+    public string DeviceFilterText => $"From {DeviceFilter} ✕";
+
+    [RelayCommand]
+    public void ClearDeviceFilter()
+    {
+        DeviceFilter = null;
+    }
+
+    partial void OnDeviceFilterChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasDeviceFilter));
+        OnPropertyChanged(nameof(DeviceFilterText));
+        _ = LoadAsync();
+    }
 
     public ObservableCollection<QuickPasteTabViewModel> Tabs { get; } = new();
     public ObservableCollection<ClipboardItemViewModel> Items { get; } = new();
@@ -137,42 +154,50 @@ public partial class QuickPasteViewModel : ViewModelBase
         }
 
         List<ClipboardPayload> clips;
+        int fetchCount = HasDeviceFilter ? 100 : MaxItems;
 
         if (string.Equals(SelectedTab, "Pinned", StringComparison.OrdinalIgnoreCase))
         {
             if (string.IsNullOrWhiteSpace(Query))
             {
-                clips = (await _storage.GetRecentClipsAsync(MaxItems, favoritesOnly: true)).ToList();
+                clips = (await _storage.GetRecentClipsAsync(fetchCount, favoritesOnly: true)).ToList();
             }
             else
             {
-                var hits = await _storage.SearchClipsAsync(Query, 50);
-                clips = hits.Where(c => c.IsFavorite).Take(MaxItems).ToList();
+                var hits = await _storage.SearchClipsAsync(Query, HasDeviceFilter ? 100 : 50);
+                clips = hits.Where(c => c.IsFavorite).ToList();
             }
         }
         else if (!string.Equals(SelectedTab, "All", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(SelectedTab))
         {
-            var tagClips = await _storage.GetClipsByTagAsync(SelectedTab, 50);
+            var tagClips = await _storage.GetClipsByTagAsync(SelectedTab, HasDeviceFilter ? 100 : 50);
             if (string.IsNullOrWhiteSpace(Query))
             {
-                clips = tagClips.Take(MaxItems).ToList();
+                clips = tagClips.ToList();
             }
             else
             {
                 clips = tagClips.Where(c =>
                     (c.TextContent != null && c.TextContent.Contains(Query, StringComparison.OrdinalIgnoreCase)) ||
                     (c.SourceApp != null && c.SourceApp.Contains(Query, StringComparison.OrdinalIgnoreCase))
-                ).Take(MaxItems).ToList();
+                ).ToList();
             }
         }
         else
         {
             // Starred clips first when not searching: they're the ones people paste over and over.
             clips = string.IsNullOrWhiteSpace(Query)
-                ? (await _storage.GetRecentClipsAsync(MaxItems, favoritesOnly: true))
-                    .Concat(await _storage.GetRecentClipsAsync(MaxItems)).DistinctBy(c => c.Id).Take(MaxItems).ToList()
-                : (await _storage.SearchClipsAsync(Query, MaxItems)).ToList();
+                ? (await _storage.GetRecentClipsAsync(fetchCount, favoritesOnly: true))
+                    .Concat(await _storage.GetRecentClipsAsync(fetchCount)).DistinctBy(c => c.Id).ToList()
+                : (await _storage.SearchClipsAsync(Query, HasDeviceFilter ? 100 : MaxItems)).ToList();
         }
+
+        if (HasDeviceFilter)
+        {
+            clips = clips.Where(c => string.Equals(c.SourceDevice, DeviceFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        clips = clips.Take(MaxItems).ToList();
 
         Items.Clear();
         foreach (var clip in clips)

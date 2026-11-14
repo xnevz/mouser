@@ -367,4 +367,59 @@ public class QuickPasteTests
         Assert.False(invalid.IsRegistered);
         Assert.Equal("NotAValidHotkey", invalid.HotkeyText);
     }
+
+    [Fact]
+    public async Task DeviceFilter_FiltersClipsBySourceDevice()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        await app.Storage.SaveClipAsync(new ClipboardPayload { TextContent = "From laptop", SourceDevice = "Laptop-Pro" });
+        await app.Storage.SaveClipAsync(new ClipboardPayload { TextContent = "From desktop", SourceDevice = "Desktop-PC" });
+
+        var paste = new QuickPasteViewModel(app.Storage);
+        paste.DeviceFilter = "Laptop-Pro";
+        await paste.LoadAsync();
+
+        Assert.True(paste.HasDeviceFilter);
+        Assert.Equal("From Laptop-Pro ✕", paste.DeviceFilterText);
+        var item = Assert.Single(paste.Items);
+        Assert.Equal("From laptop", item.Content);
+        Assert.Equal("Laptop-Pro", item.SourceDevice);
+    }
+
+    [Fact]
+    public async Task ClearDeviceFilter_RestoresAllClips()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        await app.Storage.SaveClipAsync(new ClipboardPayload { TextContent = "From laptop", SourceDevice = "Laptop-Pro" });
+        await app.Storage.SaveClipAsync(new ClipboardPayload { TextContent = "From desktop", SourceDevice = "Desktop-PC" });
+
+        var paste = new QuickPasteViewModel(app.Storage);
+        paste.DeviceFilter = "Laptop-Pro";
+        await paste.LoadAsync();
+
+        Assert.Single(paste.Items);
+
+        paste.ClearDeviceFilter();
+        await paste.LoadAsync();
+
+        Assert.False(paste.HasDeviceFilter);
+        Assert.Equal(2, paste.Items.Count);
+    }
+
+    [Fact]
+    public async Task DeviceFilter_WhenNoClipsMatch_IsEmptyIsTrue()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        await app.Storage.SaveClipAsync(new ClipboardPayload { TextContent = "From desktop", SourceDevice = "Desktop-PC" });
+
+        var paste = new QuickPasteViewModel(app.Storage);
+        paste.DeviceFilter = "NonExistentDevice";
+        await paste.LoadAsync();
+
+        Assert.Empty(paste.Items);
+        Assert.True(paste.IsEmpty);
+    }
 }

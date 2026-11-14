@@ -58,11 +58,13 @@ public sealed class KvmController : IDisposable
     private DateTime _lastForegroundCheck = DateTime.MinValue;
     private static readonly TimeSpan ForegroundCacheDuration = TimeSpan.FromMilliseconds(100);
     private DateTime _lastCtrlPress = DateTime.MinValue;
+    private string? _lastPeerName;
 
     public bool IsRunning { get; private set; }
     public bool IsScreenLocked => _edges.IsScreenLocked;
     public string? ActivePeerId { get { lock (_lock) return _active?.Id; } }
     public string? ActivePeerName { get { lock (_lock) return _active?.Name; } }
+    public string? LastPeerName { get { lock (_lock) return _lastPeerName ?? _active?.Name; } }
     public IReadOnlyList<Monitor> LocalMonitors { get { lock (_lock) return _localMonitors; } }
     public KvmOptions Options { get; private set; } = new();
 
@@ -272,6 +274,7 @@ public sealed class KvmController : IDisposable
             if (_active?.Id == peerId) return true;
             if (_active != null) ReturnToLocal(null);
             _active = peer;
+            _lastPeerName = peer.Name;
             peer.MouseXScaler.Reset();
             peer.MouseYScaler.Reset();
             peer.VScrollScaler.Reset();
@@ -680,6 +683,7 @@ public sealed class KvmController : IDisposable
         }
 
         _active = peer;
+        _lastPeerName = peer.Name;
         peer.MouseXScaler.Reset();
         peer.MouseYScaler.Reset();
         peer.VScrollScaler.Reset();
@@ -700,6 +704,7 @@ public sealed class KvmController : IDisposable
     {
         var peer = _active;
         if (peer == null) return;
+        _lastPeerName = peer.Name;
 
         _coalesceTimer?.Dispose();
         _coalesceTimer = null;

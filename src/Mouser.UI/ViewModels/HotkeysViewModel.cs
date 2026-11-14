@@ -13,6 +13,7 @@ public enum HotkeyTarget
     ReturnControl,
     LockCursor,
     QuickPaste,
+    PasteFromPeer,
     NextComputer,
     Jump1,
     Jump2,
@@ -41,6 +42,10 @@ public partial class HotkeysViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(QuickPasteDisplay))]
     private string _quickPaste;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PasteFromPeerDisplay))]
+    private string _pasteFromPeer;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(NextComputerDisplay))]
@@ -91,6 +96,7 @@ public partial class HotkeysViewModel : ViewModelBase
         nameof(IsListeningReturnControl),
         nameof(IsListeningLockCursor),
         nameof(IsListeningQuickPaste),
+        nameof(IsListeningPasteFromPeer),
         nameof(IsListeningNextComputer),
         nameof(IsListeningJump1),
         nameof(IsListeningJump2),
@@ -104,6 +110,7 @@ public partial class HotkeysViewModel : ViewModelBase
         nameof(ReturnControlButtonText),
         nameof(LockCursorButtonText),
         nameof(QuickPasteButtonText),
+        nameof(PasteFromPeerButtonText),
         nameof(NextComputerButtonText),
         nameof(Jump1ButtonText),
         nameof(Jump2ButtonText),
@@ -120,11 +127,13 @@ public partial class HotkeysViewModel : ViewModelBase
     private string? _conflictMessage;
 
     public event Action? QuickPasteHotkeyChanged;
+    public event Action? PasteFromPeerHotkeyChanged;
 
     public bool IsListening => ActiveListening != HotkeyTarget.None;
     public bool IsListeningReturnControl => ActiveListening == HotkeyTarget.ReturnControl;
     public bool IsListeningLockCursor => ActiveListening == HotkeyTarget.LockCursor;
     public bool IsListeningQuickPaste => ActiveListening == HotkeyTarget.QuickPaste;
+    public bool IsListeningPasteFromPeer => ActiveListening == HotkeyTarget.PasteFromPeer;
     public bool IsListeningNextComputer => ActiveListening == HotkeyTarget.NextComputer;
     public bool IsListeningJump1 => ActiveListening == HotkeyTarget.Jump1;
     public bool IsListeningJump2 => ActiveListening == HotkeyTarget.Jump2;
@@ -139,6 +148,7 @@ public partial class HotkeysViewModel : ViewModelBase
     public string ReturnControlDisplay => string.IsNullOrWhiteSpace(ReturnControl) ? "None" : ReturnControl;
     public string LockCursorDisplay => string.IsNullOrWhiteSpace(LockCursor) ? "None" : LockCursor;
     public string QuickPasteDisplay => string.IsNullOrWhiteSpace(QuickPaste) ? "None" : QuickPaste;
+    public string PasteFromPeerDisplay => string.IsNullOrWhiteSpace(PasteFromPeer) ? "None" : PasteFromPeer;
     public string NextComputerDisplay => string.IsNullOrWhiteSpace(NextComputer) ? "None" : NextComputer;
     public string Jump1Display => string.IsNullOrWhiteSpace(Jump1) ? "None" : Jump1;
     public string Jump2Display => string.IsNullOrWhiteSpace(Jump2) ? "None" : Jump2;
@@ -153,6 +163,7 @@ public partial class HotkeysViewModel : ViewModelBase
     public string ReturnControlButtonText => IsListeningReturnControl ? "Press keys... Esc to cancel, Backspace to clear" : "Change";
     public string LockCursorButtonText => IsListeningLockCursor ? "Press keys... Esc to cancel, Backspace to clear" : "Change";
     public string QuickPasteButtonText => IsListeningQuickPaste ? "Press keys... Esc to cancel, Backspace to clear" : "Change";
+    public string PasteFromPeerButtonText => IsListeningPasteFromPeer ? "Press keys... Esc to cancel, Backspace to clear" : "Change";
     public string NextComputerButtonText => IsListeningNextComputer ? "Press keys... Esc to cancel, Backspace to clear" : "Change";
     public string Jump1ButtonText => IsListeningJump1 ? "Press keys... Esc to cancel, Backspace to clear" : "Change";
     public string Jump2ButtonText => IsListeningJump2 ? "Press keys... Esc to cancel, Backspace to clear" : "Change";
@@ -173,6 +184,7 @@ public partial class HotkeysViewModel : ViewModelBase
         _returnControl = h.ReturnControl;
         _lockCursor = h.LockCursor;
         _quickPaste = h.QuickPaste;
+        _pasteFromPeer = h.PasteFromPeer;
         _panicDoublePressCtrl = h.PanicDoublePressCtrl;
         _nextComputer = h.NextComputer;
         _jump1 = h.Jump1;
@@ -239,6 +251,25 @@ public partial class HotkeysViewModel : ViewModelBase
         _settings.Save();
         _host.ApplyKvmOptions();
         QuickPasteHotkeyChanged?.Invoke();
+    }
+
+    [RelayCommand]
+    private void ToggleListeningPasteFromPeer()
+    {
+        ConflictMessage = null;
+        ActiveListening = ActiveListening == HotkeyTarget.PasteFromPeer ? HotkeyTarget.None : HotkeyTarget.PasteFromPeer;
+    }
+
+    [RelayCommand]
+    private void ResetPasteFromPeer()
+    {
+        ConflictMessage = null;
+        ActiveListening = HotkeyTarget.None;
+        PasteFromPeer = "Ctrl+Shift+V";
+        _settings.Current.Hotkeys.PasteFromPeer = PasteFromPeer;
+        _settings.Save();
+        _host.ApplyKvmOptions();
+        PasteFromPeerHotkeyChanged?.Invoke();
     }
 
     [RelayCommand]
@@ -496,6 +527,11 @@ public partial class HotkeysViewModel : ViewModelBase
                 _settings.Current.Hotkeys.QuickPaste = "";
                 QuickPasteHotkeyChanged?.Invoke();
                 break;
+            case HotkeyTarget.PasteFromPeer:
+                PasteFromPeer = "";
+                _settings.Current.Hotkeys.PasteFromPeer = "";
+                PasteFromPeerHotkeyChanged?.Invoke();
+                break;
             case HotkeyTarget.NextComputer:
                 NextComputer = "";
                 _settings.Current.Hotkeys.NextComputer = "";
@@ -553,6 +589,7 @@ public partial class HotkeysViewModel : ViewModelBase
             (HotkeyTarget.ReturnControl, "Return control", ReturnControl),
             (HotkeyTarget.LockCursor, "Lock cursor", LockCursor),
             (HotkeyTarget.QuickPaste, "Quick paste overlay", QuickPaste),
+            (HotkeyTarget.PasteFromPeer, "Paste from other computer", PasteFromPeer),
             (HotkeyTarget.NextComputer, "Next computer", NextComputer),
             (HotkeyTarget.Jump1, "Jump to computer 1", Jump1),
             (HotkeyTarget.Jump2, "Jump to computer 2", Jump2),
@@ -588,6 +625,11 @@ public partial class HotkeysViewModel : ViewModelBase
                 QuickPaste = text;
                 _settings.Current.Hotkeys.QuickPaste = text;
                 QuickPasteHotkeyChanged?.Invoke();
+                break;
+            case HotkeyTarget.PasteFromPeer:
+                PasteFromPeer = text;
+                _settings.Current.Hotkeys.PasteFromPeer = text;
+                PasteFromPeerHotkeyChanged?.Invoke();
                 break;
             case HotkeyTarget.NextComputer:
                 NextComputer = text;

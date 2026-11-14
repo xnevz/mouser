@@ -38,22 +38,29 @@
 
             <!-- Tabs: All / Pinned / each tag -->
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                <ItemsControl ItemsSource="{Binding Tabs}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal" Spacing="6" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="vm:QuickPasteTabViewModel">
-                            <Button Classes="tab-chip"
-                                    Classes.active="{Binding IsSelected}"
-                                    Content="{Binding DisplayName}"
-                                    Command="{Binding $parent[Window].((vm:QuickPasteViewModel)DataContext).SelectTabCommand}"
-                                    CommandParameter="{Binding Name}" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Classes="tab-chip active"
+                            IsVisible="{Binding HasDeviceFilter}"
+                            Content="{Binding DeviceFilterText}"
+                            Command="{Binding ClearDeviceFilterCommand}"
+                            ToolTip.Tip="Clear device filter" />
+                    <ItemsControl ItemsSource="{Binding Tabs}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="6" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:QuickPasteTabViewModel">
+                                <Button Classes="tab-chip"
+                                        Classes.active="{Binding IsSelected}"
+                                        Content="{Binding DisplayName}"
+                                        Command="{Binding $parent[Window].((vm:QuickPasteViewModel)DataContext).SelectTabCommand}"
+                                        CommandParameter="{Binding Name}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
             </ScrollViewer>
 
             <TextBlock Classes="hint" IsVisible="{Binding IsEmpty}" Margin="4"

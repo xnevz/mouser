@@ -77,6 +77,28 @@
                 </StackPanel>
             </Grid>
 
+            <!-- Row: Paste from other computer -->
+            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="section-title" FontSize="13" Text="Paste from other computer" />
+                    <TextBlock Classes="hint" Text="Open the clipboard overlay filtered to clips copied on the computer you last came from." />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
+                            BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding PasteFromPeerDisplay}" FontSize="12"
+                                   FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+                    </Border>
+                    <Button Classes="secondary-btn" Content="{Binding PasteFromPeerButtonText}"
+                            Command="{Binding ToggleListeningPasteFromPeerCommand}"
+                            ToolTip.Tip="Change paste from other computer hotkey" />
+                    <Button Classes="secondary-btn" Content="Reset"
+                            Command="{Binding ResetPasteFromPeerCommand}"
+                            ToolTip.Tip="Reset to Ctrl+Shift+V" />
+                </StackPanel>
+            </Grid>
+
             <!-- Row 4: Panic escape -->
             <Grid ColumnDefinitions="*,Auto" Margin="0,4">
                 <StackPanel Spacing="2">

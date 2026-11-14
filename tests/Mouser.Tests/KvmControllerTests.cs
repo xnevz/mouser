@@ -850,4 +850,38 @@ public class KvmControllerTests
         Assert.Contains("char 0x00E9 down", events);
         Assert.Contains("char 0x00E9 up", events);
     }
+
+    [Fact]
+    public async Task LastPeerName_RecordsNameOnEdgeTransition_AndPersistsAfterReturn()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        Assert.Null(rig.Kvm.LastPeerName);
+
+        // Edge transition
+        rig.CrossRight();
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+        Assert.Equal("Studio PC", rig.Kvm.LastPeerName);
+
+        // Return to local (Scroll Lock returns control)
+        Assert.True(rig.Capture.Key(0x91, true));
+        Assert.Null(rig.Kvm.ActivePeerId);
+        Assert.Equal("Studio PC", rig.Kvm.LastPeerName);
+    }
+
+    [Fact]
+    public async Task LastPeerName_RecordsNameOnJumpTo_AndPersistsAfterReturn()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        Assert.Null(rig.Kvm.LastPeerName);
+
+        // JumpTo
+        Assert.True(rig.Kvm.JumpTo("peer"));
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+        Assert.Equal("Studio PC", rig.Kvm.LastPeerName);
+
+        // Return to local
+        Assert.True(rig.Capture.Key(0x91, true));
+        Assert.Null(rig.Kvm.ActivePeerId);
+        Assert.Equal("Studio PC", rig.Kvm.LastPeerName);
+    }
 }
