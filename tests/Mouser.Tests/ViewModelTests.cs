@@ -591,4 +591,52 @@ public class ViewModelTests
         history.SelectedClip = null;
         Assert.Null(history.SelectedClip);
     }
+
+    [Fact]
+    public async Task DevicesViewModel_MergesOnlineAndOfflinePeers()
+    {
+        await using var app = new AppFixture();
+        app.Settings.Current.Peers["offline-1"] = new PeerSettings { Name = "Desktop-Old" };
+        var vm = new DevicesViewModel(app.Host, app.Settings, app.Main.AndroidRemote);
+
+        Assert.Single(vm.Devices);
+        Assert.Equal("Desktop-Old", vm.Devices[0].Name);
+        Assert.False(vm.Devices[0].IsOnline);
+    }
+
+    [Fact]
+    public async Task DevicesViewModel_PairsComputer()
+    {
+        await using var app = new AppFixture();
+        var vm = new DevicesViewModel(app.Host, app.Settings, app.Main.AndroidRemote);
+        var device = new DeviceDetailViewModel("peer-1", DeviceKind.Computer)
+        {
+            Name = "Laptop-1",
+            PinText = "123456"
+        };
+        vm.Devices.Add(device);
+
+        await vm.PairComputerCommand.ExecuteAsync(device);
+
+        Assert.True(device.IsPaired);
+        Assert.True(app.Settings.Current.Peers.ContainsKey("peer-1"));
+        Assert.Equal(123456, app.Settings.Current.Peers["peer-1"].Pin);
+    }
+
+    [Fact]
+    public async Task DevicesViewModel_ForgetsComputer()
+    {
+        await using var app = new AppFixture();
+        app.Settings.Current.Peers["saved-1"] = new PeerSettings { Name = "Desktop-Saved", Pin = 654321 };
+        var vm = new DevicesViewModel(app.Host, app.Settings, app.Main.AndroidRemote);
+
+        Assert.Single(vm.Devices);
+        var device = vm.Devices[0];
+        Assert.Equal("saved-1", device.Id);
+
+        vm.ForgetDeviceCommand.Execute(device);
+
+        Assert.Empty(vm.Devices);
+        Assert.False(app.Settings.Current.Peers.ContainsKey("saved-1"));
+    }
 }

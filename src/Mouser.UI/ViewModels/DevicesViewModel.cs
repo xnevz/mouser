@@ -1,0 +1,197 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Mouser.Core.Kvm;
+using Mouser.Core.Networking;
+using Mouser.UI.Services;
+
+namespace Mouser.UI.ViewModels;
+
+public partial class DevicesViewModel : ViewModelBase
+{
+    private readonly MouserHost _host;
+    private readonly SettingsStore _settings;
+    private readonly AndroidRemoteViewModel _phoneRemote;
+
+    public ObservableCollection<DeviceDetailViewModel> Devices { get; } = new();
+    [ObservableProperty] private DeviceDetailViewModel? _selectedDevice;
+
+    public DevicesViewModel(MouserHost host, SettingsStore settings, AndroidRemoteViewModel phoneRemote)
+    {
+        _host = host;
+        _settings = settings;
+        _phoneRemote = phoneRemote;
+        Refresh();
+    }
+
+    public void Refresh()
+    {
+        var currentIds = new HashSet<string>();
+
+        // 1. Online computers from _host.Peers
+        foreach (var peer in _host.Peers)
+        {
+            currentIds.Add(peer.DeviceId);
+            var existing = Devices.FirstOrDefault(d => d.Id == peer.DeviceId && d.Kind == DeviceKind.Computer);
+            bool isPaired = _settings.Current.Peers.TryGetValue(peer.DeviceId, out var saved) && saved.Pin != null;
+            var placement = saved?.Placement ?? PeerPlacement.None;
+            if (existing == null)
+            {
+                existing = new DeviceDetailViewModel(peer.DeviceId, DeviceKind.Computer)
+                {
+                    Name = peer.Hostname,
+                    IpAddress = peer.IpAddress.ToString(),
+                    OperatingSystem = peer.OperatingSystem,
+                    IsOnline = true,
+                    IsPaired = isPaired,
+                    Placement = placement,
+                    StatusText = isPaired ? "Connected" : "Not paired"
+                };
+                Devices.Add(existing);
+            }
+            else
+            {
+                existing.Name = peer.Hostname;
+                existing.IpAddress = peer.IpAddress.ToString();
+                existing.OperatingSystem = peer.OperatingSystem;
+                existing.IsOnline = true;
+                existing.IsPaired = isPaired;
+                existing.Placement = placement;
+                existing.StatusText = isPaired ? "Connected" : "Not paired";
+            }
+        }
+
+        // 2. Offline saved computers from _settings.Current.Peers not in _host.Peers
+        foreach (var (id, peerSettings) in _settings.Current.Peers)
+        {
+            if (!_host.Peers.Any(p => p.DeviceId == id))
+            {
+                currentIds.Add(id);
+                var existing = Devices.FirstOrDefault(d => d.Id == id && d.Kind == DeviceKind.Computer);
+                string name = string.IsNullOrEmpty(peerSettings.Name) ? id : peerSettings.Name;
+                if (existing == null)
+                {
+                    existing = new DeviceDetailViewModel(id, DeviceKind.Computer)
+                    {
+                        Name = name,
+                        IsOnline = false,
+                        IsPaired = peerSettings.Pin != null,
+                        Placement = peerSettings.Placement,
+                        StatusText = "Offline"
+                    };
+                    Devices.Add(existing);
+                }
+                else
+                {
+                    existing.Name = name;
+                    existing.IsOnline = false;
+                    existing.IsPaired = peerSettings.Pin != null;
+                    existing.Placement = peerSettings.Placement;
+                    existing.StatusText = "Offline";
+                }
+            }
+        }
+
+        // 3. Phones from _phoneRemote.Clients
+        foreach (var client in _phoneRemote.Clients)
+        {
+            currentIds.Add(client.Address);
+            var existing = Devices.FirstOrDefault(d => d.Id == client.Address && d.Kind == DeviceKind.Phone);
+            if (existing == null)
+            {
+                existing = new DeviceDetailViewModel(client.Address, DeviceKind.Phone)
+                {
+                    Name = client.Address,
+                    IpAddress = client.Address,
+                    IsOnline = client.IsActive,
+                    IsPaired = true,
+                    StatusText = client.IsActive ? "Connected" : "Idle"
+                };
+                Devices.Add(existing);
+            }
+            else
+            {
+                existing.Name = client.Address;
+                existing.IpAddress = client.Address;
+                existing.IsOnline = client.IsActive;
+                existing.IsPaired = true;
+                existing.StatusText = client.IsActive ? "Connected" : "Idle";
+            }
+        }
+
+        // Remove devices that are no longer present
+        for (int i = Devices.Count - 1; i >= 0; i--)
+        {
+            if (!currentIds.Contains(Devices[i].Id))
+                Devices.RemoveAt(i);
+        }
+
+        if (SelectedDevice != null && !Devices.Contains(SelectedDevice))
+            SelectedDevice = Devices.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    public async Task PairComputerAsync(DeviceDetailViewModel? d)
+    {
+        if (d == null || !d.IsComputer || string.IsNullOrWhiteSpace(d.PinText)) return;
+        if (!int.TryParse(d.PinText, out int pin)) return;
+
+        var peer = _host.Peers.FirstOrDefault(p => p.DeviceId == d.Id);
+        if (peer != null)
+        {
+            await _host.PairPeerAsync(peer, pin);
+        }
+        else
+        {
+            // If offline or discovered, save pin directly
+            if (!_settings.Current.Peers.TryGetValue(d.Id, out var saved))
+                _settings.Current.Peers[d.Id] = saved = new PeerSettings { Name = d.Name };
+            saved.Pin = pin;
+            if (saved.Placement == PeerPlacement.None) saved.Placement = PeerPlacement.Right;
+            _settings.Save();
+            _host.SyncPeers();
+        }
+        Refresh();
+    }
+
+    [RelayCommand]
+    public void ForgetDevice(DeviceDetailViewModel? d)
+    {
+        if (d == null) return;
+        if (d.IsComputer)
+        {
+            _host.ForgetPeer(d.Id);
+            Refresh();
+        }
+        else if (d.IsPhone)
+        {
+            var client = _phoneRemote.Clients.FirstOrDefault(c => c.Address == d.Id);
+            if (client != null)
+            {
+                _phoneRemote.ForgetCommand.Execute(client);
+                Refresh();
+            }
+        }
+    }
+
+    public void SetPlacement(DeviceDetailViewModel? d, PeerPlacement placement)
+    {
+        if (d == null || !d.IsComputer) return;
+        d.Placement = placement;
+        var peer = _host.Peers.FirstOrDefault(p => p.DeviceId == d.Id);
+        if (peer != null)
+        {
+            _host.SetPeerPlacement(peer, placement);
+        }
+        else if (_settings.Current.Peers.TryGetValue(d.Id, out var saved))
+        {
+            saved.Placement = placement;
+            _settings.Save();
+            _host.SyncPeers();
+        }
+    }
+}
