@@ -43,6 +43,8 @@ public sealed class MouserHost : IDisposable
     public PairingGate Pairing { get; }
     public InputInjectionService? Input { get; private set; }
     public PeerDiscoveryService? Discovery { get; private set; }
+    public int DiscoveryPort => _discoveryPort;
+    public int InputPort => Input?.BoundPort ?? _settings.Current.InputPort;
     public PeerTransferService? Transfer { get; private set; }
 
     /// <summary>Text copied on a paired computer (sender name, clip). Raised on a background thread.</summary>
