@@ -13,6 +13,10 @@ public static class ForegroundWindowInfo
     private const int GWL_STYLE = -16;
     private const int WS_CAPTION = 0x00C00000;
     private const uint MONITOR_DEFAULTTONEAREST = 2;
+    private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+    private const uint TOKEN_QUERY = 0x0008;
+    private const int TokenElevation = 20;
+    private const int ERROR_ACCESS_DENIED = 5;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT
@@ -55,6 +59,21 @@ public static class ForegroundWindowInfo
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
     private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr OpenProcess(uint processAccess, bool bInheritHandle, uint processId);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool OpenProcessToken(IntPtr ProcessHandle, uint DesiredAccess, out IntPtr TokenHandle);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool GetTokenInformation(IntPtr TokenHandle, int TokenInformationClass, out int TokenInformation, int TokenInformationLength, out int ReturnLength);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr hObject);
 
     private static long GetWindowStyle(IntPtr hWnd)
     {
@@ -115,6 +134,66 @@ public static class ForegroundWindowInfo
         catch
         {
             return (false, false);
+        }
+    }
+
+    /// <summary>
+    /// Checks whether the foreground window process is elevated when Mouser is NOT elevated.
+    /// Returns false if Mouser is already elevated (since Mouser can type into it), or on non-Windows.
+    /// </summary>
+    public static bool IsElevated()
+    {
+        if (!OperatingSystem.IsWindows()) return false;
+        if (ElevationInfo.IsCurrentProcessElevated()) return false;
+
+        try
+        {
+            IntPtr hwnd = GetForegroundWindow();
+            if (hwnd == IntPtr.Zero) return false;
+
+            GetWindowThreadProcessId(hwnd, out uint pid);
+            if (pid == 0 || pid == (uint)Environment.ProcessId) return false;
+
+            IntPtr hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+            if (hProcess == IntPtr.Zero)
+            {
+                int err = Marshal.GetLastWin32Error();
+                if (err == ERROR_ACCESS_DENIED)
+                {
+                    // Typically elevated or SYSTEM process protected from non-elevated callers
+                    return true;
+                }
+                return false;
+            }
+
+            try
+            {
+                if (OpenProcessToken(hProcess, TOKEN_QUERY, out IntPtr hToken))
+                {
+                    try
+                    {
+                        int size = sizeof(int);
+                        if (GetTokenInformation(hToken, TokenElevation, out int isElevated, size, out _))
+                        {
+                            return isElevated != 0;
+                        }
+                    }
+                    finally
+                    {
+                        CloseHandle(hToken);
+                    }
+                }
+            }
+            finally
+            {
+                CloseHandle(hProcess);
+            }
+
+            return false;
+        }
+        catch
+        {
+            return false;
         }
     }
 }

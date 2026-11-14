@@ -58,6 +58,13 @@
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1" IsChecked="{Binding Notifications}" OnContent="" OffContent="" />
                     </Grid>
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Warn me when a window can't receive input" />
+                            <TextBlock Classes="hint" Text="Windows blocks Mouser from typing into administrator windows unless Mouser runs as administrator too." />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding WarnElevatedWindows}" OnContent="" OffContent="" />
+                    </Grid>
                 </StackPanel>
             </Border>
 

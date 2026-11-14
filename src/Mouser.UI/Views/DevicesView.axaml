@@ -8,9 +8,16 @@
              x:Class="Mouser.UI.Views.DevicesView"
              x:DataType="vm:DevicesViewModel">
 
-    <Grid ColumnDefinitions="260,*" RowDefinitions="*,Auto" Margin="24">
+    <Grid ColumnDefinitions="260,*" RowDefinitions="Auto,*,Auto" Margin="24">
+        <!-- Elevated window warning banner -->
+        <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Classes="banner-warning" Margin="0,0,0,16"
+                IsVisible="{Binding ForegroundIsElevated}">
+            <TextBlock Foreground="{DynamicResource BannerWarningText}" FontSize="12" TextWrapping="Wrap"
+                       Text="The window in front runs as administrator. Mouser cannot type or click in it until you run Mouser as administrator." />
+        </Border>
+
         <!-- Left Side: Devices navigation list -->
-        <ScrollViewer Grid.Row="0" Grid.Column="0" Margin="0,0,16,0">
+        <ScrollViewer Grid.Row="1" Grid.Column="0" Margin="0,0,16,0">
             <StackPanel Spacing="4">
                 <!-- This device button -->
                 <Button Classes="nav-button" Classes.active="{Binding IsThisDeviceSelected}"
@@ -76,7 +83,7 @@
         </ScrollViewer>
 
         <!-- Right Side: Detail Sheet -->
-        <Grid Grid.Row="0" Grid.Column="1">
+        <Grid Grid.Row="1" Grid.Column="1">
             <TextBlock Classes="hint" Text="Select a device to view its details."
                        HorizontalAlignment="Center" VerticalAlignment="Center"
                        IsVisible="{Binding Selected, Converter={x:Static ObjectConverters.IsNull}}" />
@@ -353,7 +360,7 @@
         </Grid>
 
         <!-- Screen layout expander at bottom of page -->
-        <Expander Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+        <Expander Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
                   Header="Screen layout" IsExpanded="False" Margin="0,12,0,0">
             <views:MonitorLayoutView DataContext="{Binding Layout}" />
         </Expander>

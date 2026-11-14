@@ -43,6 +43,7 @@ public sealed class AppSettings
     public bool PauseSharing { get; set; }
     public bool PauseClipboard { get; set; }
     public bool Notifications { get; set; } = true;
+    public bool WarnElevatedWindows { get; set; } = true;
     public bool FirstRunDone { get; set; }
 
     public int AutoLockMinutes { get; set; } = 0;

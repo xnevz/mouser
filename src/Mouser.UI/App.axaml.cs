@@ -36,6 +36,7 @@ public partial class App : Application
     private ClipboardWatcher? _clipboardWatcher;
     private IClipboardAccess? _clipboardAccess;
     private DimOverlayService? _dimOverlayService;
+    private DateTime _lastElevatedToastUtc = DateTime.MinValue;
 
     public override void Initialize()
     {
@@ -308,6 +309,15 @@ public partial class App : Application
 
                 UpdateLockTrayItem();
                 vm.Refresh();
+                if (vm.ForegroundIsElevated)
+                {
+                    var now = DateTime.UtcNow;
+                    if (now - _lastElevatedToastUtc >= TimeSpan.FromSeconds(60))
+                    {
+                        _lastElevatedToastUtc = now;
+                        ToastService.Show("Administrator window", "That window runs as administrator, so Mouser can't type or click in it. Turn on Settings → General → Run Mouser as administrator.");
+                    }
+                }
                 await vm.ClipboardHistory.PollClipboardAsync();
             };
             _refreshTimer.Start();

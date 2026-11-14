@@ -45,6 +45,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _closeToTray;
     [ObservableProperty] private bool _minimizeToTray;
     [ObservableProperty] private bool _notifications;
+    [ObservableProperty] private bool _warnElevatedWindows;
     [ObservableProperty] private string _theme;
     [ObservableProperty] private string _deviceName;
     [ObservableProperty] private string _switchFeel = "Normal";
@@ -116,6 +117,7 @@ public partial class SettingsViewModel : ViewModelBase
         _closeToTray = s.CloseToTray;
         _minimizeToTray = s.MinimizeToTray;
         _notifications = s.Notifications;
+        _warnElevatedWindows = s.WarnElevatedWindows;
         _theme = s.Theme;
         _deviceName = s.DeviceName;
         _switchFeel = s.SwitchFeel;
@@ -262,6 +264,7 @@ public partial class SettingsViewModel : ViewModelBase
     partial void OnCloseToTrayChanged(bool value) => Save(s => s.CloseToTray = value);
     partial void OnMinimizeToTrayChanged(bool value) => Save(s => s.MinimizeToTray = value);
     partial void OnNotificationsChanged(bool value) => Save(s => s.Notifications = value);
+    partial void OnWarnElevatedWindowsChanged(bool value) => Save(s => s.WarnElevatedWindows = value);
     partial void OnLockWithWindowsChanged(bool value) => Save(s => s.LockWithWindows = value);
     partial void OnAutoLockMinutesChanged(int value)
     {

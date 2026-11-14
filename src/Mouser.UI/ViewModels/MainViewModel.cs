@@ -54,6 +54,12 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _systemStatusTitle = string.Empty;
     [ObservableProperty] private string _systemStatusText = string.Empty;
     [ObservableProperty] private string _statusColor = "#64748b";
+    [ObservableProperty] private bool _foregroundIsElevated;
+
+    public Func<bool> ElevatedProbe { get; set; } = ForegroundWindowInfo.IsElevated;
+    public Func<bool>? RemoteInputActiveProbe { get; set; }
+
+    partial void OnForegroundIsElevatedChanged(bool value) => DevicesPage.ForegroundIsElevated = value;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsOnboarding))]
@@ -144,6 +150,7 @@ public partial class MainViewModel : ViewModelBase
         MonitorLayout.SetPeers(_host.Peers);
         ClipboardHistory.UpdateSendablePeers(_host.Peers);
         DevicesPage.Refresh();
+        CheckElevatedForeground();
 
         if (_host.Kvm?.ActivePeerName is { } controlled)
         {
@@ -171,6 +178,23 @@ public partial class MainViewModel : ViewModelBase
         var ip = NetworkInfo.GetLocalIPv4Addresses().FirstOrDefault();
         SystemStatusText = ip == null ? "No network connection" : $"{ip}:{_host.Input.BoundPort}";
         StatusColor = active > 0 ? "#10b981" : "#6366f1";
+    }
+
+    private void CheckElevatedForeground()
+    {
+        bool isRemoteInputActive = RemoteInputActiveProbe?.Invoke() ?? (
+            AndroidRemote.ActiveClientCount > 0 ||
+            (_host.Input != null && _host.Input.Clients.Any(c => (DateTime.UtcNow - c.LastSeenUtc).TotalSeconds < 5))
+        );
+
+        if (isRemoteInputActive && _settings.Current.WarnElevatedWindows)
+        {
+            ForegroundIsElevated = ElevatedProbe();
+        }
+        else
+        {
+            ForegroundIsElevated = false;
+        }
     }
 
     private void RefreshDevices()

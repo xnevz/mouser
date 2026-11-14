@@ -163,7 +163,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ⬜ | E13 | Lock/sleep/display-off sync | C4, B9 | M |
 | ⬜ | E14 | Wake-on-LAN | B9 | M |
 | ⬜ | E15 | Paste from the other computer hotkey | D15, E3 | S |
-| ⬜ | E16 | Detect and warn about administrator (elevated) windows + setting | A12 | S |
+| ✅ | E16 | Detect and warn about administrator (elevated) windows + setting | A12 | S |
 | ⬜ | E18 | **Run Mouser as administrator** (setting, restart button, elevated start at login) | E16, A11 | L |
 | ⬜ | E17 | Cross-screen drag and drop (design spike, ask first) | E9c, D11 | XL |
 

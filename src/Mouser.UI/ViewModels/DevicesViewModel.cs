@@ -33,6 +33,7 @@ public partial class DevicesViewModel : ViewModelBase
 
     public ObservableCollection<DeviceDetailViewModel> Devices { get; } = new();
     [ObservableProperty] private DeviceDetailViewModel? _selectedDevice;
+    [ObservableProperty] private bool _foregroundIsElevated;
 
     [ObservableProperty] private string _manualAddress = string.Empty;
     [ObservableProperty] private string? _manualError;
