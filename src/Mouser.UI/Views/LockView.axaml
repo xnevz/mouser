@@ -1,0 +1,85 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Mouser.UI.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+             x:Class="Mouser.UI.Views.LockView"
+             x:DataType="vm:LockViewModel"
+             Background="{DynamicResource BgApp}">
+
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <Border Background="{DynamicResource BgSurface}"
+                BorderBrush="{DynamicResource BorderSubtle}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="32"
+                MaxWidth="440"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <StackPanel Spacing="20">
+                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                    <TextBlock Text="🔒" FontSize="36" HorizontalAlignment="Center" />
+                    <TextBlock Text="Mouser is locked" FontSize="20" FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Passphrase form -->
+                <StackPanel Spacing="12">
+                    <TextBox PlaceholderText="Enter passphrase"
+                             PasswordChar="•"
+                             Text="{Binding Passphrase, Mode=TwoWay}"
+                             FontSize="14"
+                             Padding="12,10" />
+
+                    <Button Classes="primary-btn"
+                            Content="Unlock"
+                            Command="{Binding UnlockCommand}"
+                            IsDefault="True"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            FontSize="14"
+                            Padding="14,10" />
+                </StackPanel>
+
+                <!-- Error message -->
+                <TextBlock Text="{Binding Error}"
+                           Foreground="{DynamicResource Danger}"
+                           FontSize="13"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center"
+                           IsVisible="{Binding !!Error}" />
+
+                <!-- Forgot passphrase link -->
+                <Button Classes="link"
+                        Content="Forgot passphrase?"
+                        Command="{Binding ToggleRecoveryBoxCommand}"
+                        HorizontalAlignment="Center" />
+
+                <!-- Recovery box -->
+                <StackPanel Spacing="12" IsVisible="{Binding ShowRecoveryBox}">
+                    <Rectangle Height="1" Fill="{DynamicResource BorderSubtle}" Margin="0,4" />
+
+                    <TextBox PlaceholderText="Enter recovery key"
+                             Text="{Binding RecoveryKey, Mode=TwoWay}"
+                             FontSize="14"
+                             Padding="12,10" />
+
+                    <Button Classes="secondary-btn"
+                            Content="Unlock with recovery key"
+                            Command="{Binding UseRecoveryKeyCommand}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            FontSize="13"
+                            Padding="12,8" />
+
+                    <TextBlock Text="Without the passphrase or recovery key, saved history cannot be opened."
+                               Classes="hint"
+                               Foreground="{DynamicResource TextMuted}"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

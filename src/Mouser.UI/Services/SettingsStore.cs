@@ -30,6 +30,9 @@ public sealed class AppSettings
     public bool Notifications { get; set; } = true;
     public bool FirstRunDone { get; set; }
 
+    public int AutoLockMinutes { get; set; } = 0;
+    public bool LockWithWindows { get; set; } = true;
+
     /// <summary>Send copied text to paired computers and accept theirs.</summary>
     public bool ClipboardSyncEnabled { get; set; } = true;
 
@@ -90,6 +93,7 @@ public sealed class SettingsStore
             if (settings.PairingPin is < 0 or > 999_999) settings.PairingPin = PairingGate.GeneratePin();
             if (settings.InputPort is < 1 or > 65535) settings.InputPort = InputInjectionService.DefaultPort;
             if (settings.ClipboardRetentionDays < 1) settings.ClipboardRetentionDays = 30;
+            if (settings.AutoLockMinutes < 0) settings.AutoLockMinutes = 0;
             if (!ThemeService.Options.Contains(settings.Theme)) settings.Theme = "System";
             // Pre-existing settings files from before B13 do not nag existing users.
             if (!rawJson.Contains(nameof(AppSettings.FirstRunDone)))

@@ -8,6 +8,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Mouser.Core.Clipboard;
 using Mouser.Core.Input;
+using Mouser.Core.Security;
 using Mouser.UI.Services;
 using Mouser.UI.ViewModels;
 using Mouser.UI.Views;
@@ -57,11 +58,16 @@ public partial class App : Application
             var settings = new SettingsStore(dataDir == null ? null : Path.Combine(Path.GetFullPath(dataDir), "settings.json"));
             ThemeService.Apply(settings.Current.Theme);
             ToastService.Initialize(settings);
+            var appLock = new AppLockService(Path.Combine(settings.DataDirectory, "lock.json"));
             _host = new MouserHost(settings, InputSinks.CreateForCurrentPlatform(), InputCaptures.CreateForCurrentPlatform());
+            if (appLock.IsLocked)
+            {
+                _host.SetLocked(true);
+            }
             _host.Restart();
             _clipboardStorage = new ClipboardStorageService(Path.Combine(settings.DataDirectory, "clipboard.db"));
 
-            var vm = new MainViewModel(_host, settings, _clipboardStorage);
+            var vm = new MainViewModel(_host, settings, _clipboardStorage, appLock: appLock);
             var window = new MainWindow { DataContext = vm };
             if (dataDir != null) window.Title = $"Mouser ({Path.GetFileName(Path.GetFullPath(dataDir))})";
             desktop.MainWindow = window;

@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Mouser.Core.Clipboard;
 using Mouser.Core.Networking;
+using Mouser.Core.Security;
 using Mouser.UI.Services;
 
 namespace Mouser.UI.ViewModels;
@@ -23,6 +24,10 @@ public partial class MainViewModel : ViewModelBase
 {
     private readonly MouserHost _host;
     private readonly SettingsStore _settings;
+    private readonly AppLockService? _appLock;
+
+    public bool IsLocked => _appLock?.IsLocked ?? false;
+    public LockViewModel? Lock { get; }
 
     public ObservableCollection<SidebarDeviceViewModel> Devices { get; } = new();
     [ObservableProperty] private int _onlineDeviceCount;
@@ -56,19 +61,43 @@ public partial class MainViewModel : ViewModelBase
     public bool IsSettingsTab => CurrentTab == NavigationTab.Settings;
     public bool IsActivityTab => CurrentTab == NavigationTab.Activity;
 
-    public MainViewModel(MouserHost host, SettingsStore settings, ClipboardStorageService clipboardStorage, IClipboardAccess? clipboardAccess = null)
+    public MainViewModel(MouserHost host, SettingsStore settings, ClipboardStorageService clipboardStorage, IClipboardAccess? clipboardAccess = null, AppLockService? appLock = null)
     {
         _host = host;
         _settings = settings;
+        _appLock = appLock;
         AndroidRemote = new AndroidRemoteViewModel(host, settings);
         ClipboardHistory = new ClipboardHistoryViewModel(clipboardStorage, settings);
-        Settings = new SettingsViewModel(settings, host);
+        Settings = new SettingsViewModel(settings, host, appLock);
         MonitorLayout = new MonitorLayoutViewModel(host, settings);
         DevicesPage = new DevicesViewModel(host, MonitorLayout, AndroidRemote, settings);
         Activity = new ActivityViewModel(host.Log, host, clipboardAccess);
         ClipboardHistory.ShareCapturedText = host.ShareClipboardAsync;
         _currentPage = ClipboardHistory;
         _currentTab = NavigationTab.SmartClipboard;
+
+        if (_appLock != null)
+        {
+            Lock = new LockViewModel(_appLock);
+            _appLock.Locked += () =>
+            {
+                OnPropertyChanged(nameof(IsLocked));
+                _host.SetLocked(true);
+                ClipboardHistory.IsLocked = true;
+            };
+            _appLock.Unlocked += () =>
+            {
+                OnPropertyChanged(nameof(IsLocked));
+                _host.SetLocked(false);
+                ClipboardHistory.IsLocked = false;
+            };
+            if (_appLock.IsLocked)
+            {
+                _host.SetLocked(true);
+                ClipboardHistory.IsLocked = true;
+            }
+        }
+
         if (!_settings.Current.FirstRunDone)
         {
             Onboarding = new OnboardingViewModel(_settings, _host, () => Onboarding = null);

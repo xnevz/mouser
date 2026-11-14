@@ -20,6 +20,7 @@
 
     <Grid ColumnDefinitions="232,*">
         <Border Grid.Column="0"
+                IsEnabled="{Binding !IsLocked}"
                 Background="{DynamicResource BgSidebar}"
                 BorderBrush="{DynamicResource BorderSubtle}"
                 BorderThickness="0,0,1,0"
@@ -128,11 +129,17 @@
             </Grid>
         </Border>
 
-        <ContentControl x:Name="PageContent" Grid.Column="1" Content="{Binding CurrentPage}" />
+        <ContentControl x:Name="PageContent" Grid.Column="1"
+                        IsEnabled="{Binding !IsLocked}"
+                        Content="{Binding CurrentPage}" />
 
         <ContentControl Grid.Column="0" Grid.ColumnSpan="2"
                         Content="{Binding Onboarding}"
                         IsVisible="{Binding IsOnboarding}"
                         Background="{DynamicResource BgApp}" />
+
+        <ContentControl Grid.Column="0" Grid.ColumnSpan="2"
+                        Content="{Binding Lock}"
+                        IsVisible="{Binding IsLocked}" />
     </Grid>
 </Window>

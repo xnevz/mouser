@@ -133,7 +133,180 @@
                 </StackPanel>
             </Border>
 
-            <!-- Card 5: This device -->
+            <!-- Card 5: Security -->
+            <Border Classes="glass-card" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="section-title" Text="Security" />
+
+                    <!-- When NOT configured -->
+                    <StackPanel Spacing="12" IsVisible="{Binding !IsLockConfigured}">
+                        <!-- When not in setup mode -->
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,4" IsVisible="{Binding !IsSettingPassphrase}">
+                            <StackPanel Spacing="2">
+                                <TextBlock Classes="section-title" FontSize="13" Text="App lock" />
+                                <TextBlock Classes="hint" Text="Protect your history and connections with a passphrase." />
+                            </StackPanel>
+                            <Button Grid.Column="1" Classes="secondary-btn" Content="Set a passphrase"
+                                    Command="{Binding StartSetupPassphraseCommand}" />
+                        </Grid>
+
+                        <!-- Passphrase setup form -->
+                        <Border Classes="glass-card" Background="{DynamicResource BgSunken}" Padding="16"
+                                IsVisible="{Binding IsSettingPassphrase}">
+                            <StackPanel Spacing="12">
+                                <!-- Step 1: Input passphrases -->
+                                <StackPanel Spacing="10" IsVisible="{Binding !ShowRecoveryKeyPrompt}">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Set a passphrase" />
+                                    <TextBlock Classes="hint" Text="Passphrase must be at least 8 characters." />
+
+                                    <Grid ColumnDefinitions="140,*" Margin="0,4">
+                                        <TextBlock Text="New passphrase" VerticalAlignment="Center" Classes="label" />
+                                        <TextBox Grid.Column="1" PlaceholderText="Enter passphrase" PasswordChar="•"
+                                                 Text="{Binding NewPassphrase, Mode=TwoWay}" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="140,*" Margin="0,4">
+                                        <TextBlock Text="Confirm passphrase" VerticalAlignment="Center" Classes="label" />
+                                        <TextBox Grid.Column="1" PlaceholderText="Re-enter passphrase" PasswordChar="•"
+                                                 Text="{Binding ConfirmPassphrase, Mode=TwoWay}" />
+                                    </Grid>
+
+                                    <TextBlock Text="{Binding SetupError}" Foreground="{DynamicResource Danger}"
+                                               FontSize="12" IsVisible="{Binding !!SetupError}" />
+
+                                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,6,0,0">
+                                        <Button Classes="secondary-btn" Content="Cancel" Command="{Binding CancelSetupPassphraseCommand}" />
+                                        <Button Classes="primary-btn" Content="Save passphrase" Command="{Binding ConfirmSetupPassphraseCommand}" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- Step 2: Show recovery key -->
+                                <StackPanel Spacing="10" IsVisible="{Binding ShowRecoveryKeyPrompt}">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Save your recovery key" />
+                                    <TextBlock Classes="hint"
+                                               Text="This key is shown only once and is never stored anywhere. Without your passphrase or this key, locked data cannot be recovered." />
+
+                                    <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderStrong}"
+                                            BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,4">
+                                        <SelectableTextBlock Text="{Binding SavedRecoveryKey}"
+                                                             FontFamily="Consolas,Menlo,monospace"
+                                                             FontSize="13"
+                                                             FontWeight="Bold"
+                                                             Foreground="{DynamicResource AccentSoft}"
+                                                             HorizontalAlignment="Center" />
+                                    </Border>
+
+                                    <Button Classes="primary-btn" Content="I saved it" Command="{Binding AcknowledgeRecoveryKeyCommand}"
+                                            HorizontalAlignment="Right" Margin="0,6,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- When CONFIGURED -->
+                    <StackPanel Spacing="12" IsVisible="{Binding IsLockConfigured}">
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                            <StackPanel Spacing="2">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="App lock is on" />
+                                    <Border Classes="status-pill" VerticalAlignment="Center" Padding="6,1">
+                                        <TextBlock Text="Active" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Success}" />
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock Classes="hint" Text="Mouser is protected with your passphrase." />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                <Button Classes="secondary-btn" Content="Lock now" Command="{Binding LockNowCommand}" />
+                                <Button Classes="secondary-btn" Content="Change passphrase" Command="{Binding StartChangePassphraseCommand}" />
+                                <Button Classes="secondary-btn" Content="Remove lock" Command="{Binding StartRemoveLockCommand}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Change passphrase inline form -->
+                        <Border Classes="glass-card" Background="{DynamicResource BgSunken}" Padding="16"
+                                IsVisible="{Binding IsChangingPassphrase}">
+                            <StackPanel Spacing="10">
+                                <TextBlock Classes="section-title" FontSize="13" Text="Change passphrase" />
+
+                                <Grid ColumnDefinitions="140,*" Margin="0,4">
+                                    <TextBlock Text="Current passphrase" VerticalAlignment="Center" Classes="label" />
+                                    <TextBox Grid.Column="1" PlaceholderText="Current passphrase" PasswordChar="•"
+                                             Text="{Binding OldPassphrase, Mode=TwoWay}" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="140,*" Margin="0,4">
+                                    <TextBlock Text="New passphrase" VerticalAlignment="Center" Classes="label" />
+                                    <TextBox Grid.Column="1" PlaceholderText="New passphrase (min 8 chars)" PasswordChar="•"
+                                             Text="{Binding ChangeNewPassphrase, Mode=TwoWay}" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="140,*" Margin="0,4">
+                                    <TextBlock Text="Confirm new" VerticalAlignment="Center" Classes="label" />
+                                    <TextBox Grid.Column="1" PlaceholderText="Re-enter new passphrase" PasswordChar="•"
+                                             Text="{Binding ChangeConfirmPassphrase, Mode=TwoWay}" />
+                                </Grid>
+
+                                <TextBlock Text="{Binding ChangeError}" Foreground="{DynamicResource Danger}"
+                                           FontSize="12" IsVisible="{Binding !!ChangeError}" />
+
+                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,6,0,0">
+                                    <Button Classes="secondary-btn" Content="Cancel" Command="{Binding CancelChangePassphraseCommand}" />
+                                    <Button Classes="primary-btn" Content="Update passphrase" Command="{Binding ChangePassphraseCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Remove lock inline form -->
+                        <Border Classes="glass-card" Background="{DynamicResource BgSunken}" Padding="16"
+                                IsVisible="{Binding IsRemovingLock}">
+                            <StackPanel Spacing="10">
+                                <TextBlock Classes="section-title" FontSize="13" Text="Remove lock" />
+                                <TextBlock Classes="hint" Text="Enter your current passphrase to turn off app lock." />
+
+                                <Grid ColumnDefinitions="140,*" Margin="0,4">
+                                    <TextBlock Text="Passphrase" VerticalAlignment="Center" Classes="label" />
+                                    <TextBox Grid.Column="1" PlaceholderText="Current passphrase" PasswordChar="•"
+                                             Text="{Binding RemovePassphrase, Mode=TwoWay}" />
+                                </Grid>
+
+                                <TextBlock Text="{Binding RemoveError}" Foreground="{DynamicResource Danger}"
+                                           FontSize="12" IsVisible="{Binding !!RemoveError}" />
+
+                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,6,0,0">
+                                    <Button Classes="secondary-btn" Content="Cancel" Command="{Binding CancelRemoveLockCommand}" />
+                                    <Button Classes="primary-btn" Content="Confirm remove" Command="{Binding RemoveLockCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Advanced Expander for Security -->
+                    <Expander Header="Advanced" IsExpanded="False">
+                        <StackPanel Spacing="12" Margin="0,8,0,0">
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Lock when Windows locks" />
+                                    <TextBlock Classes="hint" Text="Automatically lock Mouser whenever the Windows workstation locks." />
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding LockWithWindows}" OnContent="" OffContent="" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Lock after inactivity" />
+                                    <TextBlock Classes="hint" Text="Lock Mouser after this many minutes of inactivity (0 = never)." />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <NumericUpDown Value="{Binding AutoLockMinutes}" Minimum="0" Maximum="1440" Increment="1"
+                                                   FormatString="0" Width="120" />
+                                    <TextBlock Text="minutes" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" FontSize="12" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Expander>
+                </StackPanel>
+            </Border>
+
+            <!-- Card 6: This device -->
             <Border Classes="glass-card" Padding="20">
                 <StackPanel Spacing="12">
                     <TextBlock Classes="section-title" Text="This device" />

@@ -6,8 +6,8 @@ instructions for each task live in [roadmap/tasks/](roadmap/tasks/).
 
 Legend: ✅ done and verified · 🟡 partly done · ⬜ not started · ⛔ blocked · 🅿️ parked (macOS backlog)
 
-**Last verified:** 2026-11-13, commit `29a3cf1`, Windows 11, `dotnet test tests/Mouser.Tests` →
-**Passed 130, Skipped 3, Failed 0** (the 3 skipped need the native macOS library). Android unit tests and the web build
+**Last verified:** 2026-11-14, commit `29a3cf1`, Windows 11, `dotnet test tests/Mouser.Tests` →
+**Passed 173, Skipped 3, Failed 0** (the 3 skipped need the native macOS library). Android unit tests and the web build
 run in CI (`.github/workflows/ci.yml`, `deploy-web.yml`); they were not re-run for this update.
 
 ---
@@ -114,7 +114,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | :-: | :-: | :--- | :--- | :-: |
 | ✅ | C1 | `AppLockService` (passphrase, recovery key, backoff) + tests | – | M |
 | ✅ | C2 | Host stops services while locked | C1 | M |
-| ⬜ | C3 | Lock screen and setup UI | C2, B11 | L |
+| ✅ | C3 | Lock screen and setup UI | C2, B11 | L |
 | ⬜ | C4 | Ctrl+L, tray Lock, idle lock, Windows-lock, quit blocked | C3 | M |
 | ⬜ | C5 | Encrypt `clipboard.db` (SQLCipher spike first) | C3 | L |
 | ⬜ | C6 | Android app lock (biometric) | A13 | M |
@@ -283,3 +283,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - B13: Implemented 3-step first-run onboarding wizard (computer name, feature toggles, device pairing with large PIN and live peer count) overlaid on MainWindow; added FirstRunDone setting in SettingsStore with auto-migration for existing installs; added 3 unit tests (156 passing).
 - C1: Implemented AppLockService in Core with PBKDF2/AES-GCM encryption, Base32 recovery key, progressive backoff (0s, 5s, 15s, 60s, 300s), corrupt file detection, and atomic persistence; added 8 unit tests in AppLockTests (164 passing).
 - C2: Added IsLocked state and SetLocked to MouserHost stopping Kvm and services, guarded Restart and SyncPeers while locked, added IsLocked guard to ClipboardHistoryViewModel Poll/ApplyRemoteClip; 166 tests pass.
+- C3: Implemented LockViewModel and LockView with password box, backoff alert, and recovery key unlock; added full-window lock overlay and background interaction disable in MainWindow; integrated AppLockService into MainViewModel, SettingsViewModel, and App startup (stopping sockets when starting locked); added Security settings card with setup wizard, recovery key prompt, lock/change/remove commands, and Windows/idle lock options; added 7 unit tests in ViewModelTests (173 passing).

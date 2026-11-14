@@ -2,6 +2,7 @@ using System.Net;
 using Mouser.Core.Clipboard;
 using Mouser.Core.Input;
 using Mouser.Core.Networking;
+using Mouser.Core.Security;
 using Mouser.Core.Services;
 using Mouser.UI.Services;
 using Mouser.UI.ViewModels;
@@ -27,18 +28,24 @@ public sealed class AppFixture : IAsyncDisposable
     public RecordingSink Sink { get; } = new();
     public FakeClipboard Clipboard { get; } = new();
     public MainViewModel Main { get; }
+    public AppLockService? AppLock { get; }
 
     public string Downloads => Path.Combine(_dir, "downloads");
 
-    public AppFixture(int? discoveryPort = null)
+    public AppFixture(int? discoveryPort = null, AppLockService? appLock = null)
     {
         Settings = new SettingsStore(Path.Combine(_dir, "settings.json"));
         Settings.Current.InputPort = 0; // any free port
         Host = new MouserHost(Settings, Sink, discoveryPort: discoveryPort ?? Random.Shared.Next(40_000, 50_000),
             downloadDirectory: Path.Combine(_dir, "downloads"));
+        AppLock = appLock;
+        if (appLock?.IsLocked == true)
+        {
+            Host.SetLocked(true);
+        }
         Host.Restart();
         Storage = new ClipboardStorageService(Path.Combine(_dir, "clipboard.db"));
-        Main = new MainViewModel(Host, Settings, Storage);
+        Main = new MainViewModel(Host, Settings, Storage, appLock: appLock);
         Main.ClipboardHistory.AttachClipboard(Clipboard);
         Main.Activity.AttachClipboard(Clipboard);
     }
@@ -825,5 +832,289 @@ public class ViewModelTests
         Assert.False(captured);
         Assert.Empty(app.Main.ClipboardHistory.History);
         Assert.True(app.Main.ClipboardHistory.History.Count == 0);
+    }
+
+    [Fact]
+    public async Task LockScreen_Unlock_WrongPassphraseShowsError_RightPassphraseUnlocks()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), $"mouser_lock_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string lockFile = Path.Combine(dir, "lock.json");
+            var lockService = new AppLockService(lockFile, null, 1000);
+            lockService.Setup("SuperSecret123!");
+            lockService.Lock();
+
+            await using var app = new AppFixture(appLock: lockService);
+            Assert.True(app.Main.IsLocked);
+            Assert.NotNull(app.Main.Lock);
+            Assert.Null(app.Host.Input);
+            Assert.True(app.Main.ClipboardHistory.IsLocked);
+
+            // Wrong passphrase
+            app.Main.Lock.Passphrase = "WrongPassphrase1";
+            app.Main.Lock.UnlockCommand.Execute(null);
+
+            Assert.True(app.Main.IsLocked);
+            Assert.NotNull(app.Main.Lock.Error);
+            Assert.Equal("That passphrase is wrong.", app.Main.Lock.Error);
+            Assert.Equal(string.Empty, app.Main.Lock.Passphrase);
+            Assert.Null(app.Host.Input);
+
+            // Right passphrase
+            app.Main.Lock.Passphrase = "SuperSecret123!";
+            app.Main.Lock.UnlockCommand.Execute(null);
+
+            Assert.False(app.Main.IsLocked);
+            Assert.Null(app.Main.Lock.Error);
+            Assert.NotNull(app.Host.Input);
+            Assert.False(app.Main.ClipboardHistory.IsLocked);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task LockScreen_LockCommand_StopsHostInput()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), $"mouser_lock_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string lockFile = Path.Combine(dir, "lock.json");
+            var lockService = new AppLockService(lockFile, null, 1000);
+            lockService.Setup("SuperSecret123!");
+
+            await using var app = new AppFixture(appLock: lockService);
+            Assert.False(app.Main.IsLocked);
+            Assert.NotNull(app.Host.Input);
+
+            lockService.Lock();
+
+            Assert.True(app.Main.IsLocked);
+            Assert.Null(app.Host.Input);
+            Assert.True(app.Main.ClipboardHistory.IsLocked);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task LockScreen_RecoveryKey_UnlocksSuccessfully()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), $"mouser_lock_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string lockFile = Path.Combine(dir, "lock.json");
+            var lockService = new AppLockService(lockFile, null, 1000);
+            string recKey = lockService.Setup("SuperSecret123!");
+            lockService.Lock();
+
+            await using var app = new AppFixture(appLock: lockService);
+            Assert.True(app.Main.IsLocked);
+            Assert.NotNull(app.Main.Lock);
+
+            app.Main.Lock.ToggleRecoveryBoxCommand.Execute(null);
+            Assert.True(app.Main.Lock.ShowRecoveryBox);
+
+            // Wrong recovery key
+            app.Main.Lock.RecoveryKey = "INVALID-RECOVERY-KEY";
+            app.Main.Lock.UseRecoveryKeyCommand.Execute(null);
+
+            Assert.True(app.Main.IsLocked);
+            Assert.Equal("That recovery key is wrong.", app.Main.Lock.Error);
+
+            // Valid recovery key
+            app.Main.Lock.RecoveryKey = recKey;
+            app.Main.Lock.UseRecoveryKeyCommand.Execute(null);
+
+            Assert.False(app.Main.IsLocked);
+            Assert.Null(app.Main.Lock.Error);
+            Assert.False(app.Main.Lock.ShowRecoveryBox);
+            Assert.NotNull(app.Host.Input);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task LockScreen_Backoff_ShowsRemainingSeconds()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), $"mouser_lock_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        DateTime fakeTime = new DateTime(2026, 11, 14, 12, 0, 0, DateTimeKind.Utc);
+        try
+        {
+            string lockFile = Path.Combine(dir, "lock.json");
+            var lockService = new AppLockService(lockFile, () => fakeTime, 1000);
+            lockService.Setup("SuperSecret123!");
+            lockService.Lock();
+
+            await using var app = new AppFixture(appLock: lockService);
+
+            for (int i = 0; i < 3; i++)
+            {
+                app.Main.Lock!.Passphrase = "wrong";
+                app.Main.Lock.UnlockCommand.Execute(null);
+                Assert.Equal("That passphrase is wrong.", app.Main.Lock.Error);
+                Assert.False(app.Main.Lock.IsBackingOff);
+            }
+
+            // 4th failure triggers 5 second backoff
+            app.Main.Lock!.Passphrase = "wrong";
+            app.Main.Lock.UnlockCommand.Execute(null);
+            Assert.True(app.Main.Lock.IsBackingOff);
+            Assert.Contains("Too many tries. Wait", app.Main.Lock.Error);
+
+            // Immediate attempt during backoff
+            app.Main.Lock.Passphrase = "SuperSecret123!";
+            app.Main.Lock.UnlockCommand.Execute(null);
+            Assert.True(app.Main.IsLocked);
+            Assert.Contains("Too many tries. Wait", app.Main.Lock.Error);
+
+            // Advance clock past backoff
+            fakeTime = fakeTime.AddSeconds(6);
+            app.Main.Lock.Passphrase = "SuperSecret123!";
+            app.Main.Lock.UnlockCommand.Execute(null);
+            Assert.False(app.Main.IsLocked);
+            Assert.Null(app.Main.Lock.Error);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task SettingsViewModel_Security_FullLifecycle()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), $"mouser_lock_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string lockFile = Path.Combine(dir, "lock.json");
+            var lockService = new AppLockService(lockFile, null, 1000);
+            await using var app = new AppFixture(appLock: lockService);
+
+            var s = app.Main.Settings;
+            Assert.False(s.IsLockConfigured);
+
+            s.StartSetupPassphraseCommand.Execute(null);
+            Assert.True(s.IsSettingPassphrase);
+
+            // Too short
+            s.NewPassphrase = "short";
+            s.ConfirmPassphrase = "short";
+            s.ConfirmSetupPassphraseCommand.Execute(null);
+            Assert.Equal("Passphrase must be at least 8 characters.", s.SetupError);
+
+            // Mismatch
+            s.NewPassphrase = "password123";
+            s.ConfirmPassphrase = "password456";
+            s.ConfirmSetupPassphraseCommand.Execute(null);
+            Assert.Equal("Passphrases do not match.", s.SetupError);
+
+            // Valid
+            s.NewPassphrase = "password123";
+            s.ConfirmPassphrase = "password123";
+            s.ConfirmSetupPassphraseCommand.Execute(null);
+            Assert.True(s.ShowRecoveryKeyPrompt);
+            Assert.False(string.IsNullOrEmpty(s.SavedRecoveryKey));
+
+            // Acknowledge recovery key
+            s.AcknowledgeRecoveryKeyCommand.Execute(null);
+            Assert.False(s.ShowRecoveryKeyPrompt);
+            Assert.False(s.IsSettingPassphrase);
+            Assert.True(s.IsLockConfigured);
+
+            // Lock now
+            s.LockNowCommand.Execute(null);
+            Assert.True(app.Main.IsLocked);
+            Assert.Null(app.Host.Input);
+
+            // Unlock
+            app.Main.Lock!.Passphrase = "password123";
+            app.Main.Lock.UnlockCommand.Execute(null);
+            Assert.False(app.Main.IsLocked);
+            Assert.NotNull(app.Host.Input);
+
+            // Change passphrase
+            s.StartChangePassphraseCommand.Execute(null);
+            Assert.True(s.IsChangingPassphrase);
+            s.OldPassphrase = "wrongpassword";
+            s.ChangeNewPassphrase = "newpassword456";
+            s.ChangeConfirmPassphrase = "newpassword456";
+            s.ChangePassphraseCommand.Execute(null);
+            Assert.Equal("Incorrect current passphrase.", s.ChangeError);
+
+            s.OldPassphrase = "password123";
+            s.ChangePassphraseCommand.Execute(null);
+            Assert.False(s.IsChangingPassphrase);
+            Assert.Null(s.ChangeError);
+
+            // Remove lock
+            s.StartRemoveLockCommand.Execute(null);
+            Assert.True(s.IsRemovingLock);
+            s.RemovePassphrase = "wrongpassword";
+            s.RemoveLockCommand.Execute(null);
+            Assert.Equal("Incorrect passphrase.", s.RemoveError);
+
+            s.RemovePassphrase = "newpassword456";
+            s.RemoveLockCommand.Execute(null);
+            Assert.False(s.IsRemovingLock);
+            Assert.False(s.IsLockConfigured);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task SettingsViewModel_AutoLockAndWindowsLock_Persisted()
+    {
+        await using var app = new AppFixture();
+        var s = app.Main.Settings;
+
+        s.LockWithWindows = false;
+        Assert.False(app.Settings.Current.LockWithWindows);
+
+        s.AutoLockMinutes = 15;
+        Assert.Equal(15, app.Settings.Current.AutoLockMinutes);
+    }
+
+    [Fact]
+    public async Task App_StartsLocked_ServicesStayStopped()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), $"mouser_lock_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string lockFile = Path.Combine(dir, "lock.json");
+            var lock1 = new AppLockService(lockFile, null, 1000);
+            lock1.Setup("StartLocked123!");
+
+            // Reconstruct as if starting the app anew
+            var lock2 = new AppLockService(lockFile, null, 1000);
+            Assert.True(lock2.IsLocked);
+
+            await using var app = new AppFixture(appLock: lock2);
+            Assert.True(app.Main.IsLocked);
+            Assert.Null(app.Host.Input);
+            Assert.Null(app.Host.Discovery);
+            Assert.True(app.Main.ClipboardHistory.IsLocked);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch { }
+        }
     }
 }
