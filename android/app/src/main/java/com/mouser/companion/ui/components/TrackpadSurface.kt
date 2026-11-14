@@ -235,8 +235,10 @@ private fun TrackpadTouchBox(
             .semantics { contentDescription = "Trackpad multi-touch gesture surface" }
             .pointerInput(classifier) {
                 awaitEachGesture {
+                    var lastEvent: androidx.compose.ui.input.pointer.PointerEvent? = null
                     do {
                         val event = awaitPointerEvent()
+                        lastEvent = event
                         val samples = event.changes.map {
                             PointerSample(it.id.value, it.position.x, it.position.y, it.pressed, it.uptimeMillis)
                         }
@@ -280,7 +282,8 @@ private fun TrackpadTouchBox(
                     } while (event.changes.any { it.pressed })
 
                     // Release frame
-                    val finalSamples = event.changes.map {
+                    val releaseChanges = lastEvent?.changes ?: emptyList()
+                    val finalSamples = releaseChanges.map {
                         PointerSample(it.id.value, it.position.x, it.position.y, false, it.uptimeMillis)
                     }
                     val releaseGestures = classifier.processFrame(finalSamples)

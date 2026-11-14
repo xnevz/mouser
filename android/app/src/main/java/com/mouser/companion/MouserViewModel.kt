@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import com.mouser.companion.network.ClipboardBridge
 
 enum class AppNavigationTab {
@@ -198,7 +199,7 @@ class MouserViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         viewModelScope.launch {
-            while (kotlinx.coroutines.isActive) {
+            while (isActive) {
                 _batteryLevel.value = com.mouser.companion.util.BatteryHelper.getBatteryPercentage(application)
                 kotlinx.coroutines.delay(15_000L)
             }
