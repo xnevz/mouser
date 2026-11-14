@@ -61,6 +61,18 @@
                         </Grid>
                     </Button>
 
+                    <Button Classes="nav-button" Classes.active="{Binding IsSnippetsTab}"
+                            Command="{Binding NavigateCommand}" CommandParameter="Snippets"
+                            ToolTip.Tip="Reusable text snippets with variables">
+                        <Grid ColumnDefinitions="24,*,Auto">
+                            <TextBlock Grid.Column="0" Text="✂️" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Snippets" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!Snippets.Snippets.Count}">
+                                <TextBlock Text="{Binding Snippets.Snippets.Count}" Foreground="{DynamicResource BadgeViolet}" />
+                            </Border>
+                        </Grid>
+                    </Button>
+
                     <TextBlock Classes="label" Text="TAGS" Margin="12,12,0,4" />
 
                     <ItemsControl ItemsSource="{Binding Tags}">

@@ -18,7 +18,8 @@ public enum NavigationTab
     SmartClipboard,
     DisplayMatrix,
     Settings,
-    Activity
+    Activity,
+    Snippets
 }
 
 public partial class MainViewModel : ViewModelBase
@@ -42,11 +43,12 @@ public partial class MainViewModel : ViewModelBase
     public SettingsViewModel Settings { get; }
     public DevicesViewModel DevicesPage { get; }
     public ActivityViewModel Activity { get; }
+    public SnippetsViewModel Snippets { get; }
 
     [ObservableProperty] private ViewModelBase _currentPage;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsRemoteTab), nameof(IsClipboardTab), nameof(IsDisplaysTab), nameof(IsSettingsTab), nameof(IsActivityTab))]
+    [NotifyPropertyChangedFor(nameof(IsRemoteTab), nameof(IsClipboardTab), nameof(IsDisplaysTab), nameof(IsSettingsTab), nameof(IsActivityTab), nameof(IsSnippetsTab))]
     private NavigationTab _currentTab = NavigationTab.SmartClipboard;
 
     [ObservableProperty] private string _systemStatusTitle = string.Empty;
@@ -64,6 +66,7 @@ public partial class MainViewModel : ViewModelBase
     public bool IsDisplaysTab => CurrentTab == NavigationTab.DisplayMatrix;
     public bool IsSettingsTab => CurrentTab == NavigationTab.Settings;
     public bool IsActivityTab => CurrentTab == NavigationTab.Activity;
+    public bool IsSnippetsTab => CurrentTab == NavigationTab.Snippets;
 
     public MainViewModel(MouserHost host, SettingsStore settings, ClipboardStorageService clipboardStorage, IClipboardAccess? clipboardAccess = null, AppLockService? appLock = null)
     {
@@ -78,6 +81,7 @@ public partial class MainViewModel : ViewModelBase
         MonitorLayout = new MonitorLayoutViewModel(host, settings);
         DevicesPage = new DevicesViewModel(host, MonitorLayout, AndroidRemote, settings);
         Activity = new ActivityViewModel(host.Log, host, clipboardAccess);
+        Snippets = new SnippetsViewModel(clipboardStorage);
         ClipboardHistory.ShareCapturedText = host.ShareClipboardAsync;
         ClipboardHistory.SendClipToPeerHandler = (peer, text) => host.SendClipToAsync(peer, text);
         ClipboardHistory.SendFileToPeerAction = async filePath =>
@@ -265,6 +269,7 @@ public partial class MainViewModel : ViewModelBase
             "DisplayMatrix" or "AndroidRemote" => (NavigationTab.DisplayMatrix, DevicesPage),
             "Settings" => (NavigationTab.Settings, Settings),
             "Activity" => (NavigationTab.Activity, Activity),
+            "Snippets" => (NavigationTab.Snippets, Snippets),
             _ => (NavigationTab.DisplayMatrix, DevicesPage)
         };
     }

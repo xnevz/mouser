@@ -1,0 +1,120 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mouser.UI.ViewModels"
+             x:Class="Mouser.UI.Views.SnippetsView"
+             x:DataType="vm:SnippetsViewModel"
+             Background="Transparent">
+
+    <Grid ColumnDefinitions="320,1,*" Margin="16">
+        <!-- Left pane: Snippet list, search, new snippet -->
+        <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*" Margin="0,0,12,0">
+            <!-- Header & New button -->
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                <TextBlock Text="Snippets" Classes="page-title" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Classes="primary-btn" Content="+ New snippet"
+                        Command="{Binding NewSnippetCommand}" ToolTip.Tip="Create a new snippet" />
+            </Grid>
+
+            <!-- Search box -->
+            <TextBox Grid.Row="1" Text="{Binding SearchText}" PlaceholderText="Search snippets…"
+                     Margin="0,0,0,12" />
+
+            <!-- Snippets List -->
+            <Border Grid.Row="2" Classes="glass-card" Padding="4">
+                <Grid>
+                    <TextBlock Classes="hint" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               TextAlignment="Center" Margin="16" IsVisible="{Binding IsEmpty}"
+                               Text="No snippets yet.&#10;Click '+ New snippet' to create one." />
+
+                    <ListBox ItemsSource="{Binding Snippets}" SelectedItem="{Binding SelectedSnippet}"
+                             Background="Transparent" IsVisible="{Binding !IsEmpty}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="vm:SnippetItemViewModel">
+                                <StackPanel Spacing="2" Margin="4,6">
+                                    <TextBlock Text="{Binding Name}" Classes="section-title"
+                                               Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding PreviewBody}" Classes="hint"
+                                               Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Splitter separator line -->
+        <Rectangle Grid.Column="1" Fill="{DynamicResource BorderSubtle}" Width="1" VerticalAlignment="Stretch" />
+
+        <!-- Right pane: Editor for SelectedSnippet -->
+        <Border Grid.Column="2" Classes="glass-card" Padding="20" Margin="12,0,0,0">
+            <Grid>
+                <!-- Empty state when no snippet is selected -->
+                <TextBlock Classes="hint" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           TextAlignment="Center"
+                           IsVisible="{Binding SelectedSnippet, Converter={x:Static ObjectConverters.IsNull}}"
+                           Text="Select a snippet to edit, or click '+ New snippet'." />
+
+                <!-- Editor when SelectedSnippet is not null -->
+                <Grid RowDefinitions="Auto,Auto,*,Auto"
+                      IsVisible="{Binding SelectedSnippet, Converter={x:Static ObjectConverters.IsNotNull}}">
+
+                    <!-- Name field -->
+                    <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,12">
+                        <TextBlock Classes="label" Text="SNIPPET NAME" />
+                        <TextBox Text="{Binding SelectedSnippet.Name}" PlaceholderText="Snippet name (e.g. Signature)" />
+                    </StackPanel>
+
+                    <!-- Variables toolbar -->
+                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*" Margin="0,0,0,12">
+                        <Button Classes="secondary-btn" Content="Insert variable ▾" ToolTip.Tip="Insert template variables at cursor">
+                            <Button.Flyout>
+                                <MenuFlyout>
+                                    <MenuItem Header="Date ({{date}})"
+                                              Command="{Binding InsertVariableCommand}"
+                                              CommandParameter="{}{{{date}}}" />
+                                    <MenuItem Header="Time ({{time}})"
+                                              Command="{Binding InsertVariableCommand}"
+                                              CommandParameter="{}{{{time}}}" />
+                                    <MenuItem Header="DateTime ({{datetime}})"
+                                              Command="{Binding InsertVariableCommand}"
+                                              CommandParameter="{}{{{datetime}}}" />
+                                    <MenuItem Header="Clipboard ({{clipboard}})"
+                                              Command="{Binding InsertVariableCommand}"
+                                              CommandParameter="{}{{{clipboard}}}" />
+                                    <MenuItem Header="UUID ({{uuid}})"
+                                              Command="{Binding InsertVariableCommand}"
+                                              CommandParameter="{}{{{uuid}}}" />
+                                    <MenuItem Header="Cursor Position ({{cursor}})"
+                                              Command="{Binding InsertVariableCommand}"
+                                              CommandParameter="{}{{{cursor}}}" />
+                                    <MenuItem Header="Prompt ({{prompt:Label}})"
+                                              Command="{Binding InsertVariableCommand}"
+                                              CommandParameter="{}{{{prompt:Label}}}" />
+                                </MenuFlyout>
+                            </Button.Flyout>
+                        </Button>
+                    </Grid>
+
+                    <!-- Body editor -->
+                    <Grid Grid.Row="2" RowDefinitions="Auto,*" Margin="0,0,0,12">
+                        <TextBlock Grid.Row="0" Classes="label" Text="BODY" Margin="0,0,0,4" />
+                        <TextBox Grid.Row="1" Text="{Binding SelectedSnippet.Body}"
+                                 CaretIndex="{Binding CaretIndex, Mode=TwoWay}"
+                                 AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap"
+                                 MinHeight="200" VerticalAlignment="Stretch"
+                                 PlaceholderText="Type your snippet text here. You can use variables like {{date}}, {{clipboard}}, or {{cursor}}." />
+                    </Grid>
+
+                    <!-- Save & Delete actions -->
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8">
+                        <Button Classes="primary-btn" Content="Save" Command="{Binding SaveSnippetCommand}"
+                                ToolTip.Tip="Save changes to this snippet" />
+                        <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteSnippetCommand}"
+                                ToolTip.Tip="Delete this snippet" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

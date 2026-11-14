@@ -126,6 +126,17 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             );
 
             CREATE INDEX IF NOT EXISTS idx_deliveries_clip ON deliveries(clip_id);
+
+            CREATE TABLE IF NOT EXISTS snippets (
+                id TEXT PRIMARY KEY,
+                name TEXT UNIQUE COLLATE NOCASE,
+                body TEXT NOT NULL,
+                folder TEXT NOT NULL DEFAULT '',
+                favorite INTEGER DEFAULT 0,
+                created INTEGER NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_snippets_order ON snippets(favorite DESC, name ASC);
         ";
 
         using var cmd = _connection.CreateCommand();
@@ -1011,6 +1022,93 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         }
 
         return list;
+    }
+
+    public async Task<IReadOnlyList<Snippet>> GetSnippetsAsync()
+    {
+        if (_connection == null) await InitializeAsync();
+
+        const string sql = "SELECT id, name, body, folder, favorite, created FROM snippets ORDER BY favorite DESC, name ASC;";
+        var list = new List<Snippet>();
+
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = sql;
+
+        using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            list.Add(new Snippet
+            {
+                Id = reader.GetString(0),
+                Name = reader.GetString(1),
+                Body = reader.GetString(2),
+                Folder = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
+                IsFavorite = reader.GetInt32(4) != 0,
+                CreatedUtc = reader.GetInt64(5)
+            });
+        }
+
+        return list;
+    }
+
+    public async Task<Snippet?> GetSnippetByNameAsync(string name)
+    {
+        if (_connection == null) await InitializeAsync();
+
+        const string sql = "SELECT id, name, body, folder, favorite, created FROM snippets WHERE name = @name COLLATE NOCASE LIMIT 1;";
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("@name", name);
+
+        using var reader = await cmd.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            return new Snippet
+            {
+                Id = reader.GetString(0),
+                Name = reader.GetString(1),
+                Body = reader.GetString(2),
+                Folder = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
+                IsFavorite = reader.GetInt32(4) != 0,
+                CreatedUtc = reader.GetInt64(5)
+            };
+        }
+
+        return null;
+    }
+
+    public async Task SaveSnippetAsync(Snippet snippet)
+    {
+        if (snippet == null) throw new ArgumentNullException(nameof(snippet));
+        if (_connection == null) await InitializeAsync();
+
+        const string sql = @"
+            INSERT OR REPLACE INTO snippets (id, name, body, folder, favorite, created)
+            VALUES (@id, @name, @body, @folder, @favorite, @created);";
+
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("@id", snippet.Id);
+        cmd.Parameters.AddWithValue("@name", snippet.Name);
+        cmd.Parameters.AddWithValue("@body", snippet.Body);
+        cmd.Parameters.AddWithValue("@folder", snippet.Folder ?? string.Empty);
+        cmd.Parameters.AddWithValue("@favorite", snippet.IsFavorite ? 1 : 0);
+        cmd.Parameters.AddWithValue("@created", snippet.CreatedUtc);
+
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task DeleteSnippetAsync(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return;
+        if (_connection == null) await InitializeAsync();
+
+        const string sql = "DELETE FROM snippets WHERE id = @id;";
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("@id", id);
+
+        await cmd.ExecuteNonQueryAsync();
     }
 
     public async ValueTask DisposeAsync()
