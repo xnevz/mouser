@@ -115,7 +115,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | C1 | `AppLockService` (passphrase, recovery key, backoff) + tests | – | M |
 | ✅ | C2 | Host stops services while locked | C1 | M |
 | ✅ | C3 | Lock screen and setup UI | C2, B11 | L |
-| ⬜ | C4 | Ctrl+L, tray Lock, idle lock, Windows-lock, quit blocked | C3 | M |
+| ✅ | C4 | Ctrl+L, tray Lock, idle lock, Windows-lock, quit blocked | C3 | M |
 | ⬜ | C5 | Encrypt `clipboard.db` (SQLCipher spike first) | C3 | L |
 | ⬜ | C6 | Android app lock (biometric) | A13 | M |
 | ⬜ | C7 | Lock all paired devices | C4 | M |
@@ -284,3 +284,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - C1: Implemented AppLockService in Core with PBKDF2/AES-GCM encryption, Base32 recovery key, progressive backoff (0s, 5s, 15s, 60s, 300s), corrupt file detection, and atomic persistence; added 8 unit tests in AppLockTests (164 passing).
 - C2: Added IsLocked state and SetLocked to MouserHost stopping Kvm and services, guarded Restart and SyncPeers while locked, added IsLocked guard to ClipboardHistoryViewModel Poll/ApplyRemoteClip; 166 tests pass.
 - C3: Implemented LockViewModel and LockView with password box, backoff alert, and recovery key unlock; added full-window lock overlay and background interaction disable in MainWindow; integrated AppLockService into MainViewModel, SettingsViewModel, and App startup (stopping sockets when starting locked); added Security settings card with setup wizard, recovery key prompt, lock/change/remove commands, and Windows/idle lock options; added 7 unit tests in ViewModelTests (173 passing).
+- C4: Implemented WindowsSession (IsWorkstationLocked, IdleTime via user32.dll); added Ctrl+L shortcut and LockNowCommand on MainViewModel; added Lock item to tray menu (visible when configured); added auto-lock check on 1s refresh timer for Windows lock and idle timeout; blocked Quit and close button while locked until passphrase entered; blocked QuickPaste while locked; added 5 unit tests in ViewModelTests (178 passing).
