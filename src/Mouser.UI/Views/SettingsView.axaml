@@ -214,6 +214,23 @@
                                     <TextBlock Classes="hint" Text="Bump the edge twice quickly within 400 ms to bypass switching blocks." />
                                 </StackPanel>
                             </CheckBox>
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Dim this computer's screens while controlling another" />
+                                    <TextBlock Classes="hint" Text="Shows a dark overlay and banner on local displays when mouse is on a remote screen." />
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding DimScreensOnControl}" OnContent="" OffContent="" />
+                            </Grid>
+                            <StackPanel Spacing="4" Margin="0,4" IsEnabled="{Binding DimScreensOnControl}">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Dim overlay darkness" />
+                                    <TextBlock Grid.Column="1" Text="{Binding DimScreensOpacityPercentText}"
+                                               Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" FontSize="13" />
+                                </Grid>
+                                <Slider Minimum="0.0" Maximum="0.7" TickFrequency="0.05" IsSnapToTickEnabled="False"
+                                        Value="{Binding DimScreensOpacity}"
+                                        ToolTip.Tip="Darkness of the dim overlay on inactive displays" />
+                            </StackPanel>
                         </StackPanel>
                     </Expander>
                 </StackPanel>

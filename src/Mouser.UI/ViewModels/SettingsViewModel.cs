@@ -53,6 +53,8 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _blockInCorners;
     [ObservableProperty] private string _requireModifier = "None";
     [ObservableProperty] private bool _doubleTapOverride;
+    [ObservableProperty] private bool _dimScreensOnControl = true;
+    [ObservableProperty] private double _dimScreensOpacity = 0.4;
 
     public string[] ModifierOptions { get; } = ["None", "Ctrl", "Alt", "Shift"];
 
@@ -120,6 +122,8 @@ public partial class SettingsViewModel : ViewModelBase
         _blockInCorners = s.BlockInCorners;
         _requireModifier = s.RequireModifier;
         _doubleTapOverride = s.DoubleTapOverride;
+        _dimScreensOnControl = s.DimScreensOnControl;
+        _dimScreensOpacity = s.DimScreensOpacity;
         _lockWithWindows = s.LockWithWindows;
         _autoLockMinutes = s.AutoLockMinutes;
 
@@ -217,6 +221,28 @@ public partial class SettingsViewModel : ViewModelBase
         Save(s => s.DoubleTapOverride = value);
         _host?.ApplyKvmOptions();
     }
+
+    public event Action? DimSettingsChanged;
+
+    partial void OnDimScreensOnControlChanged(bool value)
+    {
+        Save(s => s.DimScreensOnControl = value);
+        DimSettingsChanged?.Invoke();
+    }
+
+    partial void OnDimScreensOpacityChanged(double value)
+    {
+        var clamped = Math.Clamp(value, 0.0, 0.7);
+        if (Math.Abs(clamped - value) > 0.0001)
+        {
+            _dimScreensOpacity = clamped;
+        }
+        Save(s => s.DimScreensOpacity = clamped);
+        OnPropertyChanged(nameof(DimScreensOpacityPercentText));
+        DimSettingsChanged?.Invoke();
+    }
+
+    public string DimScreensOpacityPercentText => $"{(int)Math.Round(DimScreensOpacity * 100)}%";
     partial void OnCloseToTrayChanged(bool value) => Save(s => s.CloseToTray = value);
     partial void OnMinimizeToTrayChanged(bool value) => Save(s => s.MinimizeToTray = value);
     partial void OnNotificationsChanged(bool value) => Save(s => s.Notifications = value);

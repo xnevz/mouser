@@ -62,6 +62,8 @@ public sealed class AppSettings
     public bool BlockInCorners { get; set; } = false;
     public string RequireModifier { get; set; } = "None";
     public bool DoubleTapOverride { get; set; } = true;
+    public bool DimScreensOnControl { get; set; } = true;
+    public double DimScreensOpacity { get; set; } = 0.4;
 
     /// <summary>Other Mouser computers, keyed by device id.</summary>
     public Dictionary<string, PeerSettings> Peers { get; set; } = new();
@@ -207,6 +209,14 @@ public sealed class SettingsStore
             if (settings.RequireModifier != "None" && settings.RequireModifier != "Ctrl" && settings.RequireModifier != "Alt" && settings.RequireModifier != "Shift")
             {
                 settings.RequireModifier = "None";
+            }
+            if (double.IsNaN(settings.DimScreensOpacity))
+            {
+                settings.DimScreensOpacity = 0.4;
+            }
+            else
+            {
+                settings.DimScreensOpacity = Math.Clamp(settings.DimScreensOpacity, 0.0, 0.7);
             }
             // Pre-existing settings files from before B13 do not nag existing users.
             if (!rawJson.Contains(nameof(AppSettings.FirstRunDone)))

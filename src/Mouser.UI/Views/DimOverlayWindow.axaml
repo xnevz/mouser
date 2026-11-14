@@ -1,0 +1,43 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Mouser.UI.Views.DimOverlayWindow"
+        Title="Dim Overlay"
+        WindowDecorations="None"
+        ShowInTaskbar="False"
+        Topmost="True"
+        CanResize="False"
+        ShowActivated="False"
+        IsHitTestVisible="False"
+        Background="Transparent">
+
+    <Panel>
+        <!-- Dark dimming overlay layer -->
+        <Border x:Name="DimBackground"
+                Background="Black"
+                Opacity="0.4"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch" />
+
+        <!-- Top-center pill banner showing active peer being controlled -->
+        <Border HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,28,0,0"
+                Background="{DynamicResource BgSurface}"
+                BorderBrush="{DynamicResource BorderSubtle}"
+                BorderThickness="1"
+                CornerRadius="16"
+                Padding="16,8">
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Ellipse Width="8" Height="8"
+                         Fill="{DynamicResource Accent}"
+                         VerticalAlignment="Center" />
+                <TextBlock x:Name="BannerText"
+                           Text="Controlling remote"
+                           Foreground="{DynamicResource TextPrimary}"
+                           FontWeight="SemiBold"
+                           FontSize="13"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+        </Border>
+    </Panel>
+</Window>

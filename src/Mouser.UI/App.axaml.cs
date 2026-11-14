@@ -35,6 +35,7 @@ public partial class App : Application
     private AppLockService? _appLock;
     private ClipboardWatcher? _clipboardWatcher;
     private IClipboardAccess? _clipboardAccess;
+    private DimOverlayService? _dimOverlayService;
 
     public override void Initialize()
     {
@@ -122,13 +123,25 @@ public partial class App : Application
             _mainViewModel = vm;
             _window = window;
 
+            _dimOverlayService = new DimOverlayService(settings, () =>
+            {
+                if (window.Screens != null)
+                {
+                    return window.Screens.All.Select(s => new OverlayScreen(s.Bounds, s.Scaling)).ToList();
+                }
+                return Array.Empty<OverlayScreen>();
+            });
+            vm.Settings.DimSettingsChanged += () => Dispatcher.UIThread.Post(() => _dimOverlayService?.Update(_host?.Kvm?.ActivePeerName));
+
             if (_host.Kvm != null)
             {
                 _host.Kvm.StateChanged += () => Dispatcher.UIThread.Post(() =>
                 {
                     vm.Refresh();
-                    if (_window != null && _window.IsVisible && _window.IsActive) return;
                     string? peer = _host.Kvm.ActivePeerName;
+                    _dimOverlayService?.Update(peer);
+
+                    if (_window != null && _window.IsVisible && _window.IsActive) return;
                     if (!string.IsNullOrEmpty(peer))
                         ToastService.Show($"Controlling {peer}", "Cursor is on the other computer");
                     else
@@ -230,7 +243,11 @@ public partial class App : Application
                     });
                     return file != null ? Avalonia.Platform.Storage.StorageProviderExtensions.TryGetLocalPath(file) : null;
                 };
-                window.Screens.Changed += (_, _) => UpdateDisplays(window, vm);
+                window.Screens.Changed += (_, _) =>
+                {
+                    UpdateDisplays(window, vm);
+                    _dimOverlayService?.Update(_host?.Kvm?.ActivePeerName);
+                };
                 await vm.ClipboardHistory.InitializeAsync();
             };
 
@@ -461,6 +478,7 @@ public partial class App : Application
 
     private void HandleLocked()
     {
+        _dimOverlayService?.Hide();
         if (_quickPaste != null)
         {
             _quickPaste.Close();
@@ -517,6 +535,7 @@ public partial class App : Application
             return false;
         }
         _quitting = true;
+        _dimOverlayService?.Hide();
         (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown();
         return true;
     }
