@@ -21,6 +21,9 @@ public sealed class AppSettings
     public bool SaveImages { get; set; } = true;
     public bool SkipSensitiveClips { get; set; } = true;
     public int ClipboardRetentionDays { get; set; } = 30;
+    public int ClipboardRetentionHours { get; set; } = 720;
+    public bool ClearOnExit { get; set; } = false;
+    public string PanicWipeHotkey { get; set; } = string.Empty;
     public string QuickPasteHotkey { get; set; } = "Win+Alt+V";
     public bool StartAtLogin { get; set; }
     public string Theme { get; set; } = "System";
@@ -105,6 +108,17 @@ public sealed class SettingsStore
             if (settings.PairingPin is < 0 or > 999_999) settings.PairingPin = PairingGate.GeneratePin();
             if (settings.InputPort is < 1 or > 65535) settings.InputPort = InputInjectionService.DefaultPort;
             if (settings.ClipboardRetentionDays < 1) settings.ClipboardRetentionDays = 30;
+            if (!rawJson.Contains(nameof(AppSettings.ClipboardRetentionHours)) || settings.ClipboardRetentionHours == 0)
+            {
+                if (settings.ClipboardRetentionDays > 0)
+                {
+                    settings.ClipboardRetentionHours = settings.ClipboardRetentionDays * 24;
+                }
+                else
+                {
+                    settings.ClipboardRetentionHours = 720;
+                }
+            }
             if (string.IsNullOrWhiteSpace(settings.QuickPasteHotkey)) settings.QuickPasteHotkey = "Win+Alt+V";
             // SaveImages default is true
             if (settings.AutoLockMinutes < 0) settings.AutoLockMinutes = 0;

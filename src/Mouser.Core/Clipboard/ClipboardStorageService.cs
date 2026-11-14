@@ -12,7 +12,14 @@ namespace Mouser.Core.Clipboard;
 public sealed class ClipboardStorageService : IAsyncDisposable
 {
     private readonly string _connectionString;
+    private readonly string? _databasePath;
     private SqliteConnection? _connection;
+
+    public const int MaxTextLength = 50 * 1024 * 1024; // 50 MB
+    public const int LargeTextThreshold = 1_000_000;   // 1 MB
+    public const int LargeTextDbChars = 20_000;
+
+    public string? DatabasePath => _databasePath;
 
     public static readonly string[] TagPalette = new[]
     {
@@ -45,6 +52,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             Directory.CreateDirectory(dir);
         }
 
+        _databasePath = databasePath;
         _connectionString = new SqliteConnectionStringBuilder
         {
             DataSource = databasePath,
@@ -208,6 +216,30 @@ public sealed class ClipboardStorageService : IAsyncDisposable
     {
         if (_connection == null) await InitializeAsync();
 
+        if (payload.ContentType != ClipboardContentType.Image && !string.IsNullOrEmpty(payload.TextContent))
+        {
+            if (payload.TextContent.Length > MaxTextLength)
+            {
+                return false;
+            }
+
+            if (payload.TextContent.Length > LargeTextThreshold)
+            {
+                string fullText = payload.TextContent;
+                if (string.IsNullOrEmpty(payload.MediaPath))
+                {
+                    string dbDir = !string.IsNullOrEmpty(_databasePath) ? Path.GetDirectoryName(_databasePath) ?? "" : "";
+                    string mediaDir = !string.IsNullOrEmpty(dbDir) ? Path.Combine(dbDir, "media") : Path.Combine(Environment.CurrentDirectory, "media");
+                    Directory.CreateDirectory(mediaDir);
+                    string filePath = Path.Combine(mediaDir, $"{payload.Id}.txt");
+                    await File.WriteAllTextAsync(filePath, fullText);
+                    payload.MediaPath = filePath;
+                }
+                payload.MediaBytes = System.Text.Encoding.UTF8.GetByteCount(fullText);
+                payload.TextContent = fullText.Substring(0, LargeTextDbChars);
+            }
+        }
+
         if (payload.ContentType == ClipboardContentType.Image && !string.IsNullOrEmpty(payload.MediaHash))
         {
             const string checkImgSql = "SELECT id, media_path FROM clips WHERE media_hash = @hash LIMIT 1;";
@@ -269,6 +301,23 @@ public sealed class ClipboardStorageService : IAsyncDisposable
                 updateCmd.Parameters.AddWithValue("@html", (object?)payload.HtmlContent ?? DBNull.Value);
                 updateCmd.Parameters.AddWithValue("@id", existingId);
                 await updateCmd.ExecuteNonQueryAsync();
+
+                if (payload.MediaPath != null && File.Exists(payload.MediaPath))
+                {
+                    string? existingMediaPath = null;
+                    using (var checkPathCmd = _connection.CreateCommand())
+                    {
+                        checkPathCmd.CommandText = "SELECT media_path FROM clips WHERE id = @id LIMIT 1;";
+                        checkPathCmd.Parameters.AddWithValue("@id", existingId);
+                        var res = await checkPathCmd.ExecuteScalarAsync();
+                        if (res != null && res != DBNull.Value) existingMediaPath = res as string;
+                    }
+                    if (payload.MediaPath != existingMediaPath)
+                    {
+                        try { File.Delete(payload.MediaPath); } catch { }
+                    }
+                }
+
                 return false;
             }
         }
@@ -320,7 +369,23 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         }
     }
 
-    public async Task<List<ClipboardPayload>> GetRecentClipsAsync(int limit = 50, bool favoritesOnly = false)
+    public static string GetFullText(ClipboardPayload payload)
+    {
+        if (payload == null) return string.Empty;
+        if (!string.IsNullOrEmpty(payload.MediaPath) &&
+            payload.MediaPath.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) &&
+            File.Exists(payload.MediaPath))
+        {
+            try
+            {
+                return File.ReadAllText(payload.MediaPath);
+            }
+            catch { }
+        }
+        return payload.TextContent;
+    }
+
+    public async Task<List<ClipboardPayload>> GetRecentClipsAsync(int limit = 50, int offset = 0, bool favoritesOnly = false)
     {
         if (_connection == null) await InitializeAsync();
 
@@ -330,11 +395,12 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             FROM clips
             {(favoritesOnly ? "WHERE is_favorite = 1" : "")}
             ORDER BY timestamp DESC
-            LIMIT @limit;";
+            LIMIT @limit OFFSET @offset;";
 
         using var cmd = _connection!.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@limit", limit);
+        cmd.Parameters.AddWithValue("@offset", offset);
 
         using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -345,13 +411,13 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         return list;
     }
 
-    public async Task<List<ClipboardPayload>> SearchClipsAsync(string query, int limit = 50)
+    public async Task<List<ClipboardPayload>> SearchClipsAsync(string query, int limit = 50, int offset = 0)
     {
         if (_connection == null) await InitializeAsync();
 
         if (string.IsNullOrWhiteSpace(query))
         {
-            return await GetRecentClipsAsync(limit);
+            return await GetRecentClipsAsync(limit, offset);
         }
 
         var list = new List<ClipboardPayload>();
@@ -364,12 +430,13 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             JOIN clips_fts f ON c.id = f.id
             WHERE f MATCH @query
             ORDER BY c.timestamp DESC
-            LIMIT @limit;";
+            LIMIT @limit OFFSET @offset;";
 
         using var cmd = _connection!.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@query", sanitizedQuery);
         cmd.Parameters.AddWithValue("@limit", limit);
+        cmd.Parameters.AddWithValue("@offset", offset);
 
         try
         {
@@ -387,12 +454,13 @@ public sealed class ClipboardStorageService : IAsyncDisposable
                 FROM clips
                 WHERE text_content LIKE @likeQuery
                 ORDER BY timestamp DESC
-                LIMIT @limit;";
+                LIMIT @limit OFFSET @offset;";
 
             using var fallbackCmd = _connection.CreateCommand();
             fallbackCmd.CommandText = fallbackSql;
             fallbackCmd.Parameters.AddWithValue("@likeQuery", $"%{query}%");
             fallbackCmd.Parameters.AddWithValue("@limit", limit);
+            fallbackCmd.Parameters.AddWithValue("@offset", offset);
 
             using var reader = await fallbackCmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -876,7 +944,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         return list;
     }
 
-    public async Task<IReadOnlyList<ClipboardPayload>> GetClipsByTagAsync(string tagName, int limit = 200)
+    public async Task<IReadOnlyList<ClipboardPayload>> GetClipsByTagAsync(string tagName, int limit = 200, int offset = 0)
     {
         if (_connection == null) await InitializeAsync();
         if (string.IsNullOrWhiteSpace(tagName)) return Array.Empty<ClipboardPayload>();
@@ -905,12 +973,13 @@ public sealed class ClipboardStorageService : IAsyncDisposable
                 FROM clips
                 WHERE content_type = @contentType
                 ORDER BY timestamp DESC
-                LIMIT @limit;";
+                LIMIT @limit OFFSET @offset;";
 
             using var sysCmd = _connection!.CreateCommand();
             sysCmd.CommandText = sql;
             sysCmd.Parameters.AddWithValue("@contentType", (int)systemType.Value);
             sysCmd.Parameters.AddWithValue("@limit", limit);
+            sysCmd.Parameters.AddWithValue("@offset", offset);
 
             using var sysReader = await sysCmd.ExecuteReaderAsync();
             while (await sysReader.ReadAsync())
@@ -927,12 +996,13 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             JOIN tags t ON ct.tag_id = t.id
             WHERE t.name = @tagName COLLATE NOCASE
             ORDER BY c.timestamp DESC
-            LIMIT @limit;";
+            LIMIT @limit OFFSET @offset;";
 
         using var customCmd = _connection!.CreateCommand();
         customCmd.CommandText = customSql;
         customCmd.Parameters.AddWithValue("@tagName", clean);
         customCmd.Parameters.AddWithValue("@limit", limit);
+        customCmd.Parameters.AddWithValue("@offset", offset);
 
         using var customReader = await customCmd.ExecuteReaderAsync();
         while (await customReader.ReadAsync())
@@ -1109,6 +1179,80 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         cmd.Parameters.AddWithValue("@id", id);
 
         await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task OptimizeAsync()
+    {
+        if (_connection == null) await InitializeAsync();
+        using (var vacuumCmd = _connection!.CreateCommand())
+        {
+            vacuumCmd.CommandText = "VACUUM;";
+            await vacuumCmd.ExecuteNonQueryAsync();
+        }
+        using (var optCmd = _connection.CreateCommand())
+        {
+            optCmd.CommandText = "INSERT INTO clips_fts(clips_fts) VALUES('optimize');";
+            await optCmd.ExecuteNonQueryAsync();
+        }
+    }
+
+    public async Task RebuildSearchIndexAsync()
+    {
+        if (_connection == null) await InitializeAsync();
+        using var transaction = _connection!.BeginTransaction();
+        try
+        {
+            using (var delCmd = _connection.CreateCommand())
+            {
+                delCmd.Transaction = transaction;
+                delCmd.CommandText = "DELETE FROM clips_fts;";
+                await delCmd.ExecuteNonQueryAsync();
+            }
+            using (var insertCmd = _connection.CreateCommand())
+            {
+                insertCmd.Transaction = transaction;
+                insertCmd.CommandText = @"
+                    INSERT INTO clips_fts (id, text_content, source_device)
+                    SELECT id, text_content, source_device FROM clips;";
+                await insertCmd.ExecuteNonQueryAsync();
+            }
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    public async Task<long> GetDatabaseSizeBytesAsync()
+    {
+        await Task.CompletedTask;
+        long total = 0;
+        if (!string.IsNullOrEmpty(_databasePath) && File.Exists(_databasePath))
+        {
+            total += new FileInfo(_databasePath).Length;
+            if (File.Exists(_databasePath + "-wal")) total += new FileInfo(_databasePath + "-wal").Length;
+            if (File.Exists(_databasePath + "-shm")) total += new FileInfo(_databasePath + "-shm").Length;
+
+            var dbDir = Path.GetDirectoryName(_databasePath);
+            if (!string.IsNullOrEmpty(dbDir))
+            {
+                var mediaDir = Path.Combine(dbDir, "media");
+                if (Directory.Exists(mediaDir))
+                {
+                    foreach (var file in Directory.EnumerateFiles(mediaDir))
+                    {
+                        try
+                        {
+                            total += new FileInfo(file).Length;
+                        }
+                        catch { }
+                    }
+                }
+            }
+        }
+        return total;
     }
 
     public async ValueTask DisposeAsync()

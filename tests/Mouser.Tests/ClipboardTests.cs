@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Mouser.Core.Clipboard;
@@ -246,6 +247,300 @@ public sealed class ClipboardTests
             Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
             foreach (var f in new[] { tempDb, tempDb + "-wal", tempDb + "-shm" })
                 if (File.Exists(f)) try { File.Delete(f); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task Storage_PagingReturnsDisjointPages()
+    {
+        string tempDb = Path.Combine(Path.GetTempPath(), $"mouser_page_{Guid.NewGuid():N}.db");
+        try
+        {
+            await using var storage = new ClipboardStorageService(tempDb);
+            await storage.InitializeAsync();
+
+            long baseTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            for (int i = 0; i < 15; i++)
+            {
+                await storage.SaveClipAsync(new ClipboardPayload
+                {
+                    Id = $"clip-{i:D2}",
+                    TimestampUtc = baseTime + i * 1000,
+                    TextContent = $"Page item {i} specific text",
+                    SourceDevice = "PC"
+                });
+            }
+
+            // Get page 1 (5 items, offset 0)
+            var page1 = await storage.GetRecentClipsAsync(limit: 5, offset: 0);
+            Assert.Equal(5, page1.Count);
+
+            // Get page 2 (5 items, offset 5)
+            var page2 = await storage.GetRecentClipsAsync(limit: 5, offset: 5);
+            Assert.Equal(5, page2.Count);
+
+            // Get page 3 (5 items, offset 10)
+            var page3 = await storage.GetRecentClipsAsync(limit: 5, offset: 10);
+            Assert.Equal(5, page3.Count);
+
+            // Ensure pages are completely disjoint
+            var ids1 = page1.Select(c => c.Id).ToHashSet();
+            var ids2 = page2.Select(c => c.Id).ToHashSet();
+            var ids3 = page3.Select(c => c.Id).ToHashSet();
+
+            Assert.Empty(ids1.Intersect(ids2));
+            Assert.Empty(ids2.Intersect(ids3));
+            Assert.Empty(ids1.Intersect(ids3));
+
+            // Search with paging
+            var searchPage1 = await storage.SearchClipsAsync("Page", limit: 4, offset: 0);
+            var searchPage2 = await storage.SearchClipsAsync("Page", limit: 4, offset: 4);
+            Assert.Equal(4, searchPage1.Count);
+            Assert.Equal(4, searchPage2.Count);
+            Assert.Empty(searchPage1.Select(c => c.Id).Intersect(searchPage2.Select(c => c.Id)));
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            foreach (var f in new[] { tempDb, tempDb + "-wal", tempDb + "-shm" })
+                if (File.Exists(f)) try { File.Delete(f); } catch { }
+        }
+    }
+
+    [Fact]
+    public void SettingsStore_MigratesRetentionDaysToHours()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"mouser_settings_{Guid.NewGuid():N}.json");
+        try
+        {
+            // Simulate legacy settings file with only ClipboardRetentionDays
+            File.WriteAllText(path, "{\"ClipboardRetentionDays\": 7}");
+
+            var store = new Mouser.UI.Services.SettingsStore(path);
+            Assert.Equal(7, store.Current.ClipboardRetentionDays);
+            Assert.Equal(168, store.Current.ClipboardRetentionHours); // 7 * 24
+
+            // Change retention hours
+            store.Current.ClipboardRetentionHours = 24;
+            store.Current.ClipboardRetentionDays = 1;
+            store.Save();
+
+            var reloaded = new Mouser.UI.Services.SettingsStore(path);
+            Assert.Equal(24, reloaded.Current.ClipboardRetentionHours);
+            Assert.Equal(1, reloaded.Current.ClipboardRetentionDays);
+        }
+        finally
+        {
+            if (File.Exists(path)) try { File.Delete(path); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task Storage_RebuildSearchIndexAndOptimize()
+    {
+        string tempDb = Path.Combine(Path.GetTempPath(), $"mouser_rebuild_{Guid.NewGuid():N}.db");
+        try
+        {
+            await using var storage = new ClipboardStorageService(tempDb);
+            await storage.InitializeAsync();
+
+            await storage.SaveClipAsync(new ClipboardPayload
+            {
+                Id = "rebuild-1",
+                TextContent = "UniqueSearchableKeyword in clip text",
+                SourceDevice = "PC"
+            });
+
+            var searchBefore = await storage.SearchClipsAsync("UniqueSearchableKeyword");
+            Assert.Single(searchBefore);
+
+            // Rebuild search index
+            await storage.RebuildSearchIndexAsync();
+
+            var searchAfter = await storage.SearchClipsAsync("UniqueSearchableKeyword");
+            Assert.Single(searchAfter);
+            Assert.Equal("rebuild-1", searchAfter[0].Id);
+
+            // Optimize database
+            await storage.OptimizeAsync();
+
+            // DB size check
+            long size = await storage.GetDatabaseSizeBytesAsync();
+            Assert.True(size > 0);
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            foreach (var f in new[] { tempDb, tempDb + "-wal", tempDb + "-shm" })
+                if (File.Exists(f)) try { File.Delete(f); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task Storage_LargeTextClips_StoredOnDiskAndRetrieved()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), $"mouser_large_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        string tempDb = Path.Combine(tempDir, "clipboard.db");
+
+        try
+        {
+            await using var storage = new ClipboardStorageService(tempDb);
+            await storage.InitializeAsync();
+
+            // Create > 1 MB text
+            string prefix = "START_LARGE_TEXT_";
+            string suffix = "_END_LARGE_TEXT";
+            string body = new string('A', 1_100_000);
+            string fullText = prefix + body + suffix;
+
+            var payload = new ClipboardPayload
+            {
+                Id = "large-clip-1",
+                TextContent = fullText,
+                SourceDevice = "PC"
+            };
+
+            bool saved = await storage.SaveClipAsync(payload);
+            Assert.True(saved);
+
+            // DB row should have truncated text
+            var recent = await storage.GetRecentClipsAsync(1);
+            Assert.Single(recent);
+            var loaded = recent[0];
+            Assert.Equal(ClipboardStorageService.LargeTextDbChars, loaded.TextContent.Length);
+            Assert.NotNull(loaded.MediaPath);
+            Assert.True(File.Exists(loaded.MediaPath));
+            Assert.Equal(System.Text.Encoding.UTF8.GetByteCount(fullText), loaded.MediaBytes);
+
+            // Reading full text returns full text
+            string retrieved = loaded.GetFullText();
+            Assert.Equal(fullText.Length, retrieved.Length);
+            Assert.StartsWith(prefix, retrieved);
+            Assert.EndsWith(suffix, retrieved);
+
+            // Test ViewModel Content property
+            var itemVm = new Mouser.UI.ViewModels.ClipboardItemViewModel(loaded);
+            Assert.Equal(fullText.Length, itemVm.Content.Length);
+
+            // Rejecting text > 50 MB
+            var over50Mb = new ClipboardPayload
+            {
+                Id = "too-large",
+                TextContent = new string('Z', 51 * 1024 * 1024)
+            };
+            bool rejected = await storage.SaveClipAsync(over50Mb);
+            Assert.False(rejected);
+
+            // Deleting clip cleans up the file on disk
+            string mediaPath = loaded.MediaPath;
+            await storage.DeleteClipAsync(loaded.Id);
+            Assert.False(File.Exists(mediaPath));
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            if (Directory.Exists(tempDir))
+            {
+                try { Directory.Delete(tempDir, true); } catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Storage_ClearAllHistoryAndPanicWipe()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), $"mouser_panic_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        string tempDb = Path.Combine(tempDir, "clipboard.db");
+
+        try
+        {
+            await using var storage = new ClipboardStorageService(tempDb);
+            await storage.InitializeAsync();
+
+            var normalClip = new ClipboardPayload { Id = "n1", TextContent = "Normal clip", IsFavorite = false };
+            var starredClip = new ClipboardPayload { Id = "s1", TextContent = "Starred clip", IsFavorite = true };
+            await storage.SaveClipAsync(normalClip);
+            await storage.SaveClipAsync(starredClip);
+
+            Assert.Equal((2, 1), await storage.GetCountsAsync());
+
+            // Clear without favorites (ClearOnExit behaviour)
+            int clearedNormal = await storage.ClearAsync(includeFavorites: false);
+            Assert.Equal(1, clearedNormal);
+            Assert.Equal((1, 1), await storage.GetCountsAsync());
+
+            // Clear with favorites (Panic Wipe behaviour)
+            int wipedAll = await storage.ClearAsync(includeFavorites: true);
+            Assert.Equal(1, wipedAll);
+            Assert.Equal((0, 0), await storage.GetCountsAsync());
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            if (Directory.Exists(tempDir))
+            {
+                try { Directory.Delete(tempDir, true); } catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ViewModel_PagingWithLoadMoreCommand()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), $"mouser_vmpage_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        string tempDb = Path.Combine(tempDir, "clipboard.db");
+        string settingsPath = Path.Combine(tempDir, "settings.json");
+
+        try
+        {
+            var store = new Mouser.UI.Services.SettingsStore(settingsPath);
+            await using var storage = new ClipboardStorageService(tempDb);
+            await storage.InitializeAsync();
+
+            long baseTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            for (int i = 0; i < 120; i++)
+            {
+                await storage.SaveClipAsync(new ClipboardPayload
+                {
+                    Id = $"clip-{i:D3}",
+                    TimestampUtc = baseTime + i * 1000,
+                    TextContent = $"List item {i}",
+                    SourceDevice = "PC"
+                });
+            }
+
+            var vm = new Mouser.UI.ViewModels.ClipboardHistoryViewModel(storage, store);
+            await vm.InitializeAsync();
+
+            // First page should load 50 items
+            Assert.Equal(50, vm.FilteredClips.Count);
+
+            // Execute LoadMoreCommand
+            Assert.True(vm.LoadMoreCommand.CanExecute(null));
+            await vm.LoadMoreCommand.ExecuteAsync(null);
+
+            // Should have 100 items
+            Assert.Equal(100, vm.FilteredClips.Count);
+
+            // Execute LoadMoreCommand again
+            await vm.LoadMoreCommand.ExecuteAsync(null);
+
+            // Should have all 120 items
+            Assert.Equal(120, vm.FilteredClips.Count);
+
+            // No duplicate IDs
+            Assert.Equal(120, vm.FilteredClips.Select(c => c.Id).Distinct().Count());
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            if (Directory.Exists(tempDir))
+            {
+                try { Directory.Delete(tempDir, true); } catch { }
+            }
         }
     }
 }

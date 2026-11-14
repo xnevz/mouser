@@ -21,6 +21,7 @@ public partial class App : Application
     private ClipboardStorageService? _clipboardStorage;
     private DispatcherTimer? _refreshTimer;
     private IDisposable? _hotkey;
+    private IDisposable? _panicHotkey;
     private QuickPasteWindow? _quickPaste;
     private MainWindow? _window;
     private bool _quitting;
@@ -242,6 +243,29 @@ public partial class App : Application
                 vm.ClipboardHistory.QuickPasteHint = hotkey.IsRegistered
                     ? $"Press {hotkey.HotkeyText} in any app to search this history and paste."
                     : $"{hotkey.HotkeyText} is taken by another app, so quick paste is unavailable.";
+
+                if (!string.IsNullOrWhiteSpace(settings.Current.PanicWipeHotkey))
+                {
+                    var panic = new PanicWipeHotkey(settings.Current.PanicWipeHotkey);
+                    if (panic.IsRegistered)
+                    {
+                        panic.Pressed += () => Dispatcher.UIThread.Post(async () =>
+                        {
+                            if (_clipboardStorage != null)
+                            {
+                                int removed = await _clipboardStorage.ClearAsync(includeFavorites: true);
+                                await vm.ClipboardHistory.ReloadAsync();
+                                await vm.Settings.RefreshHistorySizeAsync();
+                                ToastService.Show("History wiped", $"Deleted {removed} clips.");
+                            }
+                        });
+                        _panicHotkey = panic;
+                    }
+                    else
+                    {
+                        panic.Dispose();
+                    }
+                }
             }
 
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -260,12 +284,21 @@ public partial class App : Application
 
             desktop.Exit += (_, _) =>
             {
+                if (settings.Current.ClearOnExit && _clipboardStorage != null)
+                {
+                    try
+                    {
+                        _clipboardStorage.ClearAsync(includeFavorites: false).GetAwaiter().GetResult();
+                    }
+                    catch { }
+                }
                 singleInstance?.Dispose();
                 _clipboardWatcher?.Dispose();
                 _refreshTimer.Stop();
                 _hotkey?.Dispose();
+                _panicHotkey?.Dispose();
                 _host.Dispose();
-                _clipboardStorage.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(2));
+                _clipboardStorage?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(2));
             };
         }
 

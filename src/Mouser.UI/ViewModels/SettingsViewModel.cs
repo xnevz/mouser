@@ -1,19 +1,35 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Mouser.Core.Clipboard;
 using Mouser.Core.Security;
 using Mouser.UI.Services;
 
 namespace Mouser.UI.ViewModels;
+
+public sealed record RetentionPreset(string Label, int Hours);
 
 public partial class SettingsViewModel : ViewModelBase
 {
     private readonly SettingsStore _store;
     private readonly MouserHost _host;
     private readonly AppLockService? _appLock;
+    private readonly ClipboardStorageService? _clipboardStorage;
 
+    public static IReadOnlyList<RetentionPreset> RetentionOptions { get; } = new List<RetentionPreset>
+    {
+        new("1 hour", 1),
+        new("24 hours", 24),
+        new("7 days", 168),
+        new("30 days", 720),
+        new("1 year", 8760),
+        new("Forever", -1)
+    };
+
+    [ObservableProperty] private RetentionPreset? _selectedRetention;
     [ObservableProperty] private int _inputPort;
     [ObservableProperty] private bool _acceptRemoteInput;
     [ObservableProperty] private bool _clipboardHistoryEnabled;
@@ -21,6 +37,10 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _skipSensitiveClips;
     [ObservableProperty] private bool _clipboardSyncEnabled;
     [ObservableProperty] private int _clipboardRetentionDays;
+    [ObservableProperty] private int _clipboardRetentionHours;
+    [ObservableProperty] private bool _clearOnExit;
+    [ObservableProperty] private string _panicWipeHotkey = string.Empty;
+    [ObservableProperty] private string _historySizeText = "History uses 0 B";
     [ObservableProperty] private bool _startAtLogin;
     [ObservableProperty] private bool _closeToTray;
     [ObservableProperty] private bool _minimizeToTray;
@@ -28,6 +48,8 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private string _theme;
     [ObservableProperty] private string _deviceName;
     [ObservableProperty] private string? _statusMessage;
+
+    public event Func<Task>? HistoryCleared;
 
     // Security & App Lock properties
     [ObservableProperty] private bool _lockWithWindows;
@@ -55,11 +77,12 @@ public partial class SettingsViewModel : ViewModelBase
     public string[] ThemeOptions => ThemeService.Options;
     public string DataDirectory => _store.DataDirectory;
 
-    public SettingsViewModel(SettingsStore store, MouserHost host, AppLockService? appLock = null)
+    public SettingsViewModel(SettingsStore store, MouserHost host, AppLockService? appLock = null, ClipboardStorageService? clipboardStorage = null)
     {
         _store = store;
         _host = host;
         _appLock = appLock;
+        _clipboardStorage = clipboardStorage;
         var s = store.Current;
         _inputPort = s.InputPort;
         _acceptRemoteInput = s.AcceptRemoteInput;
@@ -68,6 +91,12 @@ public partial class SettingsViewModel : ViewModelBase
         _skipSensitiveClips = s.SkipSensitiveClips;
         _clipboardSyncEnabled = s.ClipboardSyncEnabled;
         _clipboardRetentionDays = s.ClipboardRetentionDays;
+        _clipboardRetentionHours = s.ClipboardRetentionHours;
+        _clearOnExit = s.ClearOnExit;
+        _panicWipeHotkey = s.PanicWipeHotkey ?? string.Empty;
+        _selectedRetention = RetentionOptions.FirstOrDefault(r => r.Hours == s.ClipboardRetentionHours)
+            ?? RetentionOptions.FirstOrDefault(r => r.Hours == 720)
+            ?? RetentionOptions[3];
         _startAtLogin = s.StartAtLogin;
         _closeToTray = s.CloseToTray;
         _minimizeToTray = s.MinimizeToTray;
@@ -82,6 +111,8 @@ public partial class SettingsViewModel : ViewModelBase
             _appLock.Locked += () => OnPropertyChanged(nameof(IsLockConfigured));
             _appLock.Unlocked += () => OnPropertyChanged(nameof(IsLockConfigured));
         }
+
+        _ = RefreshHistorySizeAsync();
     }
 
     partial void OnDeviceNameChanged(string value)
@@ -123,9 +154,32 @@ public partial class SettingsViewModel : ViewModelBase
         if (value >= 0) Save(s => s.AutoLockMinutes = value);
     }
 
+    partial void OnClearOnExitChanged(bool value) => Save(s => s.ClearOnExit = value);
+    partial void OnPanicWipeHotkeyChanged(string value) => Save(s => s.PanicWipeHotkey = value);
+
+    partial void OnSelectedRetentionChanged(RetentionPreset? value)
+    {
+        if (value == null) return;
+        ClipboardRetentionHours = value.Hours;
+        Save(s =>
+        {
+            s.ClipboardRetentionHours = value.Hours;
+            s.ClipboardRetentionDays = value.Hours > 0 ? Math.Max(1, value.Hours / 24) : 0;
+        });
+    }
+
     partial void OnClipboardRetentionDaysChanged(int value)
     {
-        if (value >= 1) Save(s => s.ClipboardRetentionDays = value);
+        if (value >= 1)
+        {
+            ClipboardRetentionHours = value * 24;
+            SelectedRetention = RetentionOptions.FirstOrDefault(r => r.Hours == ClipboardRetentionHours);
+            Save(s =>
+            {
+                s.ClipboardRetentionDays = value;
+                s.ClipboardRetentionHours = value * 24;
+            });
+        }
     }
 
     public string IgnoredAppsText
@@ -369,6 +423,61 @@ public partial class SettingsViewModel : ViewModelBase
         catch (Exception ex)
         {
             RemoveError = ex.Message;
+        }
+    }
+
+    [RelayCommand]
+    public async Task RefreshHistorySizeAsync()
+    {
+        if (_clipboardStorage != null)
+        {
+            long bytes = await _clipboardStorage.GetDatabaseSizeBytesAsync();
+            HistorySizeText = $"History uses {ClipboardItemViewModel.FormatFileSize(bytes)}";
+        }
+    }
+
+    [RelayCommand]
+    public async Task ClearAllHistoryAsync()
+    {
+        if (_clipboardStorage != null)
+        {
+            int removed = await _clipboardStorage.ClearAsync(includeFavorites: true);
+            StatusMessage = $"Cleared all history ({removed} clips).";
+            await RefreshHistorySizeAsync();
+            if (HistoryCleared != null) await HistoryCleared.Invoke();
+        }
+    }
+
+    [RelayCommand]
+    public async Task OptimizeAsync()
+    {
+        if (_clipboardStorage != null)
+        {
+            await _clipboardStorage.OptimizeAsync();
+            StatusMessage = "History database optimized.";
+            await RefreshHistorySizeAsync();
+        }
+    }
+
+    [RelayCommand]
+    public async Task RebuildSearchAsync()
+    {
+        if (_clipboardStorage != null)
+        {
+            await _clipboardStorage.RebuildSearchIndexAsync();
+            StatusMessage = "Search index rebuilt.";
+        }
+    }
+
+    [RelayCommand]
+    public async Task PanicWipeAsync()
+    {
+        if (_clipboardStorage != null)
+        {
+            int count = await _clipboardStorage.ClearAsync(includeFavorites: true);
+            StatusMessage = "All clipboard history and media wiped.";
+            await RefreshHistorySizeAsync();
+            if (HistoryCleared != null) await HistoryCleared.Invoke();
         }
     }
 

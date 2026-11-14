@@ -23,6 +23,7 @@ public sealed class ClipboardPayload
     public int? Height { get; set; }
     public long? MediaBytes { get; set; }
     public DateTime CreatedTime => DateTimeOffset.FromUnixTimeMilliseconds(TimestampUtc).LocalDateTime;
+    public string GetFullText() => ClipboardStorageService.GetFullText(this);
 
     public byte[] Serialize()
     {

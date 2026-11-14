@@ -22,9 +22,10 @@ public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
     private Bitmap? _previewImage;
     private bool _previewImageLoaded;
 
+    private string? _fullContent;
     public string Id { get; }
     public ClipboardContentType Kind { get; }
-    public string Content { get; }
+    public string Content => _fullContent ??= _payload.GetFullText();
     public string SourceDevice { get; }
     public DateTime Timestamp { get; }
     public string SourceApp => _payload.SourceApp;
@@ -222,7 +223,6 @@ public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
         _payload = payload;
         Id = payload.Id;
         Kind = payload.ContentType;
-        Content = payload.TextContent;
         SourceDevice = payload.SourceDevice;
         Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(payload.TimestampUtc).UtcDateTime;
         _isPinned = payload.IsFavorite;

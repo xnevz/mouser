@@ -78,7 +78,7 @@
                                IsVisible="{Binding IsEmpty}"
                                Text="Nothing here yet.&#10;Copy some text anywhere on this computer and it will show up." />
 
-                    <ListBox Classes="clips" Background="Transparent" ItemsSource="{Binding FilteredClips}"
+                    <ListBox x:Name="ClipList" Classes="clips" Background="Transparent" ItemsSource="{Binding FilteredClips}"
                              SelectedItem="{Binding SelectedClip}" IsVisible="{Binding !IsEmpty}">
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="vm:ClipboardItemViewModel">

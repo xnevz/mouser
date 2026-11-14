@@ -77,7 +77,8 @@ public partial class MainViewModel : ViewModelBase
         AndroidRemote = new AndroidRemoteViewModel(host, settings);
         ClipboardHistory = new ClipboardHistoryViewModel(clipboardStorage, settings);
         ClipboardHistory.TagsChanged += async () => await RefreshTagsAsync();
-        Settings = new SettingsViewModel(settings, host, appLock);
+        Settings = new SettingsViewModel(settings, host, appLock, clipboardStorage);
+        Settings.HistoryCleared += async () => await ClipboardHistory.ReloadAsync();
         MonitorLayout = new MonitorLayoutViewModel(host, settings);
         DevicesPage = new DevicesViewModel(host, MonitorLayout, AndroidRemote, settings);
         Activity = new ActivityViewModel(host.Log, host, clipboardAccess);

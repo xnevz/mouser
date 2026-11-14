@@ -99,16 +99,47 @@
                                     <TextBlock Classes="section-title" FontSize="13" Text="Delete unstarred clips after" />
                                     <TextBlock Classes="hint" Text="Automatically remove unstarred history older than this." />
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                    <NumericUpDown Value="{Binding ClipboardRetentionDays}" Minimum="1" Maximum="3650" Increment="1"
-                                                   FormatString="0" Width="120" />
-                                    <TextBlock Text="days" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" FontSize="12" />
-                                </StackPanel>
+                                <ComboBox Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.RetentionOptions}"
+                                          SelectedItem="{Binding SelectedRetention}" Width="160">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:RetentionPreset">
+                                            <TextBlock Text="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
                             </Grid>
-                            <StackPanel Spacing="6" Margin="0,8,0,0">
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Clear history when Mouser quits" />
+                                    <TextBlock Classes="hint" Text="Automatically wipe unstarred clips upon exiting Mouser." />
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding ClearOnExit}" OnContent="" OffContent="" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Panic wipe hotkey" />
+                                    <TextBlock Classes="hint" Text="Hotkey to delete all history and media instantly (e.g. Ctrl+Alt+Shift+X)." />
+                                </StackPanel>
+                                <TextBox Grid.Column="1" Text="{Binding PanicWipeHotkey}" Width="160" PlaceholderText="None" />
+                            </Grid>
+                            <StackPanel Spacing="6" Margin="0,4,0,0">
                                 <TextBlock Text="Don't save copies from these apps (one per line)" Classes="label" />
                                 <TextBox Text="{Binding IgnoredAppsText}" AcceptsReturn="True" Height="100" TextWrapping="Wrap" />
                                 <TextBlock Text="Copies made in these apps will not be captured or synced." Classes="hint" />
+                            </StackPanel>
+                            <StackPanel Spacing="8" Margin="0,8,0,0">
+                                <TextBlock Classes="section-title" FontSize="13" Text="Maintenance" />
+                                <TextBlock Classes="hint" Text="{Binding HistorySizeText}" />
+                                <WrapPanel Orientation="Horizontal">
+                                    <Button Classes="secondary-btn" Content="Clear all history" Command="{Binding ClearAllHistoryCommand}"
+                                            Margin="0,0,8,8" ToolTip.Tip="Delete all clips including starred" />
+                                    <Button Classes="secondary-btn" Content="Optimize" Command="{Binding OptimizeCommand}"
+                                            Margin="0,0,8,8" ToolTip.Tip="Defragment database and optimize index" />
+                                    <Button Classes="secondary-btn" Content="Rebuild search" Command="{Binding RebuildSearchCommand}"
+                                            Margin="0,0,8,8" ToolTip.Tip="Re-index all clips for search" />
+                                    <Button Classes="secondary-btn" Content="Delete everything" Command="{Binding PanicWipeCommand}"
+                                            Margin="0,0,8,8" ToolTip.Tip="Instantly wipe all clips and media files" />
+                                </WrapPanel>
                             </StackPanel>
                         </StackPanel>
                     </Expander>

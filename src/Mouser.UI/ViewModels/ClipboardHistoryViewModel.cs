@@ -18,9 +18,11 @@ namespace Mouser.UI.ViewModels;
 /// <summary>Local clipboard history: captures copied text, stores it in SQLite and lets you search and re-copy it.</summary>
 public partial class ClipboardHistoryViewModel : ViewModelBase
 {
-    /// <summary>Clips larger than this are not stored (they are usually accidental file-sized copies).</summary>
-    public const int MaxClipLength = 1_000_000;
-    private const int PageSize = 200;
+    /// <summary>Maximum clip size supported (50 MB capped).</summary>
+    public const int MaxClipLength = 50 * 1024 * 1024;
+    public const int LargeTextThreshold = 1_000_000;
+    public const int LargeTextDbChars = 20_000;
+    private const int PageSize = 50;
 
     private readonly ClipboardStorageService _storage;
     private readonly SettingsStore _settings;
@@ -29,6 +31,10 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     private string? _lastSeenImageHash;
     private string? _lastSeenFilesText;
     private bool _isPolling;
+    private int _currentOffset;
+    private bool _hasMore = true;
+    private bool _isLoadingMore;
+    private DateTime _lastPurgeTime = DateTime.UtcNow;
 
     [ObservableProperty] private string _searchQuery = string.Empty;
     [ObservableProperty] private string? _selectedTag;
@@ -104,10 +110,21 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     /// <summary>Connects the system clipboard once the main window exists.</summary>
     public void AttachClipboard(IClipboardAccess clipboard) => _clipboard = clipboard;
 
+    public async Task<int> PurgeIfRetentionEnabledAsync()
+    {
+        int hours = _settings.Current.ClipboardRetentionHours;
+        if (hours > 0)
+        {
+            long threshold = DateTimeOffset.UtcNow.AddHours(-hours).ToUnixTimeMilliseconds();
+            return await _storage.PurgeClipsOlderThanAsync(threshold);
+        }
+        return 0;
+    }
+
     public async Task InitializeAsync()
     {
         await _storage.InitializeAsync();
-        await _storage.PurgeClipsOlderThanAsync(_settings.Current.ClipboardRetentionDays);
+        await PurgeIfRetentionEnabledAsync();
         await ReloadAsync();
     }
 
@@ -118,6 +135,12 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
         _isPolling = true;
         try
         {
+            if (DateTime.UtcNow - _lastPurgeTime >= TimeSpan.FromHours(1))
+            {
+                _lastPurgeTime = DateTime.UtcNow;
+                _ = PurgeIfRetentionEnabledAsync();
+            }
+
             var snapshot = await _clipboard.GetSnapshotAsync();
 
             if (snapshot.Files is { Count: > 0 })
@@ -261,7 +284,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     }
 
     private bool IsShareable(string text) =>
-        !string.IsNullOrWhiteSpace(text) && text.Length <= MaxClipLength &&
+        !string.IsNullOrWhiteSpace(text) && text.Length <= LargeTextThreshold &&
         !(_settings.Current.SkipSensitiveClips && ClipboardPrivacyFilter.IsSensitive(text));
 
     /// <summary>Puts text copied on a paired computer on this clipboard (and in history) without echoing it back.</summary>
@@ -307,7 +330,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
 
         if (text.Length > MaxClipLength)
         {
-            StatusMessage = "Skipped a very large copy (over 1 MB of text).";
+            StatusMessage = "Skipped a very large copy (over 50 MB of text).";
             return null;
         }
 
@@ -319,13 +342,31 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
 
         sourceApp ??= AppProbe?.Invoke().App ?? string.Empty;
 
+        string id = Guid.NewGuid().ToString("N");
+        string? mediaPath = null;
+        long? mediaBytes = null;
+        string dbText = text;
+
+        if (text.Length > LargeTextThreshold)
+        {
+            var mediaDir = Path.Combine(_settings.DataDirectory, "media");
+            Directory.CreateDirectory(mediaDir);
+            mediaPath = Path.Combine(mediaDir, $"{id}.txt");
+            await File.WriteAllTextAsync(mediaPath, text);
+            mediaBytes = System.Text.Encoding.UTF8.GetByteCount(text);
+            dbText = text.Substring(0, LargeTextDbChars);
+        }
+
         var payload = new ClipboardPayload
         {
-            ContentType = ClipboardClassifier.Classify(text),
-            TextContent = text,
+            Id = id,
+            ContentType = ClipboardClassifier.Classify(dbText),
+            TextContent = dbText,
             HtmlContent = html,
             SourceDevice = Environment.MachineName,
-            SourceApp = sourceApp ?? string.Empty
+            SourceApp = sourceApp ?? string.Empty,
+            MediaPath = mediaPath,
+            MediaBytes = mediaBytes
         };
 
         await _storage.SaveClipAsync(payload);
@@ -592,30 +633,31 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
         };
     }
 
-    public async Task ReloadAsync()
+    private async Task<List<ClipboardPayload>> FetchPageAsync(int limit, int offset)
     {
-        (AllCount, StarredCount) = await _storage.GetCountsAsync();
-
         var parsed = Mouser.Core.Clipboard.SearchQuery.Parse(SearchQuery);
         string? activeTag = !string.IsNullOrEmpty(parsed.Tag) ? parsed.Tag : SelectedTag;
 
-        List<ClipboardPayload> results;
         if (!string.IsNullOrWhiteSpace(parsed.Text))
         {
-            results = await _storage.SearchClipsAsync(parsed.Text, PageSize);
+            return await _storage.SearchClipsAsync(parsed.Text, limit, offset);
         }
         else if (!string.IsNullOrEmpty(activeTag))
         {
-            results = (await _storage.GetClipsByTagAsync(activeTag, PageSize)).ToList();
+            return (await _storage.GetClipsByTagAsync(activeTag, limit, offset)).ToList();
         }
         else
         {
-            results = await _storage.GetRecentClipsAsync(PageSize, favoritesOnly: SelectedLibrary == "Starred");
+            return await _storage.GetRecentClipsAsync(limit, offset, favoritesOnly: SelectedLibrary == "Starred");
         }
+    }
 
-        PopulateDeviceOptions(results);
+    private async Task<List<ClipboardPayload>> FilterRawClipsAsync(List<ClipboardPayload> raw)
+    {
+        var parsed = Mouser.Core.Clipboard.SearchQuery.Parse(SearchQuery);
+        string? activeTag = !string.IsNullOrEmpty(parsed.Tag) ? parsed.Tag : SelectedTag;
 
-        var items = results.AsEnumerable();
+        var items = raw.AsEnumerable();
         if (SelectedLibrary == "Starred") items = items.Where(c => c.IsFavorite);
 
         // Operator filters
@@ -659,14 +701,12 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
 
         var clipList = items.ToList();
 
-        var tagsCache = new Dictionary<string, IReadOnlyList<TagInfo>>();
         if (!string.IsNullOrEmpty(activeTag))
         {
             var tagFiltered = new List<ClipboardPayload>();
             foreach (var clip in clipList)
             {
                 var clipTags = await _storage.GetClipTagsAsync(clip.Id);
-                tagsCache[clip.Id] = clipTags;
                 bool matchesTag = clipTags.Any(t =>
                     string.Equals(t.Name, activeTag, StringComparison.OrdinalIgnoreCase) ||
                     (t.Name == "File" && (string.Equals(activeTag, "files", StringComparison.OrdinalIgnoreCase) || string.Equals(activeTag, "folder", StringComparison.OrdinalIgnoreCase))));
@@ -678,20 +718,11 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
             clipList = tagFiltered;
         }
 
-        string? selectedId = SelectedClip?.Id;
-        foreach (var oldItem in FilteredClips) oldItem.Dispose();
-        FilteredClips.Clear();
-        foreach (var payload in clipList)
-        {
-            var itemVm = new ClipboardItemViewModel(payload);
-            if (!tagsCache.TryGetValue(itemVm.Id, out var clipTags))
-            {
-                clipTags = await _storage.GetClipTagsAsync(itemVm.Id);
-            }
-            itemVm.SetTags(clipTags.Select(t => new TagViewModel(t)));
-            FilteredClips.Add(itemVm);
-        }
+        return clipList;
+    }
 
+    private void UpdateDayHeaders()
+    {
         string? lastLabel = null;
         for (int i = 0; i < FilteredClips.Count; i++)
         {
@@ -711,6 +742,74 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
                 item.DayCount = 0;
             }
         }
+    }
+
+    [RelayCommand]
+    public async Task LoadMoreAsync()
+    {
+        if (_isLoadingMore || !_hasMore) return;
+        _isLoadingMore = true;
+        try
+        {
+            var raw = await FetchPageAsync(PageSize, _currentOffset);
+            if (raw.Count == 0)
+            {
+                _hasMore = false;
+                return;
+            }
+            if (raw.Count < PageSize)
+            {
+                _hasMore = false;
+            }
+            _currentOffset += raw.Count;
+
+            PopulateDeviceOptions(raw);
+            var filtered = await FilterRawClipsAsync(raw);
+            foreach (var payload in filtered)
+            {
+                if (FilteredClips.Any(c => c.Id == payload.Id)) continue;
+                var itemVm = new ClipboardItemViewModel(payload);
+                var clipTags = await _storage.GetClipTagsAsync(itemVm.Id);
+                itemVm.SetTags(clipTags.Select(t => new TagViewModel(t)));
+                FilteredClips.Add(itemVm);
+            }
+
+            UpdateDayHeaders();
+            OnPropertyChanged(nameof(IsEmpty));
+        }
+        finally
+        {
+            _isLoadingMore = false;
+        }
+    }
+
+    public async Task ReloadAsync()
+    {
+        (AllCount, StarredCount) = await _storage.GetCountsAsync();
+
+        _currentOffset = 0;
+        _hasMore = true;
+        var raw = await FetchPageAsync(PageSize, 0);
+        _currentOffset = raw.Count;
+        _hasMore = raw.Count == PageSize;
+
+        PopulateDeviceOptions(raw);
+
+        var filtered = await FilterRawClipsAsync(raw);
+
+        string? selectedId = SelectedClip?.Id;
+        foreach (var oldItem in FilteredClips) oldItem.Dispose();
+        FilteredClips.Clear();
+
+        foreach (var payload in filtered)
+        {
+            var itemVm = new ClipboardItemViewModel(payload);
+            var clipTags = await _storage.GetClipTagsAsync(itemVm.Id);
+            itemVm.SetTags(clipTags.Select(t => new TagViewModel(t)));
+            FilteredClips.Add(itemVm);
+        }
+
+        UpdateDayHeaders();
 
         SelectedClip = FilteredClips.FirstOrDefault(c => c.Id == selectedId) ?? FilteredClips.FirstOrDefault();
         OnPropertyChanged(nameof(IsEmpty));
