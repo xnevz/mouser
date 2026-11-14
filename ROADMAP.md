@@ -186,7 +186,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | :-: | :-: | :--- | :--- | :-: |
 | ✅ | G1 | Typing and dictation | E12 | M |
 | ✅ | G2 | Clipboard bridge (foreground) | F5, D4 | L |
-| ⬜ | G3 | Share-sheet target | G2 | M |
+| ✅ | G3 | Share-sheet target | G2 | M |
 | ⬜ | G4 | Macro pad with custom buttons | – | M |
 | ⬜ | G5 | Gestures and phone settings | – | M |
 | ⬜ | G6 | Laser pointer and slide remote | E7 | L |
@@ -337,3 +337,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - F8: Removed v1 PIN trust and cleartext pairing: deleted PairingGate.cs, removed TypePair/TypePairAck from InputMotionPacket wire protocol, removed PBKDF2-from-PIN key derivation (PeerTransferService.DeriveKey), removed AppSettings.PairingPin and PeerSettings.Pin; updated UI (Onboarding, Devices, AndroidRemote, MonitorLayout) to remove PIN boxes and 'New PIN' buttons; updated Android companion app (MouserConnection, InputMotionPacket, HostConnectionState, ConnectionBar, MainActivity, MouserViewModel); removed legacy PIN tests; verified grep check for TryPair|PairingPin|DeriveKey( returned 0 matches; all targeted tests pass.
 - G1: Implemented Android typing and dictation with TypeSurface composable, AppNavigationTab.TYPE in MainActivity, MouserConnection.sendChar/typeChar/typeText, MouserViewModel.typeText and applyTypeDiff, and pure diffToKeys function in TypeDiff.kt handling common prefix, backspaces, and UTF-16 surrogate pairs; added unit tests in TypeDiffTest and InputMotionPacketTest.
 - G2: Implemented Android clipboard bridge and desktop ClipRequest handling: added FrameType.ClipRequest=12, GetLatestClip provider in PeerTransferService, RequestClipAsync client, and LatestClipProvider in MouserHost; created Android ClipboardBridge with 7-bit string encoding, AES-256-GCM container matching ClipboardCryptoEngine, sendClip and requestClip over TCP; added Send phone clipboard and Get PC clipboard action buttons in ConnectionBar; added unit tests in ClipboardBridgeTest and PeerTransferTests.
+- G3: Implemented Android share-sheet target: registered ShareReceiverActivity with ACTION_SEND filters for text/plain, image/*, and */*; implemented FileTransferClient with 2 GB size enforcement, SHA-256 computation, and FileStart/FileChunk/FileEnd TCP streaming; wired paired host picker UI in Compose; added unit tests in FileTransferClientTest.
