@@ -196,7 +196,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 ### Track H: Platform and release ([H-platform-and-quality.md](roadmap/tasks/H-platform-and-quality.md))
 | Status | ID | Task | Needs | Size |
 | :-: | :-: | :--- | :--- | :-: |
-| ⬜ | H1 | Windows installer (Inno Setup) with firewall rule | A10, A11 | M |
+| ✅ | H1 | Windows installer (Inno Setup) with firewall rule | A10, A11 | M |
 | ⬜ | H2 | Code signing (needs the user's certificate) | H1 | S |
 | ⬜ | H3 | Update check (then optional auto-update) | H1 | L |
 | ✅ | H4 | Local log files and crash handling | B12 | S |
@@ -322,3 +322,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - Q5: Implemented soak-two-instances.ps1 measuring key/button state, bounded memory growth, and log exceptions across long-running pairs; added ChaosTests covering LossyChannel sequence/anti-replay filtering, partial file deletion on interrupted file transfer in FileStreamingService, and KVM return/resume on mid-session endpoint changes (all tests pass in 91 ms).
 - Q6: Authored user-guide.md, faq.md, protocol.md, architecture.md with Mermaid threading/project diagram, CONTRIBUTING.md, CHANGELOG.md (Keep-a-Changelog), and .github/ISSUE_TEMPLATE/bug_report.md.
 - Q7: Reconciled web claims in ArchitecturePresentation.tsx and releases.ts with current Protocol v2 and SQLCipher encryption; added status disclaimer to phase-0 through phase-6 documents and unchecked historical/unbuilt targets; npm run lint and npm run build both pass cleanly.
+- H1: Created installer/windows/mouser.iss with private firewall rules, start-menu/desktop shortcuts, sign-in startup, and clean uninstall options; created scripts/build-installer.ps1 compiling portable win-x64 binary and Inno Setup installer; documented in roadmap/README.md.
