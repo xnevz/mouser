@@ -105,7 +105,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | B8 | Devices view model | B1, B7 | M |
 | ✅ | B9 | Devices page + navigation switch (clipboard becomes the home page) | B2, B8 | L |
 | ✅ | B10 | Add computer by IP/name (unicast beacons) | B9 | L |
-| ⬜ | B11 | Simple Settings (5 cards, Advanced collapsed) | A10, A12, B7 | M |
+| ✅ | B11 | Simple Settings (5 cards, Advanced collapsed) | A10, A12, B7 | M |
 | ⬜ | B12 | Activity page, log, "Copy diagnostics" | B9 | M |
 | ⬜ | B13 | First-run wizard | B9, B11 | M |
 
@@ -278,3 +278,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - B8: Implemented DeviceDetailViewModel and DevicesViewModel unifying online/offline computers and phones, with pairing, unpairing, and placement management; added 3 unit tests (149 passing).
 - B9: Created DevicesView unified page with left list (this computer, computers, phones, screen layout expander) and right detail sheet (DataTemplates for this device, peer computer, and phone client); updated DevicesViewModel and MainViewModel to switch home page to SmartClipboard, route DisplayMatrix and AndroidRemote to DevicesPage; updated Navigation_SwitchesPagesAndActiveTab test (149 passing).
 - B10: Added manual peer target unicast discovery across subnets/VPNs with automatic sender learning, persisted ManualPeers in SettingsStore, added AddManualPeerAsync in MouserHost, added manual entry UI in DevicesView and DevicesViewModel, added unit test TwoHosts_WithDifferentDiscoveryPorts_DiscoverEachOtherViaAddTarget (150 passing).
+- B11: Reorganized SettingsView into 5 clean cards (Appearance, General, Clipboard, Sharing, This device) with collapsible Advanced expanders for port and retention; added AcceptRemoteInput observable property and change handler to SettingsViewModel; added unit test Settings_AcceptRemoteInput_TogglesAndPersists (151 passing).
