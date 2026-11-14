@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Mouser
+GenericName=Mouse, Keyboard & Clipboard Sharing
+Comment=Seamless mouse, keyboard, and clipboard sharing between computers and phones
+Exec=Mouser %u
+Icon=mouser
+Terminal=false
+Type=Application
+Categories=Utility;Network;
+StartupNotify=true
+X-GNOME-Autostart-enabled=true

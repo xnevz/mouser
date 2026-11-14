@@ -117,4 +117,19 @@ public class LinuxInputTests
             sink.Char(0x41, true);
         }
     }
+
+    [Fact]
+    public void X11InputCapture_InstantiatesSafelyOnNonLinux_IsSupportedFalse()
+    {
+        using var capture = new X11InputCapture();
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.False(capture.IsSupported);
+
+            // Safe no-op lifecycle calls
+            capture.Start();
+            capture.WarpCursor(100, 100);
+            capture.Stop();
+        }
+    }
 }

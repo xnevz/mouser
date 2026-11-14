@@ -1,0 +1,29 @@
+app-id: com.mouser.Mouser
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.dotnet8
+command: Mouser
+finish-args:
+  # Windowing / X11 / Wayland
+  - --share=ipc
+  - --socket=x11
+  - --socket=fallback-x11
+  - --socket=wayland
+  # Network for discovery (UDP 4242) and peer streaming (TCP 4243)
+  - --share=network
+  # Desktop integration: tray and notifications
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+  # RemoteDesktop portal for Wayland input
+  - --talk-name=org.freedesktop.portal.Desktop
+modules:
+  - name: mouser
+    buildsystem: simple
+    build-commands:
+      - install -D Mouser /app/bin/Mouser
+      - install -D mouser.desktop /app/share/applications/com.mouser.Mouser.desktop
+    sources:
+      - type: file
+        path: mouser.desktop

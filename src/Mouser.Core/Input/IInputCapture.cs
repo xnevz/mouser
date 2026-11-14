@@ -41,6 +41,7 @@ public static class InputCaptures
     {
         if (OperatingSystem.IsWindows()) return new Win32InputCapture();
         if (OperatingSystem.IsMacOS() && new MacInputSink().IsSupported) return new MacInputCapture();
+        if (OperatingSystem.IsLinux() && new X11InputSink().IsSupported) return new X11InputCapture();
         return null;
     }
 }
