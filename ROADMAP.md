@@ -119,7 +119,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | C5 | Encrypt `clipboard.db` (SQLCipher spike first) | C3 | L |
 | ⬜ | C6 | Android app lock (biometric) | A13 | M |
 | ✅ | C7 | Lock all paired devices | C4 | M |
-| ⬜ | C8 | Windows Hello (spike) | C4 | M |
+| 🅿️ | C8 | Windows Hello (spike) | C4 | M |
 
 ### Track D: Clipboard parity ([D-clipboard.md](roadmap/tasks/D-clipboard.md))
 | Status | ID | Task | Needs | Size |
@@ -326,3 +326,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - H3: Implemented VersionComparer (SemVer 2.0 with pre-releases) and UpdateChecker querying GitHub Releases with zero telemetry and proxy/local hook support; wired update settings, manual 'Check now' button, and download banner into SettingsView/SettingsViewModel; added 5 unit tests in UpdateCheckerTests (all pass in 175 ms).
 - H6: Implemented X11KeyMap (pure VK to X11 keysym translation covering letters, digits, F1-F24, navigation, modifiers, media, and numpad) and X11InputSink via libX11.so.6 and libXtst.so.6 with Wayland detection; wired into InputSinks.CreateForCurrentPlatform and updated AndroidRemoteView banner; added 8 unit tests in LinuxInputTests (all pass in 27 ms; native P/Invoke verified safe on Windows, Linux runtime untested).
 - H7: Implemented X11InputCapture using XInput2 and XGrabPointer/XGrabKeyboard grabs on root window; wired into InputCaptures.CreateForCurrentPlatform; created installer/linux/mouser.desktop and installer/linux/com.mouser.Mouser.yml Flatpak manifest; updated scripts/package-linux.sh for AppImage AppDir structure; authored docs/wayland-input.md detailing libei and RemoteDesktop portal architecture; added unit test verifying safe no-op on non-Linux; 9 unit tests pass in LinuxInputTests (30 ms).
+- C8: Completed Windows Hello spike; verified UserConsentVerifier requires net8.0-windows10.0.19041.0 on Mouser.UI/Desktop which breaks cross-platform Linux packaging (NETSDK1139); per card instructions ('If the TFM change breaks the build or Linux/mac targeting, STOP and move this item to the backlog'), parked in backlog (🅿️).
