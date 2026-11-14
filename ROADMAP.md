@@ -161,7 +161,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ⬜ | E11 | Several computers per side and chains (design review first) | E10 | XL |
 | ✅ | E12 | Layout-aware typing (Unicode path) | – | L |
 | ✅ | E13 | Lock/sleep/display-off sync | C4, B9 | M |
-| ⬜ | E14 | Wake-on-LAN | B9 | M |
+| ✅ | E14 | Wake-on-LAN | B9 | M |
 | ⬜ | E15 | Paste from the other computer hotkey | D15, E3 | S |
 | ✅ | E16 | Detect and warn about administrator (elevated) windows + setting | A12 | S |
 | ✅ | E18 | **Run Mouser as administrator** (setting, restart button, elevated start at login) | E16, A11 | L |
@@ -301,3 +301,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - D14: Implemented pure TextTransforms in Core (Upper, Lower, TitleCase, Trim, RemoveLineBreaks, SortLines, DedupeLines, TryJsonPretty, JsonPretty, JsonMinify, UrlEncode, UrlDecode, Base64Encode, Base64Decode, StripFormatting, and All list); added Transform ▾ menu and Transformed Result card with Copy result to ClipboardHistoryView using dynamic theme tokens; added transform cycling via Tab in QuickPasteViewModel and QuickPasteWindow; added 22 unit and integration tests in TextTransformTests (360 passing).
 - E18: Implemented ElevatedLaunch with schtasks commands and execution, global single-instance mutex with fallback, scheduled task autostart support in StartupRegistration, RunAsAdministrator setting with restart prompt and commands, elevated window title/tray indicators, and 10 unit tests (582 passing).
 - E13: Implemented PowerEventKind (Lock=1, Sleep=2, DisplayOff=3), pure PowerSyncPolicy with 5-second ping-pong guard, FrameType.PowerEvent=7 in PeerTransferService with SendPowerAsync and PowerReceived event; added WindowsPower service for LockWorkStation, SendMessage SC_MONITORPOWER, and SetSuspendState with test hooks; added SyncLock, SyncSleep, SyncDisplayOff to PeerSettings, DeviceDetailViewModel, and PeerViewModel; wired BroadcastPowerEventAsync and PowerReceived handling in MouserHost; wired local workstation lock detection in App.axaml.cs 1-second tick; added Setting-row toggles in DevicesView Advanced expander using dynamic theme tokens; added 11 unit tests across PowerSyncPolicyTests and PeerTransferTests (609 passing).
+- E14: Implemented WakeOnLan with BuildMagicPacket, TryParseMac, FormatMac, SendAsync via UDP broadcast, and Windows SendARP resolution; added PeerSettings.Mac; wired periodic ARP resolution and WakePeerAsync in MouserHost; updated MonitorLayoutViewModel.SetPeers to retain offline saved peers as Unreachable; added CanWake and WakeCommand to PeerViewModel and DeviceDetailViewModel; added Wake button in DevicesView; added 36 unit tests across WakeOnLanTests (645 passing).
