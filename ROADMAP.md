@@ -126,7 +126,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | :-: | :-: | :--- | :--- | :-: |
 | ✅ | D1 | Event-driven capture (clipboard sequence number) | A9 | S |
 | ✅ | D2 | Source app + window title | D1 | M |
-| ⬜ | D3 | Password-manager exclusion + ignore list | D2 | M |
+| ✅ | D3 | Password-manager exclusion + ignore list | D2 | M |
 | ⬜ | D4 | Spike: read/write images, HTML, files | D1 | S |
 | ⬜ | D5 | Image clips: storage | D4 | L |
 | ⬜ | D6 | Image clips: list, preview, actions | D5, B6 | M |
@@ -287,3 +287,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - C4: Implemented WindowsSession (IsWorkstationLocked, IdleTime via user32.dll); added Ctrl+L shortcut and LockNowCommand on MainViewModel; added Lock item to tray menu (visible when configured); added auto-lock check on 1s refresh timer for Windows lock and idle timeout; blocked Quit and close button while locked until passphrase entered; blocked QuickPaste while locked; added 5 unit tests in ViewModelTests (178 passing).
 - D1: Implemented ClipboardWatcher using GetClipboardSequenceNumber background poller (150ms interval); wired into App.axaml.cs with UIThread dispatch, AppLock check, and 1s timer fallback; added 4 unit tests in ClipboardWatcherTests (182 passing).
 - D2: Added ForegroundApp service probing GetClipboardOwner/GetForegroundWindow/GetWindowText; extended ClipboardPayload with SourceApp wire-compatibility; migrated SQLite clips schema to include source_app; wired AppProbe to ClipboardHistoryViewModel and exposed SourceApp/HasSourceApp in ClipboardItemViewModel; added App metadata row to ClipboardHistoryView; added 6 unit tests (188 passing).
+- D3: Added ClipboardPrivacyFilter.IsIgnoredApp pure helper (.exe and case-insensitive matching); added IgnoredApps list in AppSettings/SettingsStore defaulting to 7 common password managers; created ClipboardFormats with ExcludeClipboardContentFromMonitorProcessing detection; integrated ExcludedByOwnerProbe and IgnoredApps checks into ClipboardHistoryViewModel.PollClipboardAsync skipping capture and sync with status message; added IgnoredAppsText editor in SettingsView Advanced Clipboard expander; added 17 unit tests in ClipboardPrivacyFilterTests (207 passing).
