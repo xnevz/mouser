@@ -18,6 +18,12 @@
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                 <TextBlock Text="{Binding StatusMessage}" Classes="hint" VerticalAlignment="Center"
                            IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <Button Classes="secondary-btn" Command="{Binding OpenLogFolderCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="📁" VerticalAlignment="Center" />
+                        <TextBlock Text="Open log folder" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
                 <Button Classes="secondary-btn" Command="{Binding CopyDiagnosticsCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <TextBlock Text="📋" VerticalAlignment="Center" />

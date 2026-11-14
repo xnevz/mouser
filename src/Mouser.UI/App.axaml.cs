@@ -45,6 +45,7 @@ public partial class App : Application
 
     public override void Initialize()
     {
+        CrashReporter.Install();
         AvaloniaXamlLoader.Load(this);
     }
 
@@ -102,6 +103,17 @@ public partial class App : Application
                 }
             };
             _host = new MouserHost(settings, InputSinks.CreateForCurrentPlatform(), InputCaptures.CreateForCurrentPlatform());
+            CrashReporter.Install(_host.Log.FileLogger, _host.Log);
+            CrashReporter.CurrentClipboardProvider = () =>
+            {
+                try
+                {
+                    if (OperatingSystem.IsWindows())
+                        return Win32Clipboard.GetSnapshot().Text;
+                }
+                catch { }
+                return null;
+            };
             if (appLock.IsLocked)
             {
                 _host.SetLocked(true);

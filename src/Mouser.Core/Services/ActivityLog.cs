@@ -24,7 +24,14 @@ public sealed class ActivityLog
     private readonly Queue<ActivityEvent> _events = new();
     private readonly object _lock = new();
 
+    public FileLogger? FileLogger { get; set; }
+
     public event Action<ActivityEvent>? EntryAdded;
+
+    public ActivityLog(FileLogger? fileLogger = null)
+    {
+        FileLogger = fileLogger;
+    }
 
     public void Record(ActivityCategory category, string message)
     {
@@ -34,6 +41,14 @@ public sealed class ActivityLog
             if (_events.Count >= Capacity)
                 _events.Dequeue();
             _events.Enqueue(entry);
+        }
+        try
+        {
+            FileLogger?.Log(entry);
+        }
+        catch
+        {
+            // Persistence failure must never crash the application
         }
         EntryAdded?.Invoke(entry);
     }

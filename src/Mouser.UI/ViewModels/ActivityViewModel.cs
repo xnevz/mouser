@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,6 +19,33 @@ public partial class ActivityViewModel : ViewModelBase
 
     public ObservableCollection<ActivityEvent> Entries { get; } = new();
     [ObservableProperty] private string? _statusMessage;
+
+    public string LogFolder => _log.FileLogger?.LogDirectory
+        ?? Path.Combine(_host.Settings?.DataDirectory ?? SettingsStore.DefaultDataDirectory, "logs");
+
+    public Action<string>? OpenFolderAction { get; set; }
+
+    [RelayCommand]
+    public void OpenLogFolder()
+    {
+        try
+        {
+            string folder = LogFolder;
+            Directory.CreateDirectory(folder);
+            if (OpenFolderAction != null)
+            {
+                OpenFolderAction(folder);
+            }
+            else
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = folder, UseShellExecute = true });
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Failed to open log folder: " + ex.Message;
+        }
+    }
 
     public ActivityViewModel(ActivityLog log, MouserHost host, IClipboardAccess? clipboard = null)
     {

@@ -99,6 +99,7 @@ public sealed class MouserHost : IDisposable
         Discovery?.ActivePeers ?? (IReadOnlyCollection<DiscoveredPeer>)Array.Empty<DiscoveredPeer>();
 
     public ActivityLog Log { get; } = new();
+    public SettingsStore Settings => _settings;
 
     public MouserHost(SettingsStore settings, IInputSink sink, IInputCapture? capture = null,
         int discoveryPort = PeerDiscoveryService.DefaultDiscoveryPort, string? downloadDirectory = null)
@@ -107,6 +108,8 @@ public sealed class MouserHost : IDisposable
         _settings = settings;
         _sink = sink;
         _discoveryPort = discoveryPort;
+        string logDir = Path.Combine(settings.DataDirectory, "logs");
+        Log.FileLogger = new FileLogger(logDir);
         Pairing = new PairingGate(settings.Current.PairingPin);
         if (capture != null)
         {
