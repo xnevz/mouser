@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Mouser.UI.ViewModels"
              xmlns:views="using:Mouser.UI.Views"
+             xmlns:services="using:Mouser.UI.Services"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:Class="Mouser.UI.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
@@ -14,12 +15,37 @@
 
             <!-- Card 1: Appearance -->
             <Border Classes="glass-card" Padding="20">
-                <StackPanel Spacing="12">
+                <StackPanel Spacing="14">
                     <TextBlock Classes="section-title" Text="Appearance" />
+
+                    <!-- Design Theme Picker -->
                     <Grid ColumnDefinitions="*,Auto" Margin="0,4">
                         <StackPanel Spacing="2">
-                            <TextBlock Classes="section-title" FontSize="13" Text="Theme" />
-                            <TextBlock Classes="hint" Text="System follows your Windows setting." />
+                            <TextBlock Classes="section-title" FontSize="13" Text="Design theme" />
+                            <TextBlock Classes="hint" Text="{Binding SelectedDesignTheme.Description, FallbackValue='Choose from 7 distinct design aesthetics.'}" />
+                        </StackPanel>
+                        <ComboBox Grid.Column="1"
+                                  ItemsSource="{Binding DesignThemes}"
+                                  SelectedItem="{Binding SelectedDesignTheme}"
+                                  Width="220">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="services:ThemeService+DesignThemeInfo">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Border Width="12" Height="12" CornerRadius="6" Background="{Binding AccentColor}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </Grid>
+
+                    <Separator Background="{DynamicResource BorderSubtle}" />
+
+                    <!-- Light / Dark Mode -->
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Theme mode" />
+                            <TextBlock Classes="hint" Text="Light, Dark, or automatically match your operating system." />
                         </StackPanel>
                         <ComboBox Grid.Column="1" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" Width="160" />
                     </Grid>

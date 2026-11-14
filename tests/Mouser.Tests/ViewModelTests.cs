@@ -590,6 +590,52 @@ public class ViewModelTests
     }
 
     [Fact]
+    public async Task DesignTheme_DefaultsToModernMinimalist()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        Assert.Equal("ModernMinimalist", app.Settings.Current.DesignTheme);
+    }
+
+    [Fact]
+    public async Task DesignTheme_SettingPersists()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        app.Main.Settings.DesignTheme = "NordicFrost";
+        var reloaded = new SettingsStore(app.Settings.FilePath).Current;
+        Assert.Equal("NordicFrost", reloaded.DesignTheme);
+    }
+
+    [Fact]
+    public async Task SelectedDesignTheme_UpdatesDesignThemeAndPersists()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        var cyberpunk = ThemeService.Designs.First(d => d.Id == "CyberpunkTerminal");
+        app.Main.Settings.SelectedDesignTheme = cyberpunk;
+        Assert.Equal("CyberpunkTerminal", app.Main.Settings.DesignTheme);
+        var reloaded = new SettingsStore(app.Settings.FilePath).Current;
+        Assert.Equal("CyberpunkTerminal", reloaded.DesignTheme);
+    }
+
+    [Fact]
+    public void DesignTheme_InvalidValueFallsBackToModernMinimalist()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"mouser_designtheme_{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, "{\n  \"DesignTheme\": \"NonExistentTheme\"\n}");
+        try
+        {
+            var store = new SettingsStore(path);
+            Assert.Equal("ModernMinimalist", store.Current.DesignTheme);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public async Task PauseClipboard_DoesNotCapture()
     {
         var app = new AppFixture();

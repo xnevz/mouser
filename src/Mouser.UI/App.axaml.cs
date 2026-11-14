@@ -77,7 +77,7 @@ public partial class App : Application
             {
                 settings.Current.CustomUpdateUrl = updateUrl;
             }
-            ThemeService.Apply(settings.Current.Theme);
+            ThemeService.Apply(settings.Current.Theme, settings.Current.DesignTheme);
             ToastService.Initialize(settings);
             var appLock = new AppLockService(Path.Combine(settings.DataDirectory, "lock.json"));
             _appLock = appLock;

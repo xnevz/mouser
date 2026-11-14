@@ -15,6 +15,7 @@
             <Color x:Key="SystemAccentColorLight1">#6366f1</Color>
             <Color x:Key="SystemAccentColorLight2">#818cf8</Color>
             <Color x:Key="SystemAccentColorDark1">#4338ca</Color>
+            <FontFamily x:Key="CodeFontFamily">Cascadia Code, Consolas, Courier New, monospace</FontFamily>
         </ResourceDictionary>
     </Application.Resources>
 

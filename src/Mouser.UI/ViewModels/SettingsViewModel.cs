@@ -74,6 +74,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _isCheckingForUpdates;
     [ObservableProperty] private bool _warnElevatedWindows;
     [ObservableProperty] private string _theme;
+    [ObservableProperty] private string _designTheme;
     [ObservableProperty] private string _deviceName;
     [ObservableProperty] private string _switchFeel = "Normal";
     [ObservableProperty] private bool _blockInFullscreen;
@@ -117,6 +118,21 @@ public partial class SettingsViewModel : ViewModelBase
     public bool IsLockConfigured => _appLock?.IsConfigured ?? false;
     public bool IsStartAtLoginSupported => StartupRegistration.IsSupported;
     public string[] ThemeOptions => ThemeService.Options;
+    public ThemeService.DesignThemeInfo[] DesignThemes => ThemeService.Designs;
+
+    public ThemeService.DesignThemeInfo? SelectedDesignTheme
+    {
+        get => ThemeService.Designs.FirstOrDefault(d => d.Id == DesignTheme) ?? ThemeService.Designs[0];
+        set
+        {
+            if (value != null && value.Id != DesignTheme)
+            {
+                DesignTheme = value.Id;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     public string DataDirectory => _store.DataDirectory;
     public HotkeysViewModel Hotkeys { get; }
 
@@ -160,6 +176,7 @@ public partial class SettingsViewModel : ViewModelBase
         _notifications = s.Notifications;
         _warnElevatedWindows = s.WarnElevatedWindows;
         _theme = s.Theme;
+        _designTheme = s.DesignTheme;
         _deviceName = s.DeviceName;
         _switchFeel = s.SwitchFeel;
         _blockInFullscreen = s.BlockInFullscreen;
@@ -205,8 +222,15 @@ public partial class SettingsViewModel : ViewModelBase
 
     partial void OnThemeChanged(string value)
     {
-        ThemeService.Apply(value);
+        ThemeService.Apply(value, DesignTheme);
         Save(s => s.Theme = value);
+    }
+
+    partial void OnDesignThemeChanged(string value)
+    {
+        ThemeService.Apply(Theme, value);
+        OnPropertyChanged(nameof(SelectedDesignTheme));
+        Save(s => s.DesignTheme = value);
     }
 
     partial void OnClipboardHistoryEnabledChanged(bool value) => Save(s => s.ClipboardHistoryEnabled = value);

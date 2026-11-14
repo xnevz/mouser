@@ -8,6 +8,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Mouser.UI;
+using Mouser.UI.Services;
 using Mouser.UI.Views;
 using Mouser.UI.ViewModels;
 using Xunit;
@@ -104,6 +105,35 @@ public class HeadlessUiTests
         }
 
         Assert.NotNull(window);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void DesignThemes_AllSeven_ApplyAndRenderInLightAndDark()
+    {
+        var window = new MainWindow();
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var designs = ThemeService.Designs;
+        Assert.Equal(7, designs.Length);
+
+        string[] modes = ["Dark", "Light"];
+
+        foreach (var design in designs)
+        {
+            foreach (var mode in modes)
+            {
+                ThemeService.Apply(mode, design.Id);
+                Dispatcher.UIThread.RunJobs();
+
+                var frame = window.CaptureRenderedFrame();
+                Assert.NotNull(frame);
+                Assert.True(frame.PixelSize.Width > 0);
+                Assert.True(frame.PixelSize.Height > 0);
+            }
+        }
+
         window.Close();
     }
 

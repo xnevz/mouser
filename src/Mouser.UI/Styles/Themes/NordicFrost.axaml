@@ -1,0 +1,84 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.ThemeDictionaries>
+
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="BgApp">#0b0f17</SolidColorBrush>
+      <SolidColorBrush x:Key="BgSidebar">#101622</SolidColorBrush>
+      <SolidColorBrush x:Key="BgSurface">#131b2a</SolidColorBrush>
+      <SolidColorBrush x:Key="BgRaised">#182234</SolidColorBrush>
+      <SolidColorBrush x:Key="BgInput">#151e2f</SolidColorBrush>
+      <SolidColorBrush x:Key="BgListItem">#141d2d</SolidColorBrush>
+      <SolidColorBrush x:Key="BgSunken">#080c13</SolidColorBrush>
+      <SolidColorBrush x:Key="BgHover">#1d2a40</SolidColorBrush>
+      <SolidColorBrush x:Key="BgActive">#23334e</SolidColorBrush>
+      <SolidColorBrush x:Key="BgPressed">#111825</SolidColorBrush>
+      <SolidColorBrush x:Key="BorderSubtle">#1f2e46</SolidColorBrush>
+      <SolidColorBrush x:Key="BorderStrong">#293e5e</SolidColorBrush>
+      <SolidColorBrush x:Key="TextPrimary">#f0f6fc</SolidColorBrush>
+      <SolidColorBrush x:Key="TextSecondary">#cbd9e8</SolidColorBrush>
+      <SolidColorBrush x:Key="TextMuted">#8da2be</SolidColorBrush>
+      <SolidColorBrush x:Key="TextFaint">#5c708c</SolidColorBrush>
+      <SolidColorBrush x:Key="Accent">#38bdf8</SolidColorBrush>
+      <SolidColorBrush x:Key="AccentHover">#0ea5e9</SolidColorBrush>
+      <SolidColorBrush x:Key="AccentPressed">#0284c7</SolidColorBrush>
+      <SolidColorBrush x:Key="AccentSoft">#7dd3fc</SolidColorBrush>
+      <SolidColorBrush x:Key="OnAccent">#041624</SolidColorBrush>
+      <SolidColorBrush x:Key="Success">#34d399</SolidColorBrush>
+      <SolidColorBrush x:Key="Warning">#fbbf24</SolidColorBrush>
+      <SolidColorBrush x:Key="Danger">#f87171</SolidColorBrush>
+      <SolidColorBrush x:Key="BannerErrorBg">#271013</SolidColorBrush>
+      <SolidColorBrush x:Key="BannerErrorText">#fca5a5</SolidColorBrush>
+      <SolidColorBrush x:Key="BannerWarningBg">#271c08</SolidColorBrush>
+      <SolidColorBrush x:Key="BannerWarningText">#fde047</SolidColorBrush>
+      <SolidColorBrush x:Key="BannerInfoBg">#0c2134</SolidColorBrush>
+      <SolidColorBrush x:Key="BannerInfoBorder">#1e4a6f</SolidColorBrush>
+      <SolidColorBrush x:Key="BannerInfoText">#bae6fd</SolidColorBrush>
+      <SolidColorBrush x:Key="PeerBg">#0c242e</SolidColorBrush>
+      <SolidColorBrush x:Key="PeerBorder">#19566e</SolidColorBrush>
+      <SolidColorBrush x:Key="PillBg">#091e26</SolidColorBrush>
+      <SolidColorBrush x:Key="BadgeBg">#16273c</SolidColorBrush>
+      <SolidColorBrush x:Key="BadgeViolet">#38bdf8</SolidColorBrush>
+    </ResourceDictionary>
+
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="BgApp">#f0f4f9</SolidColorBrush>
+      <SolidColorBrush x:Key="BgSidebar">#e5edf6</SolidColorBrush>
+      <SolidColorBrush x:Key="BgSurface">#ffffff</SolidColorBrush>
+      <SolidColorBrush x:Key="BgRaised">#ebf2f9</SolidColorBrush>
+      <SolidColorBrush x:Key="BgInput">#ffffff</SolidColorBrush>
+      <SolidColorBrush x:Key="BgListItem">#ffffff</SolidColorBrush>
+      <SolidColorBrush x:Key="BgSunken">#dfe8f3</SolidColorBrush>
+      <SolidColorBrush x:Key="BgHover">#d6e2ef</SolidColorBrush>
+      <SolidColorBrush x:Key="BgActive">#c8d9e9</SolidColorBrush>
+      <SolidColorBrush x:Key="BgPressed">#b9cee2</SolidColorBrush>
+      <SolidColorBrush x:Key="BorderSubtle">#ccd9e8</SolidColorBrush>
+      <SolidColorBrush x:Key="BorderStrong">#a7bdd6</SolidColorBrush>
+      <SolidColorBrush x:Key="TextPrimary">#0f1d2e</SolidColorBrush>
+      <SolidColorBrush x:Key="TextSecondary">#2c3f56</SolidColorBrush>
+      <SolidColorBrush x:Key="TextMuted">#556d8a</SolidColorBrush>
+      <SolidColorBrush x:Key="TextFaint">#748ca8</SolidColorBrush>
+      <SolidColorBrush x:Key="Accent">#0284c7</SolidColorBrush>
+      <SolidColorBrush x:Key="AccentHover">#0369a1</SolidColorBrush>
+      <SolidColorBrush x:Key="AccentPressed">#075985</SolidColorBrush>
+      <SolidColorBrush x:Key="AccentSoft">#38bdf8</SolidColorBrush>
+      <SolidColorBrush x:Key="OnAccent">#ffffff</SolidColorBrush>
+      <SolidColorBrush x:Key="Success">#059669</SolidColorBrush>
+      <SolidColorBrush x:Key="Warning">#d97706</SolidColorBrush>
+      <SolidColorBrush x:Key="Danger">#dc2626</SolidColorBrush>
+      <SolidColorBrush x:Key="BannerErrorBg">#fee2e2</SolidColorBrush>
+      <SolidColorBrush x:Key="BannerErrorText">#991b1b</SolidColorBrush>
+      <SolidColorBrush x:Key="BannerWarningBg">#fef3c7</SolidColorBrush>
+      <SolidColorBrush x:Key="BannerWarningText">#92400e</SolidColorBrush>
+      <SolidColorBrush x:Key="BannerInfoBg">#e0f2fe</SolidColorBrush>
+      <SolidColorBrush x:Key="BannerInfoBorder">#7dd3fc</SolidColorBrush>
+      <SolidColorBrush x:Key="BannerInfoText">#0369a1</SolidColorBrush>
+      <SolidColorBrush x:Key="PeerBg">#e0f2fe</SolidColorBrush>
+      <SolidColorBrush x:Key="PeerBorder">#7dd3fc</SolidColorBrush>
+      <SolidColorBrush x:Key="PillBg">#e0f2fe</SolidColorBrush>
+      <SolidColorBrush x:Key="BadgeBg">#dbe7f4</SolidColorBrush>
+      <SolidColorBrush x:Key="BadgeViolet">#0284c7</SolidColorBrush>
+    </ResourceDictionary>
+
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>
