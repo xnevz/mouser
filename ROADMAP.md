@@ -202,7 +202,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | H4 | Local log files and crash handling | B12 | S |
 | ⬜ | H5 | Windows service for UAC/lock screen (design note first) | H1, H2 | XL |
 | ✅ | H6 | Linux X11 input injection | – | L |
-| ⬜ | H7 | Linux capture, tray, AppImage/Flatpak | H6 | XL |
+| ✅ | H7 | Linux capture, tray, AppImage/Flatpak | H6 | XL |
 | ⬜ | H8 | `uiAccess` signed build: types into admin windows without elevation (needs certificate) | H1, H2 | M |
 
 ### Track Q: Quality, docs, website ([H-platform-and-quality.md](roadmap/tasks/H-platform-and-quality.md))
@@ -325,3 +325,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - H1: Created installer/windows/mouser.iss with private firewall rules, start-menu/desktop shortcuts, sign-in startup, and clean uninstall options; created scripts/build-installer.ps1 compiling portable win-x64 binary and Inno Setup installer; documented in roadmap/README.md.
 - H3: Implemented VersionComparer (SemVer 2.0 with pre-releases) and UpdateChecker querying GitHub Releases with zero telemetry and proxy/local hook support; wired update settings, manual 'Check now' button, and download banner into SettingsView/SettingsViewModel; added 5 unit tests in UpdateCheckerTests (all pass in 175 ms).
 - H6: Implemented X11KeyMap (pure VK to X11 keysym translation covering letters, digits, F1-F24, navigation, modifiers, media, and numpad) and X11InputSink via libX11.so.6 and libXtst.so.6 with Wayland detection; wired into InputSinks.CreateForCurrentPlatform and updated AndroidRemoteView banner; added 8 unit tests in LinuxInputTests (all pass in 27 ms; native P/Invoke verified safe on Windows, Linux runtime untested).
+- H7: Implemented X11InputCapture using XInput2 and XGrabPointer/XGrabKeyboard grabs on root window; wired into InputCaptures.CreateForCurrentPlatform; created installer/linux/mouser.desktop and installer/linux/com.mouser.Mouser.yml Flatpak manifest; updated scripts/package-linux.sh for AppImage AppDir structure; authored docs/wayland-input.md detailing libei and RemoteDesktop portal architecture; added unit test verifying safe no-op on non-Linux; 9 unit tests pass in LinuxInputTests (30 ms).
