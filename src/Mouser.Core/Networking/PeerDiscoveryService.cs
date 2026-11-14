@@ -31,6 +31,8 @@ public sealed class PeerDiscoveryService : IDisposable
     public event Action<DiscoveredPeer>? PeerDiscovered;
     public event Action<DiscoveredPeer>? PeerLost;
 
+    public bool LocalNetworkOnly { get; set; } = true;
+
     public IReadOnlyCollection<DiscoveredPeer> ActivePeers => _peers.Values.ToList();
 
     public PeerDiscoveryService(string deviceId, string hostname, string os, int motionPort, int controlPort, int discoveryPort = DefaultDiscoveryPort)
@@ -155,6 +157,10 @@ public sealed class PeerDiscoveryService : IDisposable
             try
             {
                 var result = await _udpClient.ReceiveAsync(token);
+                if (LocalNetworkOnly && !NetworkInfo.IsPrivate(result.RemoteEndPoint.Address))
+                {
+                    continue;
+                }
                 if (TryParseBeaconPayload(result.Buffer, out var peer))
                 {
                     // Ignore our own broadcast

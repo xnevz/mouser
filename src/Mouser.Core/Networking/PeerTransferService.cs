@@ -93,15 +93,17 @@ public sealed class PeerTransferService : IDisposable
     /// <summary>Pairing handshake completed successfully with mutual confirmation (peerDeviceId, peerDeviceName, pairKey).</summary>
     public event Action<string, string, byte[]>? PairingCompleted;
 
+    public bool LocalNetworkOnly { get; set; } = true;
+
     /// <param name="receiveKeys">Keys that may have encrypted traffic from this sender (empty = not paired, reject).</param>
     public PeerTransferService(string deviceId, Func<string, IPAddress, IReadOnlyList<byte[]>> receiveKeys,
-        string downloadDirectory, int port = 0, string? deviceName = null)
+        string downloadDirectory, int port = 0, string? deviceName = null, IPAddress? bindAddress = null)
     {
         _deviceId = deviceId;
         _deviceName = string.IsNullOrWhiteSpace(deviceName) ? Environment.MachineName : deviceName;
         _receiveKeys = receiveKeys;
         _downloadDirectory = downloadDirectory;
-        _listener = new TcpListener(IPAddress.Any, port);
+        _listener = new TcpListener(bindAddress ?? IPAddress.Any, port);
         _listener.Start();
         _ = AcceptLoopAsync();
     }
@@ -261,6 +263,7 @@ public sealed class PeerTransferService : IDisposable
                 var stream = client.GetStream();
                 var remote = ((IPEndPoint)client.Client.RemoteEndPoint!).Address;
                 if (remote.IsIPv4MappedToIPv6) remote = remote.MapToIPv4();
+                if (LocalNetworkOnly && !NetworkInfo.IsPrivate(remote)) return;
 
                 var first = await ReadFrameAsync(stream, remote, null, ct);
                 if (first == null) return;

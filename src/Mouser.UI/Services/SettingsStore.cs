@@ -16,6 +16,10 @@ public sealed class AppSettings
     public string DeviceName { get; set; } = Environment.MachineName;
     public int PairingPin { get; set; } = PairingGate.GeneratePin();
     public int InputPort { get; set; } = InputInjectionService.DefaultPort;
+    public int TcpPort { get; set; } = 58491;
+    public bool LocalNetworkOnly { get; set; } = true;
+    public string PreferredAdapterId { get; set; } = string.Empty;
+    public bool UseIPv6 { get; set; } = false;
     public bool AcceptRemoteInput { get; set; } = true;
     public bool AllowOlderDevices { get; set; } = true;
     public bool ClipboardHistoryEnabled { get; set; } = true;

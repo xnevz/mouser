@@ -210,18 +210,52 @@
                     </Grid>
                     <Expander Header="Advanced" IsExpanded="False">
                         <StackPanel Spacing="12" Margin="0,8,0,0">
+                            <CheckBox IsChecked="{Binding LocalNetworkOnly}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Only accept connections from my local network" />
+                                    <TextBlock Classes="hint" Text="Drop packets whose source address is not from a private or local network subnet." />
+                                </StackPanel>
+                            </CheckBox>
                             <Grid ColumnDefinitions="*,Auto" Margin="0,4">
                                 <StackPanel Spacing="2">
-                                    <TextBlock Classes="section-title" FontSize="13" Text="Connection port" />
-                                    <TextBlock Classes="hint" Text="UDP port phones send input to. Default is 58491." />
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Preferred network adapter" />
+                                    <TextBlock Classes="hint" Text="Listen and discover on a specific network adapter." />
+                                </StackPanel>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding AdapterOptions}" SelectedItem="{Binding SelectedAdapter}"
+                                          DisplayMemberBinding="{Binding DisplayName}" Width="240" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Input port (UDP)" />
+                                    <TextBlock Classes="hint" Text="UDP port for mouse and keyboard input. Default is 58491." />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                     <NumericUpDown Value="{Binding InputPort}" Minimum="1024" Maximum="65535" Increment="1"
-                                                   FormatString="0" Width="140" />
-                                    <Button Classes="secondary-btn" Content="Apply" Command="{Binding ApplyPortCommand}"
-                                            ToolTip.Tip="Apply connection port" />
+                                                   FormatString="0" Width="120" />
+                                    <Button Classes="secondary-btn" Content="Find free" Command="{Binding FindFreeInputPortCommand}"
+                                            ToolTip.Tip="Find a free UDP port" />
                                 </StackPanel>
                             </Grid>
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Transfer port (TCP)" />
+                                    <TextBlock Classes="hint" Text="TCP port for clipboard sync and files. Default is 58491." />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <NumericUpDown Value="{Binding TcpPort}" Minimum="1024" Maximum="65535" Increment="1"
+                                                   FormatString="0" Width="120" />
+                                    <Button Classes="secondary-btn" Content="Find free" Command="{Binding FindFreeTcpPortCommand}"
+                                            ToolTip.Tip="Find a free TCP port" />
+                                    <Button Classes="primary-btn" Content="Apply" Command="{Binding ApplyPortsCommand}"
+                                            ToolTip.Tip="Apply network port settings" />
+                                </StackPanel>
+                            </Grid>
+                            <CheckBox IsChecked="{Binding UseIPv6}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Use IPv6" />
+                                    <TextBlock Classes="hint" Text="Allow IPv6 addresses for local discovery and transfers." />
+                                </StackPanel>
+                            </CheckBox>
                             <CheckBox IsChecked="{Binding BlockInFullscreen}">
                                 <StackPanel Spacing="2">
                                     <TextBlock Classes="section-title" FontSize="13" Text="Don't switch while a full-screen app or game is in front" />

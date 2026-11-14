@@ -126,11 +126,14 @@ public sealed class MouserHost : IDisposable
         StopServices();
         if (!_settings.Current.AcceptRemoteInput) return;
 
+        IPAddress? preferredAddress = NetworkInfo.GetAdapterAddress(_settings.Current.PreferredAdapterId);
+
         try
         {
-            Input = new InputInjectionService(_sink, Pairing, _settings.Current.InputPort, ownDeviceId: _settings.Current.DeviceId)
+            Input = new InputInjectionService(_sink, Pairing, _settings.Current.InputPort, ownDeviceId: _settings.Current.DeviceId, bindAddress: preferredAddress)
             {
-                AllowOlderDevices = _settings.Current.AllowOlderDevices
+                AllowOlderDevices = _settings.Current.AllowOlderDevices,
+                LocalNetworkOnly = _settings.Current.LocalNetworkOnly
             };
             foreach (var (id, saved) in _settings.Current.Peers)
             {
@@ -158,8 +161,12 @@ public sealed class MouserHost : IDisposable
 
         try
         {
-            // TCP on the same port number as the UDP input port; falls back to any free port.
-            Transfer = CreateTransfer(_settings.Current.InputPort) ?? CreateTransfer(0);
+            int tcpPort = _settings.Current.TcpPort > 0 ? _settings.Current.TcpPort : _settings.Current.InputPort;
+            Transfer = CreateTransfer(tcpPort, preferredAddress) ?? CreateTransfer(0, preferredAddress);
+            if (Transfer != null && _settings.Current.TcpPort != Transfer.BoundPort)
+            {
+                _settings.Current.TcpPort = Transfer.BoundPort;
+            }
         }
         catch (SocketException)
         {
@@ -169,7 +176,10 @@ public sealed class MouserHost : IDisposable
         try
         {
             Discovery = new PeerDiscoveryService(_settings.Current.DeviceId, _settings.Current.DeviceName,
-                OsName, Input.BoundPort, controlPort: Transfer?.BoundPort ?? 0, _discoveryPort);
+                OsName, Input.BoundPort, controlPort: Transfer?.BoundPort ?? 0, _discoveryPort)
+            {
+                LocalNetworkOnly = _settings.Current.LocalNetworkOnly
+            };
             Discovery.PeerDiscovered += peer =>
             {
                 Log.Record(ActivityCategory.Discovery, $"Found peer {peer.Hostname} ({peer.Address})");
@@ -248,11 +258,14 @@ public sealed class MouserHost : IDisposable
         }
     }
 
-    private PeerTransferService? CreateTransfer(int port)
+    private PeerTransferService? CreateTransfer(int port, IPAddress? bindAddress = null)
     {
         try
         {
-            var transfer = new PeerTransferService(_settings.Current.DeviceId, ReceiveKeys, _downloadDirectory, port, _settings.Current.DeviceName);
+            var transfer = new PeerTransferService(_settings.Current.DeviceId, ReceiveKeys, _downloadDirectory, port, _settings.Current.DeviceName, bindAddress)
+            {
+                LocalNetworkOnly = _settings.Current.LocalNetworkOnly
+            };
             transfer.MaxIncomingBytes = (long)_settings.Current.MaxIncomingFileMB * 1024 * 1024;
             transfer.BlockedExtensions.Clear();
             foreach (var ext in _settings.Current.BlockedExtensions) transfer.BlockedExtensions.Add(ext);

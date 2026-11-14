@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -11,6 +12,7 @@ using Mouser.UI.Services;
 namespace Mouser.UI.ViewModels;
 
 public sealed record RetentionPreset(string Label, int Hours);
+public sealed record AdapterOption(string Id, string DisplayName);
 
 public partial class SettingsViewModel : ViewModelBase
 {
@@ -31,6 +33,12 @@ public partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty] private RetentionPreset? _selectedRetention;
     [ObservableProperty] private int _inputPort;
+    [ObservableProperty] private int _tcpPort;
+    [ObservableProperty] private bool _localNetworkOnly = true;
+    [ObservableProperty] private string _preferredAdapterId = string.Empty;
+    [ObservableProperty] private bool _useIPv6;
+    [ObservableProperty] private AdapterOption? _selectedAdapter;
+    public ObservableCollection<AdapterOption> AdapterOptions { get; } = new();
     [ObservableProperty] private bool _acceptRemoteInput;
     [ObservableProperty] private bool _clipboardHistoryEnabled;
     [ObservableProperty] private bool _saveImages;
@@ -112,6 +120,18 @@ public partial class SettingsViewModel : ViewModelBase
         Hotkeys = new HotkeysViewModel(store, host);
         var s = store.Current;
         _inputPort = s.InputPort;
+        _tcpPort = s.TcpPort > 0 ? s.TcpPort : s.InputPort;
+        _localNetworkOnly = s.LocalNetworkOnly;
+        _preferredAdapterId = s.PreferredAdapterId ?? string.Empty;
+        _useIPv6 = s.UseIPv6;
+
+        AdapterOptions.Add(new AdapterOption(string.Empty, "All network adapters (recommended)"));
+        foreach (var adapter in Mouser.Core.Networking.NetworkInfo.GetAdapters())
+        {
+            AdapterOptions.Add(new AdapterOption(adapter.Id, adapter.ToString()));
+        }
+        _selectedAdapter = AdapterOptions.FirstOrDefault(a => a.Id == _preferredAdapterId) ?? AdapterOptions[0];
+
         _acceptRemoteInput = s.AcceptRemoteInput;
         _clipboardHistoryEnabled = s.ClipboardHistoryEnabled;
         _saveImages = s.SaveImages;
@@ -686,19 +706,67 @@ public partial class SettingsViewModel : ViewModelBase
         }
     }
 
+    partial void OnLocalNetworkOnlyChanged(bool value)
+    {
+        Save(s => s.LocalNetworkOnly = value);
+        _host.Restart();
+    }
+
+    partial void OnUseIPv6Changed(bool value)
+    {
+        Save(s => s.UseIPv6 = value);
+        _host.Restart();
+    }
+
+    partial void OnSelectedAdapterChanged(AdapterOption? value)
+    {
+        if (value != null && PreferredAdapterId != value.Id)
+        {
+            PreferredAdapterId = value.Id;
+            Save(s => s.PreferredAdapterId = value.Id);
+            _host.Restart();
+        }
+    }
+
     [RelayCommand]
-    private void ApplyPort()
+    private void FindFreeInputPort()
+    {
+        InputPort = Mouser.Core.Networking.NetworkInfo.FindFreeUdpPort();
+        StatusMessage = $"Selected free UDP port {InputPort}.";
+    }
+
+    [RelayCommand]
+    private void FindFreeTcpPort()
+    {
+        TcpPort = Mouser.Core.Networking.NetworkInfo.FindFreeTcpPort();
+        StatusMessage = $"Selected free TCP port {TcpPort}.";
+    }
+
+    [RelayCommand]
+    private void ApplyPorts()
     {
         if (InputPort is < 1024 or > 65535)
         {
-            StatusMessage = "Choose a port between 1024 and 65535.";
+            StatusMessage = "Choose an input UDP port between 1024 and 65535.";
+            return;
+        }
+        if (TcpPort is < 1024 or > 65535)
+        {
+            StatusMessage = "Choose a transfer TCP port between 1024 and 65535.";
             return;
         }
 
-        Save(s => s.InputPort = InputPort);
+        Save(s =>
+        {
+            s.InputPort = InputPort;
+            s.TcpPort = TcpPort;
+        });
         _host.Restart();
-        StatusMessage = _host.InputError ?? $"Now listening on port {InputPort}. Reconnect your phone.";
+        StatusMessage = _host.InputError ?? $"Ports applied (UDP: {InputPort}, TCP: {TcpPort}).";
     }
+
+    [RelayCommand]
+    private void ApplyPort() => ApplyPorts();
 
     private void Save(Action<AppSettings> change)
     {

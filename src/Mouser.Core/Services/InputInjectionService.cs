@@ -55,6 +55,11 @@ public sealed class InputInjectionService : IDisposable
     private readonly ConcurrentDictionary<uint, SecurePeerEntry> _securePeers = new();
     private readonly string _ownDeviceId;
     public bool AllowOlderDevices { get; set; } = false;
+    public bool LocalNetworkOnly
+    {
+        get => _receiver.LocalNetworkOnly;
+        set => _receiver.LocalNetworkOnly = value;
+    }
 
     private readonly UdpInputReceiver _receiver;
     private readonly IInputSink _sink;
@@ -86,13 +91,13 @@ public sealed class InputInjectionService : IDisposable
     public event Action<InputMotionPacket, IPEndPoint>? PacketProcessed;
     public event Action<string, IPEndPoint>? PeerAuthenticated;
 
-    public InputInjectionService(IInputSink sink, PairingGate gate, int listenPort = 0, Func<DateTime>? clock = null, string? ownDeviceId = null)
+    public InputInjectionService(IInputSink sink, PairingGate gate, int listenPort = 0, Func<DateTime>? clock = null, string? ownDeviceId = null, IPAddress? bindAddress = null)
     {
         _sink = sink;
         _gate = gate;
         _clock = clock ?? (() => DateTime.UtcNow);
         _ownDeviceId = string.IsNullOrWhiteSpace(ownDeviceId) ? Guid.NewGuid().ToString("N") : ownDeviceId;
-        _receiver = new UdpInputReceiver(listenPort);
+        _receiver = new UdpInputReceiver(listenPort, bindAddress);
         _receiver.DatagramReceived += HandleDatagram;
     }
 

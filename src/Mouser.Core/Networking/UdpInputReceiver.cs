@@ -19,11 +19,12 @@ public sealed class UdpInputReceiver : IDisposable
 
     public int BoundPort => ((IPEndPoint)_socket.LocalEndPoint!).Port;
     public long TotalPacketsReceived { get; private set; }
+    public bool LocalNetworkOnly { get; set; } = true;
 
     public event Action<InputMotionPacket, IPEndPoint>? MotionReceived;
     public event Action<ReadOnlyMemory<byte>, IPEndPoint>? DatagramReceived;
 
-    public UdpInputReceiver(int bindPort = 0)
+    public UdpInputReceiver(int bindPort = 0, IPAddress? bindAddress = null)
     {
         _socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp)
         {
@@ -36,7 +37,7 @@ public sealed class UdpInputReceiver : IDisposable
             _socket.IOControl(SIO_UDP_CONNRESET, new byte[] { 0 }, null);
         }
 
-        _socket.Bind(new IPEndPoint(IPAddress.Any, bindPort));
+        _socket.Bind(new IPEndPoint(bindAddress ?? IPAddress.Any, bindPort));
     }
 
     public void Start()
@@ -89,6 +90,10 @@ public sealed class UdpInputReceiver : IDisposable
                 var result = await _socket.ReceiveFromAsync(memory, SocketFlags.None, _anyEndPoint, token);
                 TotalPacketsReceived++;
                 var remote = (IPEndPoint)result.RemoteEndPoint;
+                if (LocalNetworkOnly && !NetworkInfo.IsPrivate(remote.Address))
+                {
+                    continue;
+                }
                 var slice = memory.Slice(0, result.ReceivedBytes);
 
                 DatagramReceived?.Invoke(slice, remote);
