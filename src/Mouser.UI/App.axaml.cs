@@ -210,6 +210,16 @@ public partial class App : Application
                         new Avalonia.Platform.Storage.FilePickerOpenOptions { AllowMultiple = false, Title = "Send a file" });
                     return files.Count > 0 ? Avalonia.Platform.Storage.StorageProviderExtensions.TryGetLocalPath(files[0]) : null;
                 };
+                vm.ClipboardHistory.PickSavePath = async () =>
+                {
+                    var file = await window.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+                    {
+                        Title = "Save image as",
+                        DefaultExtension = "png",
+                        SuggestedFileName = "image.png"
+                    });
+                    return file != null ? Avalonia.Platform.Storage.StorageProviderExtensions.TryGetLocalPath(file) : null;
+                };
                 window.Screens.Changed += (_, _) => UpdateDisplays(window, vm);
                 await vm.ClipboardHistory.InitializeAsync();
             };

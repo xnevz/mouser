@@ -1,12 +1,18 @@
 using System;
+using System.IO;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Mouser.Core.Clipboard;
 
 namespace Mouser.UI.ViewModels;
 
-public partial class ClipboardItemViewModel : ViewModelBase
+public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
 {
     private readonly ClipboardPayload _payload;
+    private Bitmap? _thumbnail;
+    private bool _thumbnailLoaded;
+    private Bitmap? _previewImage;
+    private bool _previewImageLoaded;
 
     public string Id { get; }
     public ClipboardContentType Kind { get; }
@@ -22,6 +28,72 @@ public partial class ClipboardItemViewModel : ViewModelBase
     public int? Height => _payload.Height;
     public long? MediaBytes => _payload.MediaBytes;
     public bool IsImage => _payload.ContentType == ClipboardContentType.Image;
+
+    public string DimensionsText => Width.HasValue && Height.HasValue ? $"{Width.Value} × {Height.Value}" : "";
+
+    public string FormattedSizeText
+    {
+        get
+        {
+            if (!MediaBytes.HasValue || MediaBytes.Value <= 0) return string.Empty;
+            double bytes = MediaBytes.Value;
+            if (bytes < 1024) return FormattableString.Invariant($"{bytes:0} B");
+            if (bytes < 1024 * 1024) return FormattableString.Invariant($"{bytes / 1024.0:0.#} KB");
+            if (bytes < 1024 * 1024 * 1024) return FormattableString.Invariant($"{bytes / (1024.0 * 1024.0):0.#} MB");
+            return FormattableString.Invariant($"{bytes / (1024.0 * 1024.0 * 1024.0):0.#} GB");
+        }
+    }
+
+    public string ImageFormatText => !string.IsNullOrEmpty(FormattedSizeText) ? $"PNG · {FormattedSizeText}" : "PNG";
+
+    public Bitmap? Thumbnail
+    {
+        get
+        {
+            if (_thumbnailLoaded) return _thumbnail;
+            _thumbnailLoaded = true;
+            if (!IsImage || string.IsNullOrEmpty(MediaPath) || !File.Exists(MediaPath)) return null;
+            try
+            {
+                using var stream = File.OpenRead(MediaPath);
+                _thumbnail = Bitmap.DecodeToWidth(stream, 96);
+            }
+            catch
+            {
+                _thumbnail = null;
+            }
+            return _thumbnail;
+        }
+    }
+
+    public Bitmap? PreviewImage
+    {
+        get
+        {
+            if (_previewImageLoaded) return _previewImage;
+            _previewImageLoaded = true;
+            if (!IsImage || string.IsNullOrEmpty(MediaPath) || !File.Exists(MediaPath)) return null;
+            try
+            {
+                using var stream = File.OpenRead(MediaPath);
+                _previewImage = new Bitmap(stream);
+            }
+            catch
+            {
+                _previewImage = null;
+            }
+            return _previewImage;
+        }
+    }
+
+    public void Dispose()
+    {
+        _thumbnail?.Dispose();
+        _thumbnail = null;
+        _previewImage?.Dispose();
+        _previewImage = null;
+        GC.SuppressFinalize(this);
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StarIcon), nameof(StarColor))]

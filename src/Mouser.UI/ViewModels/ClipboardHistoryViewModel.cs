@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Mouser.Core.Clipboard;
@@ -34,6 +36,21 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private int _allCount;
     [ObservableProperty] private int _starredCount;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ImageStretch))]
+    private bool _isImageFitToWindow = true;
+
+    public Stretch ImageStretch => IsImageFitToWindow ? Stretch.Uniform : Stretch.None;
+
+    public string? LastSeenImageHash => _lastSeenImageHash;
+    public string? LastSeenText => _lastSeenText;
+
+    /// <summary>Invoked to select a destination file path when saving an image clip.</summary>
+    public Func<Task<string?>>? PickSavePath { get; set; }
+
+    /// <summary>Invoked to open an image with the default system viewer.</summary>
+    public Action<string>? ImageOpener { get; set; }
 
     /// <summary>Shown when the global quick-paste hotkey is available.</summary>
     [ObservableProperty] private string? _quickPasteHint;
@@ -222,6 +239,9 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
 
     [RelayCommand] private void SetLibrary(string library) => SelectedLibrary = library;
     [RelayCommand] private void SetFilter(string filter) => SelectedFilter = filter;
+    [RelayCommand] private void ToggleImageZoom() => IsImageFitToWindow = !IsImageFitToWindow;
+    [RelayCommand] private void SetImageFit() => IsImageFitToWindow = true;
+    [RelayCommand] private void SetImageActualSize() => IsImageFitToWindow = false;
 
     [RelayCommand]
     private async Task ToggleStarAsync(ClipboardItemViewModel? clip)
@@ -236,15 +256,9 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     private async Task CopyClipAsync(ClipboardItemViewModel? clip)
     {
         if (clip == null) return;
-        if (clip.IsImage && !string.IsNullOrEmpty(clip.MediaPath) && File.Exists(clip.MediaPath))
+        if (clip.IsImage)
         {
-            var bytes = await File.ReadAllBytesAsync(clip.MediaPath);
-            _lastSeenImageHash = clip.MediaHash;
-            _lastSeenText = null;
-            if (_clipboard != null)
-            {
-                await _clipboard.SetSnapshotAsync(new ClipboardSnapshot(null, null, bytes, null));
-            }
+            await CopyImageAsync(clip);
             StatusMessage = "Copied to clipboard.";
             return;
         }
@@ -253,9 +267,59 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private async Task CopyImageAsync(ClipboardItemViewModel? clip)
+    {
+        var target = clip ?? SelectedClip;
+        if (target == null || !target.IsImage || string.IsNullOrEmpty(target.MediaPath) || !File.Exists(target.MediaPath)) return;
+        var bytes = await File.ReadAllBytesAsync(target.MediaPath);
+        if (bytes is { Length: > 0 })
+        {
+            if (_clipboard != null)
+            {
+                await _clipboard.SetSnapshotAsync(new ClipboardSnapshot(null, null, bytes, null));
+            }
+            _lastSeenImageHash = target.MediaHash;
+            _lastSeenText = null;
+            StatusMessage = "Image copied to clipboard.";
+        }
+    }
+
+    [RelayCommand]
+    private async Task SaveImageAsAsync(ClipboardItemViewModel? clip)
+    {
+        var target = clip ?? SelectedClip;
+        if (target == null || !target.IsImage || string.IsNullOrEmpty(target.MediaPath) || !File.Exists(target.MediaPath)) return;
+        if (PickSavePath == null) return;
+        var targetPath = await PickSavePath();
+        if (!string.IsNullOrEmpty(targetPath))
+        {
+            File.Copy(target.MediaPath, targetPath, overwrite: true);
+            StatusMessage = $"Image saved to {Path.GetFileName(targetPath)}.";
+        }
+    }
+
+    [RelayCommand]
+    private void OpenImage(ClipboardItemViewModel? clip)
+    {
+        var target = clip ?? SelectedClip;
+        if (target == null || !target.IsImage || string.IsNullOrEmpty(target.MediaPath) || !File.Exists(target.MediaPath)) return;
+        if (ImageOpener != null)
+        {
+            ImageOpener(target.MediaPath);
+            return;
+        }
+        try
+        {
+            Process.Start(new ProcessStartInfo(target.MediaPath) { UseShellExecute = true });
+        }
+        catch { }
+    }
+
+    [RelayCommand]
     private async Task DeleteClipAsync(ClipboardItemViewModel? clip)
     {
         if (clip == null) return;
+        clip.Dispose();
         await _storage.DeleteClipAsync(clip.Id);
         StatusMessage = "Clip deleted.";
         await ReloadAsync();
@@ -306,6 +370,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
         };
 
         string? selectedId = SelectedClip?.Id;
+        foreach (var oldItem in FilteredClips) oldItem.Dispose();
         FilteredClips.Clear();
         foreach (var payload in items) FilteredClips.Add(new ClipboardItemViewModel(payload));
 
