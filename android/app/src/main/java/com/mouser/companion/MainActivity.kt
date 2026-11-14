@@ -52,6 +52,11 @@ class MainActivity : FragmentActivity() {
                     val discoveryError by viewModel.discoveryError.collectAsState()
                     val currentTab by viewModel.currentTab.collectAsState()
                     val trackpadSensitivity by viewModel.trackpadSensitivity.collectAsState()
+                    val scrollSensitivity by viewModel.scrollSensitivity.collectAsState()
+                    val reverseScroll by viewModel.reverseScroll.collectAsState()
+                    val hapticsEnabled by viewModel.hapticsEnabled.collectAsState()
+                    val tapToClick by viewModel.tapToClick.collectAsState()
+                    val dragLock by viewModel.dragLock.collectAsState()
                     val airMouseSensitivity by viewModel.airMouseSensitivity.collectAsState()
                     val isAirMouseTriggerHeld by viewModel.isAirMouseTriggerHeld.collectAsState()
                     val macros by viewModel.macros.collectAsState()
@@ -166,10 +171,27 @@ class MainActivity : FragmentActivity() {
                                     isConnected = isConnected,
                                     sensitivity = trackpadSensitivity,
                                     onSensitivityChanged = viewModel::setTrackpadSensitivity,
+                                    scrollSensitivity = scrollSensitivity,
+                                    onScrollSensitivityChanged = viewModel::setScrollSensitivity,
+                                    reverseScroll = reverseScroll,
+                                    onReverseScrollChanged = viewModel::setReverseScroll,
+                                    hapticsEnabled = hapticsEnabled,
+                                    onHapticsEnabledChanged = viewModel::setHapticsEnabled,
+                                    tapToClick = tapToClick,
+                                    onTapToClickChanged = viewModel::setTapToClick,
+                                    dragLock = dragLock,
+                                    onDragLockChanged = viewModel::setDragLock,
+                                    airMouseSensitivity = airMouseSensitivity,
+                                    onAirMouseSensitivityChanged = viewModel::setAirMouseSensitivity,
                                     onMove = viewModel::sendMotion,
                                     onScroll = viewModel::sendScroll,
+                                    onZoom = viewModel::handleZoom,
                                     onClick = viewModel::click,
-                                    onButton = viewModel::setButton
+                                    onButton = viewModel::setButton,
+                                    onSwipeLeft = viewModel::handleThreeFingerSwipeLeft,
+                                    onSwipeRight = viewModel::handleThreeFingerSwipeRight,
+                                    onSwipeUp = viewModel::handleThreeFingerSwipeUp,
+                                    onSwipeDown = viewModel::handleThreeFingerSwipeDown
                                 )
                                 AppNavigationTab.AIR_MOUSE -> AirMouseSurface(
                                     hasGyroscope = viewModel.hasGyroscope,

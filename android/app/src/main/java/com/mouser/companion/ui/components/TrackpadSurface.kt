@@ -3,11 +3,11 @@ package com.mouser.companion.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.*
@@ -15,9 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
@@ -25,27 +23,61 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.mouser.companion.model.ClassifiedGesture
+import com.mouser.companion.model.GestureClassifier
 import com.mouser.companion.model.InputMotionPacket
-import com.mouser.companion.ui.theme.*
+import com.mouser.companion.model.PointerSample
 
 /**
- * Laptop-style trackpad surface.
- * Single finger moves the remote cursor; two fingers scroll vertically/horizontally.
- * Tap clicks left; two-finger tap clicks right.
+ * Laptop-style trackpad surface with multi-touch gesture support:
+ * - 1 finger: pointer move
+ * - Tap: left-click
+ * - 2-finger tap: right-click
+ * - 2-finger move: scroll (with reverse scroll support)
+ * - 2-finger pinch/spread: Ctrl+wheel zoom
+ * - 3-finger swipe: desktop switching / Task view / Show desktop
+ * - Double-tap drag lock
  */
 @Composable
 fun TrackpadSurface(
     isConnected: Boolean,
     sensitivity: Float,
     onSensitivityChanged: (Float) -> Unit,
+    scrollSensitivity: Float = 1.0f,
+    onScrollSensitivityChanged: (Float) -> Unit = {},
+    reverseScroll: Boolean = false,
+    onReverseScrollChanged: (Boolean) -> Unit = {},
+    hapticsEnabled: Boolean = true,
+    onHapticsEnabledChanged: (Boolean) -> Unit = {},
+    tapToClick: Boolean = true,
+    onTapToClickChanged: (Boolean) -> Unit = {},
+    dragLock: Boolean = false,
+    onDragLockChanged: (Boolean) -> Unit = {},
+    airMouseSensitivity: Float = 30f,
+    onAirMouseSensitivityChanged: (Float) -> Unit = {},
     onMove: (dx: Float, dy: Float) -> Unit,
     onScroll: (dx: Float, dy: Float) -> Unit,
+    onZoom: (deltaNotches: Int) -> Unit = {},
     onClick: (button: Byte) -> Unit,
     onButton: (button: Byte, isDown: Boolean) -> Unit,
+    onSwipeLeft: () -> Unit = {},
+    onSwipeRight: () -> Unit = {},
+    onSwipeUp: () -> Unit = {},
+    onSwipeDown: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val haptics = LocalHapticFeedback.current
-    val currentSensitivity by rememberUpdatedState(sensitivity)
+    var showSettings by remember { mutableStateOf(false) }
+
+    val classifier = remember(sensitivity, scrollSensitivity, reverseScroll, tapToClick, dragLock) {
+        GestureClassifier(
+            pointerSpeed = sensitivity,
+            scrollSpeed = scrollSensitivity,
+            reverseScroll = reverseScroll,
+            tapToClick = tapToClick,
+            dragLock = dragLock
+        )
+    }
 
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
@@ -59,43 +91,73 @@ fun TrackpadSurface(
                 .background(MaterialTheme.colorScheme.surface)
                 .border(1.dp, if (isConnected) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
                 .semantics { contentDescription = "Trackpad" }
-                .pointerInput(Unit) {
-                    val slop = viewConfiguration.touchSlop
+                .pointerInput(classifier) {
                     awaitEachGesture {
-                        val first = awaitFirstDown(requireUnconsumed = false)
-                        var maxPointers = 1
-                        var travelled = 0f
-                        var lastCentroid: Offset? = null
-                        var lastCount = 0
-                        var event: PointerEvent
                         do {
-                            event = awaitPointerEvent()
-                            val pressed = event.changes.filter { it.pressed }
-                            maxPointers = maxOf(maxPointers, pressed.size)
-                            if (pressed.isNotEmpty()) {
-                                val centroid = pressed
-                                    .fold(Offset.Zero) { acc, c -> acc + c.position } / pressed.size.toFloat()
-                                val previous = lastCentroid
-                                // Skip the frame where a finger lands or lifts so the centroid jump isn't sent as motion.
-                                if (previous != null && pressed.size == lastCount) {
-                                    val delta = centroid - previous
-                                    travelled += delta.getDistance()
-                                    if (pressed.size == 1) {
-                                        onMove(delta.x * currentSensitivity, delta.y * currentSensitivity)
-                                    } else {
-                                        onScroll(delta.x, delta.y)
+                            val event = awaitPointerEvent()
+                            val samples = event.changes.map {
+                                PointerSample(it.id.value, it.position.x, it.position.y, it.pressed, it.uptimeMillis)
+                            }
+                            val gestures = classifier.processFrame(samples)
+                            for (g in gestures) {
+                                when (g) {
+                                    is ClassifiedGesture.Move -> onMove(g.dx, g.dy)
+                                    is ClassifiedGesture.Scroll -> onScroll(g.dx, g.dy)
+                                    is ClassifiedGesture.Zoom -> onZoom(g.deltaNotches)
+                                    is ClassifiedGesture.Tap -> {
+                                        if (hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onClick(InputMotionPacket.BUTTON_LEFT)
+                                    }
+                                    is ClassifiedGesture.SecondaryTap -> {
+                                        if (hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onClick(InputMotionPacket.BUTTON_RIGHT)
+                                    }
+                                    is ClassifiedGesture.ThreeFingerSwipeLeft -> {
+                                        if (hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onSwipeLeft()
+                                    }
+                                    is ClassifiedGesture.ThreeFingerSwipeRight -> {
+                                        if (hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onSwipeRight()
+                                    }
+                                    is ClassifiedGesture.ThreeFingerSwipeUp -> {
+                                        if (hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onSwipeUp()
+                                    }
+                                    is ClassifiedGesture.ThreeFingerSwipeDown -> {
+                                        if (hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onSwipeDown()
+                                    }
+                                    is ClassifiedGesture.DragStateChanged -> {
+                                        if (hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onButton(InputMotionPacket.BUTTON_LEFT, g.isDragging)
                                     }
                                 }
-                                lastCentroid = centroid
-                                lastCount = pressed.size
                             }
                             event.changes.forEach { it.consume() }
                         } while (event.changes.any { it.pressed })
 
-                        val duration = event.changes.first().uptimeMillis - first.uptimeMillis
-                        if (travelled < slop && duration < 300) {
-                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onClick(if (maxPointers >= 2) InputMotionPacket.BUTTON_RIGHT else InputMotionPacket.BUTTON_LEFT)
+                        // Release frame
+                        val finalSamples = event.changes.map {
+                            PointerSample(it.id.value, it.position.x, it.position.y, false, it.uptimeMillis)
+                        }
+                        val releaseGestures = classifier.processFrame(finalSamples)
+                        for (g in releaseGestures) {
+                            when (g) {
+                                is ClassifiedGesture.Tap -> {
+                                    if (hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onClick(InputMotionPacket.BUTTON_LEFT)
+                                }
+                                is ClassifiedGesture.SecondaryTap -> {
+                                    if (hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onClick(InputMotionPacket.BUTTON_RIGHT)
+                                }
+                                is ClassifiedGesture.DragStateChanged -> {
+                                    if (hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onButton(InputMotionPacket.BUTTON_LEFT, g.isDragging)
+                                }
+                                else -> {}
+                            }
                         }
                     }
                 },
@@ -108,14 +170,14 @@ fun TrackpadSurface(
             ) {
                 Icon(Icons.Default.TouchApp, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(44.dp))
                 Text(
-                    text = if (isConnected) "Move with one finger • scroll with two" else "Connect to a computer to start",
+                    text = if (isConnected) "1 finger move • 2 scroll & pinch • 3 swipe" else "Connect to a computer to start",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
                 if (isConnected) {
                     Text(
-                        text = "Tap to click • two-finger tap to right-click • hold Left below to drag",
+                        text = "Tap to click • 2-finger tap right-click • hold below to drag",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -133,6 +195,10 @@ fun TrackpadSurface(
                 modifier = Modifier.weight(1f)
             )
             Text("%.1f×".format(sensitivity), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface)
+
+            IconButton(onClick = { showSettings = true }) {
+                Icon(Icons.Default.Settings, contentDescription = "Open companion settings", tint = MaterialTheme.colorScheme.primary)
+            }
         }
 
         Row(
@@ -140,14 +206,34 @@ fun TrackpadSurface(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             HoldButton("Left", Modifier.weight(1f)) { down ->
-                if (down) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                if (down && hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onButton(InputMotionPacket.BUTTON_LEFT, down)
             }
             HoldButton("Right", Modifier.weight(1f)) { down ->
-                if (down) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                if (down && hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onButton(InputMotionPacket.BUTTON_RIGHT, down)
             }
         }
+    }
+
+    if (showSettings) {
+        SettingsSheet(
+            pointerSpeed = sensitivity,
+            onPointerSpeedChange = onSensitivityChanged,
+            scrollSpeed = scrollSensitivity,
+            onScrollSpeedChange = onScrollSensitivityChanged,
+            airMouseSensitivity = airMouseSensitivity,
+            onAirMouseSensitivityChange = onAirMouseSensitivityChanged,
+            reverseScroll = reverseScroll,
+            onReverseScrollChange = onReverseScrollChanged,
+            hapticsEnabled = hapticsEnabled,
+            onHapticsEnabledChange = onHapticsEnabledChanged,
+            tapToClick = tapToClick,
+            onTapToClickChange = onTapToClickChanged,
+            dragLock = dragLock,
+            onDragLockChange = onDragLockChanged,
+            onDismiss = { showSettings = false }
+        )
     }
 }
 

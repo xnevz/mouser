@@ -47,6 +47,21 @@ class MouserViewModel(application: Application) : AndroidViewModel(application) 
     private val _airMouseSensitivity = MutableStateFlow(prefs.getFloat("air.sensitivity", 30f))
     val airMouseSensitivity: StateFlow<Float> = _airMouseSensitivity.asStateFlow()
 
+    private val _scrollSensitivity = MutableStateFlow(prefs.getFloat("scroll.sensitivity", 1.0f))
+    val scrollSensitivity: StateFlow<Float> = _scrollSensitivity.asStateFlow()
+
+    private val _reverseScroll = MutableStateFlow(prefs.getBoolean("scroll.reverse", false))
+    val reverseScroll: StateFlow<Boolean> = _reverseScroll.asStateFlow()
+
+    private val _hapticsEnabled = MutableStateFlow(prefs.getBoolean("haptics.enabled", true))
+    val hapticsEnabled: StateFlow<Boolean> = _hapticsEnabled.asStateFlow()
+
+    private val _tapToClick = MutableStateFlow(prefs.getBoolean("tap_to_click", true))
+    val tapToClick: StateFlow<Boolean> = _tapToClick.asStateFlow()
+
+    private val _dragLock = MutableStateFlow(prefs.getBoolean("drag_lock", false))
+    val dragLock: StateFlow<Boolean> = _dragLock.asStateFlow()
+
     private val _isAirMouseTriggerHeld = MutableStateFlow(false)
     val isAirMouseTriggerHeld: StateFlow<Boolean> = _isAirMouseTriggerHeld.asStateFlow()
 
@@ -204,6 +219,70 @@ class MouserViewModel(application: Application) : AndroidViewModel(application) 
     fun tapKey(virtualKey: Short) {
         if (isLocked.value) return
         connection.tapKey(virtualKey)
+    }
+
+    fun setScrollSensitivity(value: Float) {
+        _scrollSensitivity.value = value
+        prefs.edit().putFloat("scroll.sensitivity", value).apply()
+    }
+
+    fun setReverseScroll(value: Boolean) {
+        _reverseScroll.value = value
+        prefs.edit().putBoolean("scroll.reverse", value).apply()
+    }
+
+    fun setHapticsEnabled(value: Boolean) {
+        _hapticsEnabled.value = value
+        prefs.edit().putBoolean("haptics.enabled", value).apply()
+    }
+
+    fun setTapToClick(value: Boolean) {
+        _tapToClick.value = value
+        prefs.edit().putBoolean("tap_to_click", value).apply()
+    }
+
+    fun setDragLock(value: Boolean) {
+        _dragLock.value = value
+        prefs.edit().putBoolean("drag_lock", value).apply()
+    }
+
+    fun handleZoom(deltaNotches: Int) {
+        if (isLocked.value) return
+        connection.sendKey(com.mouser.companion.model.VirtualKey.CONTROL, true)
+        connection.sendScroll(0, (120 * deltaNotches).toShort())
+        connection.sendKey(com.mouser.companion.model.VirtualKey.CONTROL, false)
+    }
+
+    fun handleThreeFingerSwipeLeft() {
+        if (isLocked.value) return
+        connection.sendKey(com.mouser.companion.model.VirtualKey.CONTROL, true)
+        connection.sendKey(com.mouser.companion.model.VirtualKey.LWIN, true)
+        connection.tapKey(com.mouser.companion.model.VirtualKey.LEFT)
+        connection.sendKey(com.mouser.companion.model.VirtualKey.LWIN, false)
+        connection.sendKey(com.mouser.companion.model.VirtualKey.CONTROL, false)
+    }
+
+    fun handleThreeFingerSwipeRight() {
+        if (isLocked.value) return
+        connection.sendKey(com.mouser.companion.model.VirtualKey.CONTROL, true)
+        connection.sendKey(com.mouser.companion.model.VirtualKey.LWIN, true)
+        connection.tapKey(com.mouser.companion.model.VirtualKey.RIGHT)
+        connection.sendKey(com.mouser.companion.model.VirtualKey.LWIN, false)
+        connection.sendKey(com.mouser.companion.model.VirtualKey.CONTROL, false)
+    }
+
+    fun handleThreeFingerSwipeUp() {
+        if (isLocked.value) return
+        connection.sendKey(com.mouser.companion.model.VirtualKey.LWIN, true)
+        connection.tapKey(com.mouser.companion.model.VirtualKey.TAB)
+        connection.sendKey(com.mouser.companion.model.VirtualKey.LWIN, false)
+    }
+
+    fun handleThreeFingerSwipeDown() {
+        if (isLocked.value) return
+        connection.sendKey(com.mouser.companion.model.VirtualKey.LWIN, true)
+        connection.tapKey('D'.code.toShort())
+        connection.sendKey(com.mouser.companion.model.VirtualKey.LWIN, false)
     }
 
     fun typeText(text: String) {
