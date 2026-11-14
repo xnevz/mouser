@@ -210,7 +210,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | :-: | :-: | :--- | :--- | :-: |
 | ✅ | Q1 | Headless Avalonia UI tests (both themes) | B9 | M |
 | ✅ | Q2 | Extend CI (web job, release build, UI snapshots) | Q1 | S |
-| ⬜ | Q3 | Two-instance integration scenarios | B10 | M |
+| ✅ | Q3 | Two-instance integration scenarios | B10 | M |
 | ⬜ | Q4 | Performance budget tests | – | M |
 | ⬜ | Q5 | Soak and chaos tests | – | M |
 | ⬜ | Q6 | User guide, FAQ, architecture, contributing, changelog | – | M |
@@ -317,3 +317,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - H4: Implemented FileLogger with thread-safe timestamped appending, daily log files, 2 MB rollover, and 7-file retention; implemented CrashReporter handling AppDomain.UnhandledException, TaskScheduler.UnobservedTaskException, and Dispatcher.UIThread.UnhandledException with secret/key/clipboard sanitization and toast notifications; added 'Open log folder' button to ActivityView and ActivityViewModel using dynamic theme tokens; added 6 unit tests in DiagnosticsLogTests (6 passing).
 - Q1: Configured Avalonia.Headless.XUnit (12.1.6) with TestAppBuilder using UseSkia and AvaloniaHeadlessPlatformOptions; implemented HeadlessUiTests with [AvaloniaFact] verifying tab navigation ("SmartClipboard", "DisplayMatrix", "Settings", "Activity", "Snippets", "AndroidRemote", "Devices") resolves valid views without "Not Found:" fallbacks, and rendering non-blank frames across ThemeVariant.Light and Dark with PNG snapshot generation in bin/ui-snapshots/.
 - Q2: Extended .github/workflows/ci.yml with a web job (Node 20, npm ci, lint, build), updated the desktop job to build Mouser.sln -c Release first, and added actions/upload-artifact@v4 to preserve bin/ui-snapshots/.
+- Q3: Extended TwoComputerTests with 4 end-to-end integration scenarios (AddByIp across different discovery ports, KvmCrossing input injection to remote peer sink with FakeCapture, ClipboardImageSync with PNG payload transfer, and LockAll remote lock request); all tests pass in ~1s each.
