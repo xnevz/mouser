@@ -89,9 +89,11 @@
                     <Border Background="{DynamicResource BgSunken}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
                             CornerRadius="12" Padding="24,20" Margin="0,4" HorizontalAlignment="Stretch">
                         <StackPanel Spacing="6" HorizontalAlignment="Center">
-                            <TextBlock Classes="label" Text="PAIRING PIN" HorizontalAlignment="Center" />
-                            <TextBlock Text="{Binding PairingPinText}" FontSize="36" FontWeight="Bold"
-                                       Foreground="{DynamicResource AccentSoft}" LetterSpacing="4" HorizontalAlignment="Center" />
+                            <TextBlock Classes="label" Text="AUTOMATIC DISCOVERY" HorizontalAlignment="Center" />
+                            <TextBlock Text="Mutual Code Verification" FontSize="18" FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentSoft}" HorizontalAlignment="Center" />
+                            <TextBlock Text="When connecting, compare the 6-digit confirmation code shown on both devices."
+                                       Classes="hint" FontSize="12" HorizontalAlignment="Center" TextAlignment="Center" />
                         </StackPanel>
                     </Border>
 

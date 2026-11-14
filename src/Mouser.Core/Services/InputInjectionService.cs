@@ -63,7 +63,6 @@ public sealed class InputInjectionService : IDisposable
 
     private readonly UdpInputReceiver _receiver;
     private readonly IInputSink _sink;
-    private readonly PairingGate _gate;
     private readonly Func<DateTime> _clock;
     private readonly SequenceTracker _sequences = new();
     private readonly ConcurrentDictionary<IPAddress, RemoteClient> _clients = new();
@@ -91,10 +90,9 @@ public sealed class InputInjectionService : IDisposable
     public event Action<InputMotionPacket, IPEndPoint>? PacketProcessed;
     public event Action<string, IPEndPoint>? PeerAuthenticated;
 
-    public InputInjectionService(IInputSink sink, PairingGate gate, int listenPort = 0, Func<DateTime>? clock = null, string? ownDeviceId = null, IPAddress? bindAddress = null)
+    public InputInjectionService(IInputSink sink, int listenPort = 0, Func<DateTime>? clock = null, string? ownDeviceId = null, IPAddress? bindAddress = null)
     {
         _sink = sink;
-        _gate = gate;
         _clock = clock ?? (() => DateTime.UtcNow);
         _ownDeviceId = string.IsNullOrWhiteSpace(ownDeviceId) ? Guid.NewGuid().ToString("N") : ownDeviceId;
         _receiver = new UdpInputReceiver(listenPort, bindAddress);
@@ -138,7 +136,6 @@ public sealed class InputInjectionService : IDisposable
 
     public void ForgetClient(IPAddress address)
     {
-        _gate.Revoke(address);
         _clients.TryRemove(Normalize(address), out _);
     }
 
@@ -242,31 +239,10 @@ public sealed class InputInjectionService : IDisposable
         {
             case InputMotionPacket.TypePing:
             {
-                bool trusted = _gate.IsTrusted(address);
                 _receiver.SendTo(InputMotionPacket.Create(InputMotionPacket.TypePong, packet.SequenceId,
-                    packet.DeltaX, packet.DeltaY, (byte)(trusted ? 1 : 0)), remoteEndPoint);
-                if (trusted) Touch(address, null);
+                    packet.DeltaX, packet.DeltaY, 0), remoteEndPoint);
                 return;
             }
-
-            case InputMotionPacket.TypePair:
-            {
-                bool accepted = _gate.TryPair(address, packet.PinValue);
-                if (accepted)
-                {
-                    _sequences.Reset(remoteEndPoint);
-                    Touch(address, "Paired");
-                }
-                _receiver.SendTo(InputMotionPacket.Create(InputMotionPacket.TypePairAck, packet.SequenceId,
-                    buttons: (byte)(accepted ? 1 : 0)), remoteEndPoint);
-                return;
-            }
-        }
-
-        if (!_gate.IsTrusted(address))
-        {
-            RejectedPackets++;
-            return;
         }
 
         if (!_sequences.Accept(remoteEndPoint, packet.SequenceId))

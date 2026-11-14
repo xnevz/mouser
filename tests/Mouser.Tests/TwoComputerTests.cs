@@ -14,13 +14,14 @@ public class TwoComputerTests
         int discovery = Random.Shared.Next(40_000, 50_000);
         var a = new AppFixture(discovery);
         var b = new AppFixture(discovery);
+        b.Host.AllowNewDevices(TimeSpan.FromMinutes(2));
+        b.Host.PairingRequested += (_, _, allow, _) => allow();
         // Each side learns the other from its once-a-second beacon; wait until both have.
         await Wait.UntilAsync(() => a.Host.Peers.Any(p => p.DeviceId == b.Settings.Current.DeviceId)
                                     && b.Host.Peers.Any(p => p.DeviceId == a.Settings.Current.DeviceId), timeoutMs: 5000);
 
         var peerB = a.Host.Peers.Single(p => p.DeviceId == b.Settings.Current.DeviceId);
-        Assert.False(await a.Host.PairPeerAsync(peerB, 111_111)); // wrong PIN
-        Assert.True(await a.Host.PairPeerAsync(peerB, b.Settings.Current.PairingPin));
+        Assert.True(await a.Host.PairPeerAsync(peerB));
         return (a, b);
     }
 
@@ -32,7 +33,7 @@ public class TwoComputerTests
         await using var _b = b;
 
         var saved = a.Settings.Current.Peers[b.Settings.Current.DeviceId];
-        Assert.Equal(b.Settings.Current.PairingPin, saved.Pin);
+        Assert.False(string.IsNullOrEmpty(saved.PairKeyProtected));
         Assert.Equal(PeerPlacement.Right, saved.Placement);
         Assert.Equal(PeerLinkStatus.Paired, a.Host.GetPeerStatus(b.Settings.Current.DeviceId));
     }
@@ -147,6 +148,9 @@ public class TwoComputerTests
         await Task.Delay(200);
         Assert.DoesNotContain(a.Host.Peers, p => p.DeviceId == b.Settings.Current.DeviceId);
 
+        b.Host.AllowNewDevices(TimeSpan.FromMinutes(2));
+        b.Host.PairingRequested += (_, _, allow, _) => allow();
+
         // Add B by IP on A
         a.Main.DevicesPage.ManualAddress = $"127.0.0.1:{b.Host.DiscoveryPort}";
         a.Main.DevicesPage.AddByAddressCommand.Execute(null);
@@ -154,7 +158,7 @@ public class TwoComputerTests
         await Wait.UntilAsync(() => a.Host.Peers.Any(p => p.DeviceId == b.Settings.Current.DeviceId), timeoutMs: 10_000);
 
         var peerB = a.Host.Peers.Single(p => p.DeviceId == b.Settings.Current.DeviceId);
-        bool paired = await a.Host.PairPeerAsync(peerB, b.Settings.Current.PairingPin);
+        bool paired = await a.Host.PairPeerAsync(peerB);
         Assert.True(paired);
         Assert.Equal(PeerLinkStatus.Paired, a.Host.GetPeerStatus(b.Settings.Current.DeviceId));
     }
@@ -166,12 +170,14 @@ public class TwoComputerTests
         int discovery = Random.Shared.Next(40_000, 50_000);
         await using var a = new AppFixture(discovery, capture: capture);
         await using var b = new AppFixture(discovery);
+        b.Host.AllowNewDevices(TimeSpan.FromMinutes(2));
+        b.Host.PairingRequested += (_, _, allow, _) => allow();
 
         await Wait.UntilAsync(() => a.Host.Peers.Any(p => p.DeviceId == b.Settings.Current.DeviceId)
                                     && b.Host.Peers.Any(p => p.DeviceId == a.Settings.Current.DeviceId), timeoutMs: 5000);
 
         var peerB = a.Host.Peers.Single(p => p.DeviceId == b.Settings.Current.DeviceId);
-        Assert.True(await a.Host.PairPeerAsync(peerB, b.Settings.Current.PairingPin));
+        Assert.True(await a.Host.PairPeerAsync(peerB));
 
         // Configure screens for KVM transition: local at 0,0, 1920x1080; B placed at Right
         var desktop = new ScreenBounds { X = 0, Y = 0, Width = 1920, Height = 1080 };
@@ -193,7 +199,7 @@ public class TwoComputerTests
 
         await Wait.UntilAsync(() => b.Sink.Snapshot().Length >= 2, timeoutMs: 5000);
         var snapshot = b.Sink.Snapshot();
-        Assert.Contains(snapshot, s => s.Contains("left down") || s.Contains("left up") || s.Contains("0x41"));
+        Assert.Contains(snapshot, s => s.Contains("Left down", StringComparison.OrdinalIgnoreCase) || s.Contains("left down") || s.Contains("0x41"));
     }
 
     [Fact]

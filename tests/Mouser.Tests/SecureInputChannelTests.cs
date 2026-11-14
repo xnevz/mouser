@@ -12,14 +12,13 @@ namespace Mouser.Tests;
 public sealed class SecureInputChannelTests : IDisposable
 {
     private readonly RecordingSink _sinkB = new();
-    private readonly PairingGate _gateB = new(123_456);
     private readonly InputInjectionService _hostB;
     private readonly byte[] _pairKey = new byte[32];
 
     public SecureInputChannelTests()
     {
         RandomNumberGenerator.Fill(_pairKey);
-        _hostB = new InputInjectionService(_sinkB, _gateB, listenPort: 0, ownDeviceId: "device-b")
+        _hostB = new InputInjectionService(_sinkB, listenPort: 0, ownDeviceId: "device-b")
         {
             AllowOlderDevices = false
         };

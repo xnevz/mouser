@@ -21,14 +21,14 @@ New-Item -ItemType Directory -Force $a, $b | Out-Null
 
 # Fixed ids, PINs and ports (not the defaults, so a normal Mouser can keep running).
 @{
-    DeviceId = "kvm-test-b"; PairingPin = 246810; InputPort = 58502
+    DeviceId = "kvm-test-b"; InputPort = 58502
     AcceptRemoteInput = $true; KvmEnabled = $false; ClipboardHistoryEnabled = $false
 } | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $b "settings.json")
 
 @{
-    DeviceId = "kvm-test-a"; PairingPin = 135790; InputPort = 58501
+    DeviceId = "kvm-test-a"; InputPort = 58501
     AcceptRemoteInput = $true; KvmEnabled = $true; ClipboardHistoryEnabled = $false
-    Peers = @{ "kvm-test-b" = @{ Name = $env:COMPUTERNAME; Placement = "Right"; Pin = 246810 } }
+    Peers = @{ "kvm-test-b" = @{ Name = $env:COMPUTERNAME; Placement = "Right" } }
 } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 (Join-Path $a "settings.json")
 
 $pb = Start-Process $Exe -ArgumentList "--data-dir", "`"$b`"" -PassThru

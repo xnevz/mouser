@@ -56,14 +56,14 @@ New-Item -ItemType Directory -Force $aDir, $bDir | Out-Null
 
 Write-Host "Configuring test instances..."
 @{
-    DeviceId = "soak-node-b"; PairingPin = 246810; InputPort = 59502
+    DeviceId = "soak-node-b"; InputPort = 59502
     AcceptRemoteInput = $true; KvmEnabled = $false; ClipboardHistoryEnabled = $false
 } | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $bDir "settings.json")
 
 @{
-    DeviceId = "soak-node-a"; PairingPin = 135790; InputPort = 59501
+    DeviceId = "soak-node-a"; InputPort = 59501
     AcceptRemoteInput = $true; KvmEnabled = $true; ClipboardHistoryEnabled = $false
-    Peers = @{ "soak-node-b" = @{ Name = $env:COMPUTERNAME; Placement = "Right"; Pin = 246810 } }
+    Peers = @{ "soak-node-b" = @{ Name = $env:COMPUTERNAME; Placement = "Right" } }
 } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 (Join-Path $aDir "settings.json")
 
 Write-Host "Starting processes..."

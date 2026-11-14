@@ -106,7 +106,7 @@ public partial class DevicesViewModel : ViewModelBase
             _settings.Current.Peers.TryGetValue(peer.DeviceId, out var saved);
             bool pairKeyValid = !string.IsNullOrEmpty(saved?.PairKeyProtected) && SecretStore.Unprotect(saved.PairKeyProtected) != null;
             bool unprotectFailed = !string.IsNullOrEmpty(saved?.PairKeyProtected) && !pairKeyValid;
-            bool isPaired = saved != null && (saved.Pin != null || pairKeyValid);
+            bool isPaired = saved != null && pairKeyValid;
             string status = isPaired ? "Connected" : (unprotectFailed ? "Pair again" : "Not paired");
             var placement = saved?.Placement ?? PeerPlacement.None;
             if (existing == null)
@@ -155,7 +155,7 @@ public partial class DevicesViewModel : ViewModelBase
                 string name = string.IsNullOrEmpty(peerSettings.Name) ? id : peerSettings.Name;
                 bool pairKeyValid = !string.IsNullOrEmpty(peerSettings.PairKeyProtected) && SecretStore.Unprotect(peerSettings.PairKeyProtected) != null;
                 bool unprotectFailed = !string.IsNullOrEmpty(peerSettings.PairKeyProtected) && !pairKeyValid;
-                bool isPaired = peerSettings.Pin != null || pairKeyValid;
+                bool isPaired = pairKeyValid;
                 string status = unprotectFailed ? "Pair again" : "Offline";
                 if (existing == null)
                 {
@@ -230,30 +230,6 @@ public partial class DevicesViewModel : ViewModelBase
 
         if (SelectedDevice != null && !Devices.Contains(SelectedDevice))
             SelectedDevice = Devices.FirstOrDefault();
-    }
-
-    [RelayCommand]
-    public async Task PairComputerAsync(DeviceDetailViewModel? d)
-    {
-        if (d == null || !d.IsComputer || string.IsNullOrWhiteSpace(d.PinText)) return;
-        if (!int.TryParse(d.PinText, out int pin)) return;
-
-        var peer = _host.Peers.FirstOrDefault(p => p.DeviceId == d.Id);
-        if (peer != null)
-        {
-            await _host.PairPeerAsync(peer, pin);
-        }
-        else
-        {
-            // If offline or discovered, save pin directly
-            if (!_settings.Current.Peers.TryGetValue(d.Id, out var saved))
-                _settings.Current.Peers[d.Id] = saved = new PeerSettings { Name = d.Name };
-            saved.Pin = pin;
-            if (saved.Placement == PeerPlacement.None) saved.Placement = PeerPlacement.Right;
-            _settings.Save();
-            _host.SyncPeers();
-        }
-        Refresh();
     }
 
     [RelayCommand]

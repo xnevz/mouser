@@ -18,11 +18,13 @@ public class ClipboardSyncRulesTests
         int discovery = Random.Shared.Next(40_000, 50_000);
         var a = new AppFixture(discovery);
         var b = new AppFixture(discovery);
+        b.Host.AllowNewDevices(TimeSpan.FromMinutes(2));
+        b.Host.PairingRequested += (_, _, allow, _) => allow();
         await Wait.UntilAsync(() => a.Host.Peers.Any(p => p.DeviceId == b.Settings.Current.DeviceId)
                                     && b.Host.Peers.Any(p => p.DeviceId == a.Settings.Current.DeviceId), timeoutMs: 5000);
 
         var peerB = a.Host.Peers.Single(p => p.DeviceId == b.Settings.Current.DeviceId);
-        Assert.True(await a.Host.PairPeerAsync(peerB, b.Settings.Current.PairingPin));
+        Assert.True(await a.Host.PairPeerAsync(peerB));
         return (a, b);
     }
 
@@ -106,7 +108,7 @@ public class ClipboardSyncRulesTests
             store1.Current.Peers["peer-test"] = new PeerSettings
             {
                 Name = "Test Peer",
-                Pin = 123456,
+                PairKeyProtected = "test-key-protected",
                 Placement = PeerPlacement.Left,
                 SendClipboard = false,
                 ReceiveClipboard = false,
@@ -117,7 +119,7 @@ public class ClipboardSyncRulesTests
             var store2 = new SettingsStore(Path.Combine(tempDir, "settings.json"));
             Assert.True(store2.Current.Peers.TryGetValue("peer-test", out var loaded));
             Assert.Equal("Test Peer", loaded.Name);
-            Assert.Equal(123456, loaded.Pin);
+            Assert.Equal("test-key-protected", loaded.PairKeyProtected);
             Assert.Equal(PeerPlacement.Left, loaded.Placement);
             Assert.False(loaded.SendClipboard);
             Assert.False(loaded.ReceiveClipboard);

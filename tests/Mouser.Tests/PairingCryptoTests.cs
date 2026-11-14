@@ -255,7 +255,8 @@ public class PairingCryptoTests
         byte[] shared = new byte[32];
         Array.Fill(shared, (byte)0x42);
         byte[] salt = Encoding.UTF8.GetBytes("device-a:device-b");
-        byte[] okm = HKDF.DeriveKey(HashAlgorithmName.SHA256, shared, 64, salt, Encoding.UTF8.GetBytes("mouser-pair-v2"));
+        byte[] prk = HKDF.Extract(HashAlgorithmName.SHA256, shared, salt);
+        byte[] okm = HKDF.Expand(HashAlgorithmName.SHA256, prk, 64, Encoding.UTF8.GetBytes("mouser-pair-v2"));
         byte[] pairKey = okm[..32];
         uint codeNumber = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(okm.AsSpan(32, 4)) % 1_000_000;
         string confirmationCode = $"{codeNumber / 1000:D3} {codeNumber % 1000:D3}";

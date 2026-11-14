@@ -66,7 +66,6 @@ class MainActivity : FragmentActivity() {
                                 isAppLockEnabled = isAppLockEnabled,
                                 onToggleAppLock = viewModel::setAppLockEnabled,
                                 onConnect = viewModel::connect,
-                                onSubmitPin = viewModel::submitPin,
                                 onDisconnect = viewModel::disconnect
                             )
                         },

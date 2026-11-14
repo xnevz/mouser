@@ -9,9 +9,9 @@ namespace Mouser.Tests;
 
 public sealed class PeerTransferTests : IDisposable
 {
-    private const int PinOfB = 246_810;
     private readonly string _downloads = Path.Combine(Path.GetTempPath(), "mouser_dl_" + Guid.NewGuid().ToString("N"));
-    private readonly byte[] _pairKey = PeerTransferService.DeriveKey(PinOfB, "device-b");
+    private readonly byte[] _pairKey = new byte[32] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
+    private readonly byte[] _wrongKey = new byte[32] { 99, 99, 99, 99, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
     private readonly PeerTransferService _b;
     private readonly PeerTransferService _a;
 
@@ -23,15 +23,6 @@ public sealed class PeerTransferTests : IDisposable
     }
 
     private IPEndPoint B => new(IPAddress.Loopback, _b.BoundPort);
-
-    [Fact]
-    public void KeyDerivation_IsStableAndDependsOnPinAndOwner()
-    {
-        Assert.Equal(_pairKey, PeerTransferService.DeriveKey(PinOfB, "device-b"));
-        Assert.NotEqual(_pairKey, PeerTransferService.DeriveKey(PinOfB + 1, "device-b"));
-        Assert.NotEqual(_pairKey, PeerTransferService.DeriveKey(PinOfB, "device-c"));
-        Assert.Equal(32, _pairKey.Length);
-    }
 
     [Fact]
     public async Task Clip_IsDeliveredToThePairedPeer()
@@ -53,7 +44,7 @@ public sealed class PeerTransferTests : IDisposable
         bool received = false;
         _b.ClipReceived += (_, _) => received = true;
 
-        await _a.SendClipAsync(B, PeerTransferService.DeriveKey(111_111, "device-b"), new ClipboardPayload { TextContent = "intruder" });
+        await _a.SendClipAsync(B, _wrongKey, new ClipboardPayload { TextContent = "intruder" });
         await Task.Delay(300);
 
         Assert.False(received);
@@ -90,7 +81,7 @@ public sealed class PeerTransferTests : IDisposable
         await File.WriteAllTextAsync(source, "hello");
         try
         {
-            var wrongKey = PeerTransferService.DeriveKey(111_111, "device-b");
+            var wrongKey = _wrongKey;
             await Assert.ThrowsAnyAsync<Exception>(() => _a.SendFileAsync(B, wrongKey, source));
             Assert.False(Directory.Exists(_downloads) && Directory.EnumerateFiles(_downloads).Any());
         }
@@ -300,7 +291,7 @@ public sealed class PeerTransferTests : IDisposable
         bool received = false;
         _b.PowerReceived += (_, _) => received = true;
 
-        await _a.SendPowerAsync(B, PeerTransferService.DeriveKey(111_111, "device-b"), PowerEventKind.Sleep);
+        await _a.SendPowerAsync(B, _wrongKey, PowerEventKind.Sleep);
         await Task.Delay(300);
 
         Assert.False(received);
@@ -324,7 +315,7 @@ public sealed class PeerTransferTests : IDisposable
         bool received = false;
         _b.LockRequested += _ => received = true;
 
-        await _a.SendLockAsync(B, PeerTransferService.DeriveKey(111_111, "device-b"));
+        await _a.SendLockAsync(B, _wrongKey);
         await Task.Delay(300);
 
         Assert.False(received);

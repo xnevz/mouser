@@ -146,13 +146,13 @@ public sealed class AppLockService
             byte[] salt = RandomNumberGenerator.GetBytes(SaltSizeBytes);
             byte[] recoverySalt = RandomNumberGenerator.GetBytes(SaltSizeBytes);
 
-            byte[] kek = DeriveKey(passphrase, salt, _iterations);
+            byte[] kek = DeriveKek(passphrase, salt, _iterations);
             byte[] wrappedByPassphrase = ClipboardCryptoEngine.Encrypt(masterKey, kek);
             CryptographicOperations.ZeroMemory(kek);
 
             string recoveryKey = GenerateRecoveryKey();
             string normalizedRecoveryKey = NormalizeRecoveryKey(recoveryKey);
-            byte[] recoveryKek = DeriveKey(normalizedRecoveryKey, recoverySalt, _iterations);
+            byte[] recoveryKek = DeriveKek(normalizedRecoveryKey, recoverySalt, _iterations);
             byte[] wrappedByRecovery = ClipboardCryptoEngine.Encrypt(masterKey, recoveryKek);
             CryptographicOperations.ZeroMemory(recoveryKek);
 
@@ -198,7 +198,7 @@ public sealed class AppLockService
             }
 
             byte[] salt = Convert.FromBase64String(_lockData.Salt);
-            byte[] kek = DeriveKey(passphrase, salt, _lockData.Iterations);
+            byte[] kek = DeriveKek(passphrase, salt, _lockData.Iterations);
             byte[] wrapped = Convert.FromBase64String(_lockData.WrappedByPassphrase);
 
             byte[] plain;
@@ -257,7 +257,7 @@ public sealed class AppLockService
             }
 
             byte[] recoverySalt = Convert.FromBase64String(_lockData.RecoverySalt);
-            byte[] recoveryKek = DeriveKey(normalized, recoverySalt, _lockData.Iterations);
+            byte[] recoveryKek = DeriveKek(normalized, recoverySalt, _lockData.Iterations);
             byte[] wrapped = Convert.FromBase64String(_lockData.WrappedByRecovery);
 
             byte[] plain;
@@ -340,7 +340,7 @@ public sealed class AppLockService
             }
 
             byte[] oldSalt = Convert.FromBase64String(_lockData.Salt);
-            byte[] oldKek = DeriveKey(oldPassphrase, oldSalt, _lockData.Iterations);
+            byte[] oldKek = DeriveKek(oldPassphrase, oldSalt, _lockData.Iterations);
             byte[] wrapped = Convert.FromBase64String(_lockData.WrappedByPassphrase);
 
             byte[] currentMasterKey;
@@ -366,7 +366,7 @@ public sealed class AppLockService
             }
 
             byte[] newSalt = RandomNumberGenerator.GetBytes(SaltSizeBytes);
-            byte[] newKek = DeriveKey(newPassphrase, newSalt, _lockData.Iterations);
+            byte[] newKek = DeriveKek(newPassphrase, newSalt, _lockData.Iterations);
             byte[] newWrapped = ClipboardCryptoEngine.Encrypt(currentMasterKey, newKek);
             CryptographicOperations.ZeroMemory(newKek);
 
@@ -411,7 +411,7 @@ public sealed class AppLockService
             }
 
             byte[] salt = Convert.FromBase64String(_lockData.Salt);
-            byte[] kek = DeriveKey(passphrase, salt, _lockData.Iterations);
+            byte[] kek = DeriveKek(passphrase, salt, _lockData.Iterations);
             byte[] wrapped = Convert.FromBase64String(_lockData.WrappedByPassphrase);
 
             try
@@ -516,7 +516,7 @@ public sealed class AppLockService
         }
     }
 
-    private static byte[] DeriveKey(string secret, byte[] salt, int iterations)
+    private static byte[] DeriveKek(string secret, byte[] salt, int iterations)
     {
         return Rfc2898DeriveBytes.Pbkdf2(secret, salt, iterations, HashAlgorithmName.SHA256, MasterKeySizeBytes);
     }

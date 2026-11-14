@@ -21,13 +21,10 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 /**
- * UDP session with one Mouser desktop: pairing, keep-alive pings and ordered input packets.
- *
- * @param savePin called after the host accepts a PIN so the next connection pairs automatically.
+ * UDP session with one Mouser desktop: keep-alive pings and ordered encrypted input packets.
  */
 class MouserConnection(
-    private val scope: CoroutineScope,
-    private val savePin: (HostTarget, Int) -> Unit
+    private val scope: CoroutineScope
 ) {
     companion object {
         const val PING_INTERVAL_MS = 1_000L
@@ -46,7 +43,6 @@ class MouserConnection(
     private var sender: ExecutorService? = null
     private var socket: DatagramSocket? = null
     private var target: HostTarget? = null
-    private var pin: Int? = null
     private var sessionJobs = emptyList<Job>()
     @Volatile private var lastPongAt = 0L
     @Volatile private var paired = false
@@ -59,15 +55,19 @@ class MouserConnection(
         senderIdHash = SecureInputPacket.computeSenderIdHash(ownDeviceId)
         val isInitiator = ownDeviceId < hostDeviceId
         sessionCrypto = SessionCrypto(pairKey, isInitiator, currentSessionId)
+        paired = true
     }
 
     val isPaired: Boolean get() = paired
 
-    fun connect(host: HostTarget, knownPin: Int?) {
+    fun connect(host: HostTarget, pairKey: ByteArray? = null, ownDeviceId: String? = null) {
         disconnect()
         target = host
-        pin = knownPin
         _state.value = HostConnectionState.Connecting(host)
+
+        if (pairKey != null && ownDeviceId != null && host.deviceId != null) {
+            initSessionCrypto(pairKey, ownDeviceId, host.deviceId, System.currentTimeMillis())
+        }
 
         sessionJobs = listOf(scope.launch(Dispatchers.IO) {
             val s = try {
@@ -83,16 +83,9 @@ class MouserConnection(
             sender = Executors.newSingleThreadExecutor()
             lastPongAt = System.currentTimeMillis()
 
-            if (knownPin != null) sendPair(knownPin) else _state.value = HostConnectionState.NeedsPin(host)
             launch { pingLoop() }
             receiveLoop(s)
         })
-    }
-
-    fun submitPin(newPin: Int) {
-        pin = newPin
-        target?.let { _state.value = HostConnectionState.Connecting(it) }
-        sendPair(newPin)
     }
 
     fun disconnect() {
@@ -148,8 +141,6 @@ class MouserConnection(
         }
     }
 
-    private fun sendPair(value: Int) = send(InputMotionPacket.pair(sequence.next(), value), force = true)
-
     private fun send(packet: InputMotionPacket, force: Boolean = false) {
         if (!force && !paired) return
         val s = socket ?: return
@@ -158,7 +149,7 @@ class MouserConnection(
             exec.execute {
                 try {
                     val crypto = sessionCrypto
-                    val data = if (crypto != null && packet.packetType != InputMotionPacket.TYPE_PING && packet.packetType != InputMotionPacket.TYPE_PAIR) {
+                    val data = if (crypto != null && packet.packetType != InputMotionPacket.TYPE_PING) {
                         val raw = packet.toByteArray()
                         val (counter, cipherAndTag) = crypto.seal(raw)
                         SecureInputPacket.write(senderIdHash, sessionId, counter, cipherAndTag)
@@ -213,34 +204,11 @@ class MouserConnection(
     internal fun handleReply(packet: InputMotionPacket) {
         val t = target ?: return
         when (packet.packetType) {
-            InputMotionPacket.TYPE_PAIR_ACK -> {
-                if (packet.buttonFlags == 1.toByte()) {
-                    paired = true
-                    lastPongAt = System.currentTimeMillis()
-                    pin?.let { savePin(t, it) }
-                    _state.value = HostConnectionState.Connected(t)
-                } else {
-                    paired = false
-                    _state.value = HostConnectionState.NeedsPin(t, wrongPin = pin != null)
-                }
-            }
-
             InputMotionPacket.TYPE_PONG -> {
                 lastPongAt = System.currentTimeMillis()
                 val sentAt = pingSentAt.remove(packet.sequenceId)
-                val hostSaysPaired = packet.buttonFlags == 1.toByte()
-                if (hostSaysPaired) {
-                    if (paired) _state.value = HostConnectionState.Connected(t, sentAt?.let { System.currentTimeMillis() - it })
-                } else if (paired || _state.value is HostConnectionState.Unreachable) {
-                    // Host restarted, came back, or changed its PIN: retry the saved PIN; the ack decides what's next.
-                    paired = false
-                    val p = pin
-                    if (p != null) {
-                        _state.value = HostConnectionState.Connecting(t)
-                        sendPair(p)
-                    } else {
-                        _state.value = HostConnectionState.NeedsPin(t)
-                    }
+                if (paired) {
+                    _state.value = HostConnectionState.Connected(t, sentAt?.let { System.currentTimeMillis() - it })
                 }
             }
         }

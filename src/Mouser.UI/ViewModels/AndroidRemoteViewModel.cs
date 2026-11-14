@@ -24,7 +24,6 @@ public partial class AndroidRemoteViewModel : ViewModelBase
     private readonly SettingsStore _settings;
     private readonly Func<DateTime> _clock;
 
-    [ObservableProperty] private string _pairingPinText = string.Empty;
     [ObservableProperty] private string _addressText = string.Empty;
     [ObservableProperty] private int _port;
     [ObservableProperty] private bool _isAccepting;
@@ -47,7 +46,6 @@ public partial class AndroidRemoteViewModel : ViewModelBase
 
     public void Refresh()
     {
-        PairingPinText = PairingGate.FormatPin(_host.Pairing.Pin);
         IsAccepting = _host.Input != null;
         Port = _host.Input?.BoundPort ?? _settings.Current.InputPort;
         ErrorMessage = _host.InputError ?? _host.DiscoveryError;
@@ -59,7 +57,6 @@ public partial class AndroidRemoteViewModel : ViewModelBase
 
         var now = _clock();
         var items = (_host.Input?.Clients ?? Array.Empty<RemoteClient>())
-            .Where(c => _host.Pairing.IsTrusted(c.Address))
             .Select(c => new RemoteClientItem(
                 c.Address.ToString(),
                 FormatAgo(now - c.LastSeenUtc),
@@ -72,14 +69,6 @@ public partial class AndroidRemoteViewModel : ViewModelBase
         foreach (var item in items) Clients.Add(item);
         ActiveClientCount = items.Count(i => i.IsActive);
         OnPropertyChanged(nameof(HasClients));
-    }
-
-    [RelayCommand]
-    private void RegeneratePin()
-    {
-        _host.RegeneratePin();
-        StatusMessage = "New PIN created. Paired phones must enter it again.";
-        Refresh();
     }
 
     [RelayCommand]

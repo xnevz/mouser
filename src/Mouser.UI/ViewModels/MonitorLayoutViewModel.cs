@@ -36,7 +36,6 @@ public partial class PeerViewModel : ViewModelBase
     private PeerLinkStatus _status;
 
     [ObservableProperty] private PeerPlacement _placement;
-    [ObservableProperty] private string _pinText = string.Empty;
     [ObservableProperty] private string? _error;
 
     [ObservableProperty] private bool _sendClipboard = true;
@@ -438,17 +437,9 @@ public partial class MonitorLayoutViewModel : ViewModelBase
     {
         if (_host == null) return;
         peer.Error = null;
-        string digits = new(peer.PinText.Where(char.IsDigit).ToArray());
-        if (digits.Length != 6)
-        {
-            peer.Error = "Enter the 6-digit PIN shown on that computer's Phone Remote page.";
-            return;
-        }
-
         peer.Status = PeerLinkStatus.Pairing;
-        bool ok = await _host.PairPeerAsync(peer.Peer, int.Parse(digits));
-        peer.Error = ok ? null : "That PIN was not accepted (or the computer didn't answer).";
-        if (ok) peer.PinText = string.Empty;
+        bool ok = await _host.PairPeerAsync(peer.Peer);
+        peer.Error = ok ? null : "Pairing failed or was refused.";
         SetPeers(_host.Peers);
     }
 

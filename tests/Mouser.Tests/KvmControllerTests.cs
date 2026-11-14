@@ -45,20 +45,20 @@ public sealed class KvmRig : IAsyncDisposable
 
     private KvmRig()
     {
-        PeerHost = new InputInjectionService(PeerSink, new PairingGate(Pin), 0) { AllowOlderDevices = true };
+        PeerHost = new InputInjectionService(PeerSink, 0) { AllowOlderDevices = true };
         PeerHost.Start();
         Link = new PeerLink(new IPEndPoint(IPAddress.Loopback, PeerHost.BoundPort), allowOlderDevices: true);
         Kvm = new KvmController(Capture);
         Kvm.SetLocalScreen(Local);
     }
 
-    public static async Task<KvmRig> CreateAsync(PeerPlacement placement = PeerPlacement.Right)
+    public static Task<KvmRig> CreateAsync(PeerPlacement placement = PeerPlacement.Right)
     {
         var rig = new KvmRig();
-        Assert.True(await rig.Link.PairAsync(Pin));
+        rig.Link.SetSecurity(new byte[32], "local", "peer");
         rig.Kvm.SetPeer("peer", "Studio PC", rig.Link, Remote, placement);
         rig.Kvm.Start();
-        return rig;
+        return Task.FromResult(rig);
     }
 
     /// <summary>Pushes hard against the local right edge, which crosses immediately (push beats edge resistance).</summary>
@@ -427,10 +427,10 @@ public class KvmControllerTests
             rig.Kvm.SetPeer("alpha", "Alpha PC", rig.Link, KvmRig.Remote, PeerPlacement.Left);
 
             var betaSink = new RecordingSink();
-            var hostBeta = new InputInjectionService(betaSink, new PairingGate(KvmRig.Pin), 0) { AllowOlderDevices = true };
+            var hostBeta = new InputInjectionService(betaSink, 0) { AllowOlderDevices = true };
             hostBeta.Start();
             var linkBeta = new PeerLink(new IPEndPoint(IPAddress.Loopback, hostBeta.BoundPort), allowOlderDevices: true);
-            Assert.True(await linkBeta.PairAsync(KvmRig.Pin));
+            linkBeta.SetSecurity(new byte[32], "local", "beta");
             rig.Kvm.SetPeer("beta", "Beta PC", linkBeta, KvmRig.Remote, PeerPlacement.Right);
 
             return new TwoPeerRig(rig, betaSink, hostBeta, linkBeta);

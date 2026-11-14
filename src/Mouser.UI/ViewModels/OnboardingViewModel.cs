@@ -26,7 +26,6 @@ public partial class OnboardingViewModel : ViewModelBase
     [ObservableProperty] private bool _kvmEnabled;
     [ObservableProperty] private bool _acceptRemoteInput;
 
-    [ObservableProperty] private string _pairingPinText = string.Empty;
     [ObservableProperty] private int _discoveredDeviceCount;
     [ObservableProperty] private string _discoveredDevicesText = "No devices discovered yet";
 
@@ -48,8 +47,6 @@ public partial class OnboardingViewModel : ViewModelBase
 
     public void Refresh()
     {
-        PairingPinText = PairingGate.FormatPin(_settings.Current.PairingPin);
-
         int count = (_host?.Peers?.Count ?? 0) + (_host?.Input?.Clients.Count ?? 0);
         DiscoveredDeviceCount = count;
         DiscoveredDevicesText = count switch

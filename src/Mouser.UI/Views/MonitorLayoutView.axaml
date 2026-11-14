@@ -122,9 +122,8 @@
                                             </TextBlock>
                                         </StackPanel>
 
-                                        <!-- Not paired: ask for the other computer's PIN -->
+                                        <!-- Not paired: connect & pair -->
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsVisible="{Binding !IsPaired}" VerticalAlignment="Center">
-                                            <TextBox Text="{Binding PinText}" PlaceholderText="Its PIN" Width="110" MaxLength="7" />
                                             <Button Classes="primary-btn" Content="Pair" Command="{Binding PairCommand}" />
                                         </StackPanel>
 

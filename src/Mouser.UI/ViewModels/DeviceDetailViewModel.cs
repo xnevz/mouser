@@ -28,7 +28,6 @@ public partial class DeviceDetailViewModel : ViewModelBase
     public string PairButtonText => StatusText == "Pair again" ? "Pair again" : "Connect & Pair";
     [ObservableProperty] private PeerPlacement _placement = PeerPlacement.None;
     [ObservableProperty] private bool _isPaired;
-    [ObservableProperty] private string _pinText = string.Empty;
 
     [ObservableProperty] private bool _sendClipboard = true;
     [ObservableProperty] private bool _receiveClipboard = true;

@@ -189,11 +189,11 @@ public class ChaosTests
 
         // Simulate peer endpoint change mid-session: peer restarts on a new port
         var newSink = new RecordingSink();
-        using var newPeerHost = new InputInjectionService(newSink, new PairingGate(KvmRig.Pin), 0) { AllowOlderDevices = true };
+        using var newPeerHost = new InputInjectionService(newSink, 0) { AllowOlderDevices = true };
         newPeerHost.Start();
 
         using var newLink = new PeerLink(new IPEndPoint(IPAddress.Loopback, newPeerHost.BoundPort), allowOlderDevices: true);
-        Assert.True(await newLink.PairAsync(KvmRig.Pin));
+        newLink.SetSecurity(new byte[32], "local", "peer");
 
         // Re-setting peer with the new link must return active control to local first!
         rig.Kvm.SetPeer("peer", "Studio PC", newLink, KvmRig.Remote, PeerPlacement.Right);

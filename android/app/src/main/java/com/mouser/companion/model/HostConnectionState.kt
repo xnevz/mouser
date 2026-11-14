@@ -8,14 +8,13 @@ data class HostTarget(
     val deviceId: String? = null,
     val controlPort: Int = 4243
 ) {
-    /** Key used to remember the PIN for this host. */
-    val pinKey: String get() = deviceId ?: "$address:$port"
+    /** Key used to remember pairing for this host. */
+    val targetKey: String get() = deviceId ?: "$address:$port"
 }
 
 sealed interface HostConnectionState {
     data object Disconnected : HostConnectionState
     data class Connecting(val target: HostTarget) : HostConnectionState
-    data class NeedsPin(val target: HostTarget, val wrongPin: Boolean = false) : HostConnectionState
     data class ConfirmPairingCode(val target: HostTarget, val code: String) : HostConnectionState
     data class Connected(val target: HostTarget, val latencyMs: Long? = null) : HostConnectionState
     /** Paired, but the host stopped answering pings (Wi-Fi drop, PC asleep, app closed). Still retrying. */

@@ -33,19 +33,8 @@
                         <StackPanel Spacing="6">
                             <TextBlock Classes="hint" Text="1.  Connect the phone to the same Wi-Fi network as this computer." />
                             <TextBlock Classes="hint" Text="2.  Open Mouser on the phone and pick this computer from the list." />
-                            <TextBlock Classes="hint" Text="3.  Enter this PIN when asked:" />
+                            <TextBlock Classes="hint" Text="3.  Confirm the 6-digit verification code shown on both screens." />
                         </StackPanel>
-
-                        <Border Background="{DynamicResource BgSunken}" BorderBrush="{DynamicResource BorderStrong}" BorderThickness="1" CornerRadius="10" Padding="16,12">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <SelectableTextBlock Grid.Column="0" Text="{Binding PairingPinText}"
-                                                     FontSize="34" FontWeight="Bold" LetterSpacing="4"
-                                                     Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
-                                <Button Grid.Column="1" Classes="secondary-btn" Content="New PIN"
-                                        Command="{Binding RegeneratePinCommand}" VerticalAlignment="Center"
-                                        ToolTip.Tip="Create a new PIN. Phones paired with the old one are disconnected." />
-                            </Grid>
-                        </Border>
 
                         <Separator Background="{DynamicResource BorderSubtle}" />
 

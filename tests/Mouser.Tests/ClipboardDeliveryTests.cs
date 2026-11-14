@@ -132,7 +132,7 @@ public sealed class ClipboardDeliveryTests : IAsyncDisposable
         app.Settings.Current.Peers["offline-peer-1"] = new PeerSettings
         {
             Name = "Remote Office PC",
-            Pin = 987654
+            PairKeyProtected = SecretStore.Protect(new byte[32])
         };
 
         var deliveries = await app.Host.ShareClipboardAsync("Testing offline peer clipboard sync");

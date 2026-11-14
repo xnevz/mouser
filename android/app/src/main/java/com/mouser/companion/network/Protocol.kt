@@ -83,13 +83,6 @@ class SubpixelAccumulator {
     }
 }
 
-/** Parses a PIN typed as "123 456", "123-456" or "123456". */
-fun parsePin(text: String): Int? {
-    val digits = text.filter { it.isDigit() }
-    if (digits.length != 6 || digits.length != text.count { !it.isWhitespace() && it != '-' }) return null
-    return digits.toInt()
-}
-
 fun Float.toShortClamped(): Short = roundToInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
 
 fun Int.toShortClamped(): Short = coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()

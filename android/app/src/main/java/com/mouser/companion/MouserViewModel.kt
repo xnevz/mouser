@@ -26,15 +26,7 @@ class MouserViewModel(application: Application) : AndroidViewModel(application) 
 
     private val prefs = application.getSharedPreferences("mouser", Context.MODE_PRIVATE)
 
-    private val connection = MouserConnection(viewModelScope) { target, pin ->
-        prefs.edit()
-            .putInt("pin:${target.pinKey}", pin)
-            .putString("last.name", target.hostName)
-            .putString("last.address", target.address)
-            .putInt("last.port", target.port)
-            .putString("last.deviceId", target.deviceId)
-            .apply()
-    }
+    private val connection = MouserConnection(viewModelScope)
     private val discoveryClient = HostDiscoveryClient(application, viewModelScope)
 
     val connectionState: StateFlow<HostConnectionState> = connection.state
@@ -117,11 +109,13 @@ class MouserViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun connect(target: HostTarget) {
-        val pin = prefs.getInt("pin:${target.pinKey}", -1).takeIf { it >= 0 }
-        connection.connect(target, pin)
+        val savedHex = prefs.getString("pairkey:${target.targetKey}", null)
+        val pairKey = savedHex?.chunked(2)?.map { it.toInt(16).toByte() }?.toByteArray()
+        val ownDeviceId = prefs.getString("own.deviceId", null) ?: java.util.UUID.randomUUID().toString().replace("-", "").also {
+            prefs.edit().putString("own.deviceId", it).apply()
+        }
+        connection.connect(target, pairKey, ownDeviceId)
     }
-
-    fun submitPin(pin: Int) = connection.submitPin(pin)
 
     fun disconnect() {
         prefs.edit().remove("last.address").apply()

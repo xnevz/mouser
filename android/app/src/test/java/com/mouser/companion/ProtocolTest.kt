@@ -6,7 +6,6 @@ import com.mouser.companion.network.BeaconParser
 import com.mouser.companion.network.ButtonState
 import com.mouser.companion.network.SequenceCounter
 import com.mouser.companion.network.SubpixelAccumulator
-import com.mouser.companion.network.parsePin
 import com.mouser.companion.sensors.GyroAirMouse
 import org.junit.Assert.*
 import org.junit.Test
@@ -35,24 +34,6 @@ class ProtocolTest {
     }
 
     @Test
-    fun pairPacket_carriesTheFullPin() {
-        for (pin in listOf(0, 65535, 65536, 482913, 999999)) {
-            val bytes = InputMotionPacket.pair(1, pin).toByteArray()
-            assertEquals(pin, InputMotionPacket.fromByteArray(bytes)!!.pinValue)
-        }
-    }
-
-    @Test
-    fun pairPacket_bytesMatchTheDesktopLayout() {
-        // 482913 = 0x00075E61 -> DeltaX 0x0007, DeltaY 0x5E61 (little-endian), same split as C# CreatePair.
-        val bytes = InputMotionPacket.pair(0x0102, 482913).toByteArray()
-        assertArrayEquals(
-            byteArrayOf(0x4D, 0x4F, 0x55, 0x53, 0x01, 0x06, 0x02, 0x01, 0x07, 0x00, 0x61, 0x5E, 0x00, 0x00),
-            bytes
-        )
-    }
-
-    @Test
     fun sequence_wrapsAtSixteenBits() {
         val counter = SequenceCounter(start = 65534)
         assertEquals(65535, counter.next().toInt() and 0xFFFF)
@@ -78,15 +59,6 @@ class ProtocolTest {
 
         val neg = SubpixelAccumulator()
         assertEquals(-3, (1..10).sumOf { neg.add(-0.3f) })
-    }
-
-    @Test
-    fun pinInput_acceptsCommonFormats() {
-        assertEquals(482913, parsePin("482913"))
-        assertEquals(482913, parsePin("482 913"))
-        assertEquals(1234, parsePin("001234"))
-        assertNull(parsePin("12345"))
-        assertNull(parsePin("12a456"))
     }
 
     @Test

@@ -33,14 +33,13 @@ public sealed class MouserHost : IDisposable
     private readonly Dictionary<string, DateTime> _lastArpAttempt = new();
     private readonly HashSet<string> _pairing = new();
     // Computers that proved (via a hello frame) they paired with us; lets us sync to them by device id.
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _pairedWithUs = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte[]> _pairedWithUs = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (string Text, DateTime Timestamp)> _failedClips = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, IPEndPoint> _authenticatedEndpoints = new();
     private ScreenBounds? _desktop;
     private IReadOnlyList<Mouser.Core.Geometry.Monitor>? _monitors;
     private bool _locked;
 
-    public PairingGate Pairing { get; }
     public InputInjectionService? Input { get; private set; }
     public PeerDiscoveryService? Discovery { get; private set; }
     public int DiscoveryPort => _discoveryPort;
@@ -112,7 +111,6 @@ public sealed class MouserHost : IDisposable
         _discoveryPort = discoveryPort;
         string logDir = Path.Combine(settings.DataDirectory, "logs");
         Log.FileLogger = new FileLogger(logDir);
-        Pairing = new PairingGate(settings.Current.PairingPin);
         if (capture != null)
         {
             Kvm = new KvmController(capture);
@@ -135,7 +133,7 @@ public sealed class MouserHost : IDisposable
 
         try
         {
-            Input = new InputInjectionService(_sink, Pairing, _settings.Current.InputPort, ownDeviceId: _settings.Current.DeviceId, bindAddress: preferredAddress)
+            Input = new InputInjectionService(_sink, _settings.Current.InputPort, ownDeviceId: _settings.Current.DeviceId, bindAddress: preferredAddress)
             {
                 AllowOlderDevices = _settings.Current.AllowOlderDevices,
                 LocalNetworkOnly = _settings.Current.LocalNetworkOnly
@@ -310,7 +308,8 @@ public sealed class MouserHost : IDisposable
             };
             transfer.HelloReceived += (sender, key) =>
             {
-                if (key.AsSpan().SequenceEqual(OwnKey)) _pairedWithUs[sender] = true;
+                _pairedWithUs[sender] = key;
+                SyncPeers();
             };
             transfer.LockRequested += sender =>
             {
@@ -379,16 +378,13 @@ public sealed class MouserHost : IDisposable
         }
     }
 
-    private byte[] OwnKey => PeerTransferService.DeriveKey(Pairing.Pin, _settings.Current.DeviceId);
-
     /// <summary>Keys a paired computer may use: ours if it paired with us, its own if we paired with it.</summary>
     private IReadOnlyList<byte[]> ReceiveKeys(string senderId, IPAddress senderAddress)
     {
-        var keys = new List<byte[]>(3);
-        if (Pairing.IsTrusted(senderAddress) || _pairedWithUs.ContainsKey(senderId)) keys.Add(OwnKey);
+        var keys = new List<byte[]>(2);
+        if (_pairedWithUs.TryGetValue(senderId, out var pairKey)) keys.Add(pairKey);
         if (_settings.Current.Peers.TryGetValue(senderId, out var s))
         {
-            if (s.Pin is int pin) keys.Add(PeerTransferService.DeriveKey(pin, senderId));
             if (!string.IsNullOrEmpty(s.PairKeyProtected))
             {
                 byte[]? key = SecretStore.Unprotect(s.PairKeyProtected);
@@ -407,10 +403,9 @@ public sealed class MouserHost : IDisposable
                 byte[]? key = SecretStore.Unprotect(s.PairKeyProtected);
                 if (key != null) return key;
             }
-            if (s.Pin is int pin)
-                return PeerTransferService.DeriveKey(pin, peer.DeviceId);
         }
-        return _pairedWithUs.ContainsKey(peer.DeviceId) || Pairing.IsTrusted(peer.IpAddress) ? OwnKey : null;
+        if (_pairedWithUs.TryGetValue(peer.DeviceId, out var pairKey)) return pairKey;
+        return null;
     }
 
     private string PeerName(string deviceId) =>
@@ -466,7 +461,7 @@ public sealed class MouserHost : IDisposable
 
         foreach (var (id, s) in _settings.Current.Peers)
         {
-            if (s.Pin != null || _pairedWithUs.ContainsKey(id))
+            if (!string.IsNullOrEmpty(s.PairKeyProtected) || _pairedWithUs.ContainsKey(id))
             {
                 pairedTargets[id] = !string.IsNullOrWhiteSpace(s.Name) ? s.Name : id;
             }
@@ -629,21 +624,12 @@ public sealed class MouserHost : IDisposable
         Discovery?.UpdateLocalMonitors(monitors);
     }
 
-    public void RegeneratePin()
-    {
-        _pairedWithUs.Clear();
-        int pin = PairingGate.GeneratePin();
-        Pairing.Pin = pin;
-        _settings.Current.PairingPin = pin;
-        _settings.Save();
-    }
-
     public PeerLinkStatus GetPeerStatus(string deviceId)
     {
         if (_pairing.Contains(deviceId)) return PeerLinkStatus.Pairing;
         if (!_links.TryGetValue(deviceId, out var link)) return PeerLinkStatus.NotPaired;
         if (link.IsAlive) return PeerLinkStatus.Paired;
-        return _settings.Current.Peers.TryGetValue(deviceId, out var s) && (s.Pin != null || (!string.IsNullOrEmpty(s.PairKeyProtected) && SecretStore.Unprotect(s.PairKeyProtected) != null))
+        return _settings.Current.Peers.TryGetValue(deviceId, out var s) && (!string.IsNullOrEmpty(s.PairKeyProtected) && SecretStore.Unprotect(s.PairKeyProtected) != null)
             ? PeerLinkStatus.Unreachable
             : PeerLinkStatus.NotPaired;
     }
@@ -676,33 +662,9 @@ public sealed class MouserHost : IDisposable
         return false;
     }
 
-    /// <summary>Pairs with another Mouser computer using the PIN shown on its Phone Remote page.</summary>
-    public async Task<bool> PairPeerAsync(DiscoveredPeer peer, int pin)
-    {
-        var link = EnsureLink(peer);
-        _pairing.Add(peer.DeviceId);
-        try
-        {
-            if (!await link.PairAsync(pin))
-            {
-                Log.Record(ActivityCategory.Error, $"Pairing failed with {peer.Hostname}");
-                return false;
-            }
-        }
-        finally
-        {
-            _pairing.Remove(peer.DeviceId);
-        }
-
-        await SendHelloAsync(peer, pin);
-        var saved = PeerSettingsFor(peer);
-        saved.Pin = pin;
-        if (saved.Placement == PeerPlacement.None) saved.Placement = PeerPlacement.Right;
-        _settings.Save();
-        SyncPeers();
-        Log.Record(ActivityCategory.Pairing, $"Paired with {peer.Hostname}");
-        return true;
-    }
+    /// <summary>Convenience helper for tests or direct pairing without prompt.</summary>
+    public Task<bool> PairPeerAsync(DiscoveredPeer peer) =>
+        PairPeerV2Async(peer, (_, _) => Task.FromResult(true));
 
     public void SetPeerPlacement(string peerId, PeerPlacement placement)
     {
@@ -861,12 +823,6 @@ public sealed class MouserHost : IDisposable
             }
 
             var link = EnsureLink(peer);
-            if (!link.IsPaired && saved.Pin is int pin && !_pairing.Contains(id)
-                && DateTime.UtcNow - _lastPairAttempt.GetValueOrDefault(id) > RepairInterval)
-            {
-                _lastPairAttempt[id] = DateTime.UtcNow;
-                _ = RepairAsync(link, peer, pin);
-            }
 
             var bounds = new ScreenBounds { X = peer.ScreenX, Y = peer.ScreenY, Width = peer.ScreenWidth, Height = peer.ScreenHeight };
             Kvm?.SetPeer(id, peer.Hostname, link, bounds, link.IsPaired ? saved.Placement : PeerPlacement.None,
@@ -879,29 +835,11 @@ public sealed class MouserHost : IDisposable
         UpdateKvmRunning();
     }
 
-    private async Task RepairAsync(PeerLink link, DiscoveredPeer peer, int pin)
-    {
-        if (await link.PairAsync(pin)) await SendHelloAsync(peer, pin);
-    }
-
-    private async Task SendHelloAsync(DiscoveredPeer peer, int pin)
-    {
-        if (Transfer == null || peer.ControlPort <= 0) return;
-        try
-        {
-            await Transfer.SendHelloAsync(new IPEndPoint(peer.IpAddress, peer.ControlPort), PeerTransferService.DeriveKey(pin, peer.DeviceId));
-        }
-        catch (Exception e) when (e is SocketException or IOException)
-        {
-            // Input pairing still works; clipboard sync back to us waits for the next re-pair.
-        }
-    }
-
     private void UpdateKvmRunning()
     {
         if (Kvm == null) return;
         bool shouldRun = _settings.Current.KvmEnabled && _desktop != null &&
-            _settings.Current.Peers.Any(p => p.Value.Placement != PeerPlacement.None && p.Value.Pin != null);
+            _settings.Current.Peers.Any(p => p.Value.Placement != PeerPlacement.None && !string.IsNullOrEmpty(p.Value.PairKeyProtected));
         try
         {
             bool wasRunning = Kvm.IsRunning;
@@ -942,7 +880,7 @@ public sealed class MouserHost : IDisposable
             // the saved peer's link until the peer authenticates with a successful secure datagram.
             bool isSavedSecurePeer = link.IsSecure ||
                 (_settings.Current.Peers.TryGetValue(peer.DeviceId, out var saved) &&
-                 (!string.IsNullOrEmpty(saved.PairKeyProtected) || saved.Pin != null));
+                 !string.IsNullOrEmpty(saved.PairKeyProtected));
 
             if (isSavedSecurePeer)
             {

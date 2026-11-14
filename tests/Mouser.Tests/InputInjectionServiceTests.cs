@@ -10,11 +10,10 @@ public class InputInjectionServiceTests
     private const int Pin = 482_913;
     private static readonly IPEndPoint Phone = new(IPAddress.Parse("192.168.1.50"), 40000);
 
-    private static (InputInjectionService Service, RecordingSink Sink, PairingGate Gate) Create(Func<DateTime>? clock = null)
+    private static (InputInjectionService Service, RecordingSink Sink) Create(Func<DateTime>? clock = null)
     {
         var sink = new RecordingSink();
-        var gate = new PairingGate(Pin, clock);
-        return (new InputInjectionService(sink, gate, 0, clock) { AllowOlderDevices = true }, sink, gate);
+        return (new InputInjectionService(sink, 0, clock) { AllowOlderDevices = true }, sink);
     }
 
     private static InputMotionPacket P(byte type, ushort seq, short dx = 0, short dy = 0, byte buttons = 0) =>
@@ -23,7 +22,8 @@ public class InputInjectionServiceTests
     [Fact]
     public void UnpairedSender_IsIgnored()
     {
-        var (service, sink, _) = Create();
+        var (service, sink) = Create();
+        service.AllowOlderDevices = false;
         using var _s = service;
 
         service.HandlePacket(P(InputMotionPacket.TypeMotion, 1, 10, 10), Phone);
@@ -34,27 +34,10 @@ public class InputInjectionServiceTests
     }
 
     [Fact]
-    public void WrongPin_DoesNotPair_CorrectPinDoes()
-    {
-        var (service, sink, gate) = Create();
-        using var _s = service;
-
-        service.HandlePacket(InputMotionPacket.CreatePair(1, 111_111), Phone);
-        Assert.False(gate.IsTrusted(Phone.Address));
-
-        service.HandlePacket(InputMotionPacket.CreatePair(2, Pin), Phone);
-        Assert.True(gate.IsTrusted(Phone.Address));
-
-        service.HandlePacket(P(InputMotionPacket.TypeMotion, 3, 15, -25), Phone);
-        Assert.Equal(new[] { "move 15,-25" }, sink.Snapshot());
-    }
-
-    [Fact]
     public void ButtonMask_IsDiffed_SoEveryPressGetsReleased()
     {
-        var (service, sink, gate) = Create();
+        var (service, sink) = Create();
         using var _s = service;
-        gate.TryPair(Phone.Address, Pin);
 
         service.HandlePacket(P(InputMotionPacket.TypeButton, 1, buttons: 0x02), Phone); // right down
         service.HandlePacket(P(InputMotionPacket.TypeButton, 2, buttons: 0x00), Phone); // right up
@@ -71,9 +54,8 @@ public class InputInjectionServiceTests
     [Fact]
     public void KeyAndScrollPackets_AreInjected()
     {
-        var (service, sink, gate) = Create();
+        var (service, sink) = Create();
         using var _s = service;
-        gate.TryPair(Phone.Address, Pin);
 
         service.HandlePacket(P(InputMotionPacket.TypeKey, 1, 0xB3, 1), Phone); // play/pause down
         service.HandlePacket(P(InputMotionPacket.TypeKey, 2, 0xB3, 0), Phone);
@@ -88,9 +70,8 @@ public class InputInjectionServiceTests
     public void CharPackets_AreInjectedAndHeldReleasedOnIdle()
     {
         var now = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
-        var (service, sink, gate) = Create(() => now);
+        var (service, sink) = Create(() => now);
         using var _s = service;
-        gate.TryPair(Phone.Address, Pin);
 
         // TypeChar down
         service.HandlePacket(P(InputMotionPacket.TypeChar, 1, dx: 0x00E9, dy: 1, buttons: 1), Phone);
@@ -111,9 +92,8 @@ public class InputInjectionServiceTests
     [Fact]
     public void DuplicateAndReorderedPackets_AreDropped()
     {
-        var (service, sink, gate) = Create();
+        var (service, sink) = Create();
         using var _s = service;
-        gate.TryPair(Phone.Address, Pin);
 
         service.HandlePacket(P(InputMotionPacket.TypeMotion, 10, 1, 0), Phone);
         service.HandlePacket(P(InputMotionPacket.TypeMotion, 10, 1, 0), Phone); // duplicate
@@ -128,9 +108,8 @@ public class InputInjectionServiceTests
     public void HeldInput_IsReleased_WhenClientGoesSilent()
     {
         var now = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
-        var (service, sink, gate) = Create(() => now);
+        var (service, sink) = Create(() => now);
         using var _s = service;
-        gate.TryPair(Phone.Address, Pin);
 
         service.HandlePacket(P(InputMotionPacket.TypeButton, 1, buttons: 0x01), Phone);
         service.HandlePacket(P(InputMotionPacket.TypeKey, 2, 0x10, 1), Phone); // shift held
@@ -150,16 +129,12 @@ public class InputInjectionServiceTests
     [Fact]
     public void ForgetClient_RevokesTrust()
     {
-        var (service, sink, gate) = Create();
+        var (service, sink) = Create();
         using var _s = service;
-        gate.TryPair(Phone.Address, Pin);
         service.HandlePacket(P(InputMotionPacket.TypeMotion, 1, 1, 1), Phone);
         Assert.Single(service.Clients);
 
         service.ForgetClient(Phone.Address);
-        service.HandlePacket(P(InputMotionPacket.TypeMotion, 2, 1, 1), Phone);
-
-        Assert.Single(sink.Snapshot());
         Assert.Empty(service.Clients);
     }
 
@@ -167,23 +142,15 @@ public class InputInjectionServiceTests
     public async Task EndToEnd_PhoneOverRealUdp_PairsAndControlsHost()
     {
         var sink = new RecordingSink();
-        var gate = new PairingGate(Pin);
-        using var service = new InputInjectionService(sink, gate, listenPort: 0) { AllowOlderDevices = true };
+        using var service = new InputInjectionService(sink, listenPort: 0) { AllowOlderDevices = true };
         service.Start();
         using var phone = new FakePhone(service.BoundPort);
 
-        // Unpaired ping: host answers but reports "not paired".
+        // Ping: host answers Pong
         phone.Send(InputMotionPacket.TypePing, dx: 1234);
         var pong = await phone.ReceiveAsync();
         Assert.Equal(InputMotionPacket.TypePong, pong.PacketType);
-        Assert.Equal(0, pong.ButtonFlags);
         Assert.Equal(1234, pong.DeltaX);
-
-        Assert.False(await phone.PairAsync(123_456));
-        Assert.True(await phone.PairAsync(Pin));
-
-        phone.Send(InputMotionPacket.TypePing);
-        Assert.Equal(1, (await phone.ReceiveAsync()).ButtonFlags);
 
         phone.Send(InputMotionPacket.TypeMotion, 12, -7);
         phone.Send(InputMotionPacket.TypeButton, buttons: 0x01);
@@ -192,12 +159,5 @@ public class InputInjectionServiceTests
         await Wait.UntilAsync(() => sink.Snapshot().Length >= 4);
 
         Assert.Equal(new[] { "move 12,-7", "Left down", "Left up", "scroll 0,120" }, sink.Snapshot());
-
-        // Phone app restarts: its sequence starts over, re-pairing resets ordering on the host.
-        phone.ResetSequence();
-        Assert.True(await phone.PairAsync(Pin));
-        phone.Send(InputMotionPacket.TypeMotion, 1, 1);
-        await Wait.UntilAsync(() => sink.Snapshot().Length >= 5);
-        Assert.Equal("move 1,1", sink.Snapshot()[4]);
     }
 }

@@ -50,14 +50,6 @@ public sealed class FakePhone : IDisposable
         return packet;
     }
 
-    public async Task<bool> PairAsync(int pin)
-    {
-        SendPacket(InputMotionPacket.CreatePair(++_seq, pin));
-        var ack = await ReceiveAsync();
-        Assert.Equal(InputMotionPacket.TypePairAck, ack.PacketType);
-        return ack.ButtonFlags == 1;
-    }
-
     public void Dispose() => _udp.Dispose();
 }
 

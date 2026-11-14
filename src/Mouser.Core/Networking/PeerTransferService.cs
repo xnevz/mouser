@@ -127,12 +127,6 @@ public sealed class PeerTransferService : IDisposable
         _pairingWindowEndUtc = DateTime.MinValue;
     }
 
-    /// <summary>Key shared by a pairing: derived from the PIN of the computer that was paired to, salted with its id.</summary>
-    public static byte[] DeriveKey(int pin, string pinOwnerDeviceId) =>
-        KeyCache.GetOrAdd((pin, pinOwnerDeviceId), k => Rfc2898DeriveBytes.Pbkdf2(
-            k.Item1.ToString("000000"), Encoding.UTF8.GetBytes("mouser:" + k.Item2), KdfIterations,
-            HashAlgorithmName.SHA256, ClipboardCryptoEngine.KeySizeBytes));
-
     public async Task SendClipAsync(IPEndPoint target, byte[] key, ClipboardPayload clip, CancellationToken ct = default)
     {
         using var client = new TcpClient();

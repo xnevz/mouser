@@ -19,8 +19,6 @@ public struct InputMotionPacket : IEquatable<InputMotionPacket>
     //  Key:     DeltaX = Windows virtual-key code, DeltaY = 1 down / 0 up
     //  Ping:    client -> host keep-alive; host answers with Pong echoing SequenceId/DeltaX/DeltaY
     //  Scroll:  DeltaX = horizontal, DeltaY = vertical wheel delta (120 = one notch, positive = right/up)
-    //  Pair:    DeltaX/DeltaY = high/low 16 bits of the 6-digit PIN
-    //  PairAck: host -> client, ButtonFlags = 1 accepted / 0 rejected
     //  Pong:    host -> client, ButtonFlags = 1 if the sender is paired
     //  MoveAbsolute: DeltaX/DeltaY = cursor position in the receiver's own desktop pixels (desktop-to-desktop KVM)
     //  Char:    DeltaX = UTF-16 code unit, DeltaY = 1 down / 0 up, ButtonFlags bit 0 = 1 down / 0 up
@@ -29,8 +27,6 @@ public struct InputMotionPacket : IEquatable<InputMotionPacket>
     public const byte TypeKey = 0x03;
     public const byte TypePing = 0x04;
     public const byte TypeScroll = 0x05;
-    public const byte TypePair = 0x06;
-    public const byte TypePairAck = 0x07;
     public const byte TypePong = 0x08;
     public const byte TypeMoveAbsolute = 0x09;
     public const byte TypeChar = 0x0A;
@@ -55,10 +51,6 @@ public struct InputMotionPacket : IEquatable<InputMotionPacket>
         ButtonFlags = buttons
     };
 
-    public static InputMotionPacket CreatePair(ushort sequenceId, int pin) =>
-        Create(TypePair, sequenceId, unchecked((short)(pin >> 16)), unchecked((short)(pin & 0xFFFF)));
-
-    public int PinValue => ((ushort)DeltaX << 16) | (ushort)DeltaY;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static InputMotionPacket CreateMotion(ushort sequenceId, short dx, short dy, byte buttons = 0, byte modifiers = 0)

@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.sp
 import com.mouser.companion.model.DiscoveredHost
 import com.mouser.companion.model.HostConnectionState
 import com.mouser.companion.model.HostTarget
-import com.mouser.companion.network.parsePin
 import com.mouser.companion.ui.theme.*
 
 const val DEFAULT_HOST_PORT = 58491
@@ -37,8 +36,8 @@ fun ConnectionBar(
     isAppLockEnabled: Boolean = false,
     onToggleAppLock: (Boolean) -> Unit = {},
     onConnect: (HostTarget) -> Unit,
-    onSubmitPin: (Int) -> Unit,
     onDisconnect: () -> Unit,
+    onConfirmCode: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showHosts by remember { mutableStateOf(connectionState is HostConnectionState.Disconnected) }
@@ -50,7 +49,6 @@ fun ConnectionBar(
             connectionState.latencyMs?.let { append(" • $it ms") }
         }
         is HostConnectionState.Connecting -> AmberAccent to "Connecting to ${connectionState.target.hostName}…"
-        is HostConnectionState.NeedsPin -> AmberAccent to "Enter PIN for ${connectionState.target.hostName}"
         is HostConnectionState.ConfirmPairingCode -> AmberAccent to "Confirm code: ${connectionState.code}"
         is HostConnectionState.Unreachable -> RoseAccent to "${connectionState.target.hostName} not responding…"
         is HostConnectionState.Disconnected -> defaultMutedColor to "Not connected"
@@ -86,14 +84,7 @@ fun ConnectionBar(
         ConfirmCodeDialog(
             hostName = connectionState.target.hostName,
             code = connectionState.code,
-            onConfirm = { onSubmitPin(0) },
-            onCancel = onDisconnect
-        )
-    } else if (connectionState is HostConnectionState.NeedsPin) {
-        PinDialog(
-            hostName = connectionState.target.hostName,
-            wrongPin = connectionState.wrongPin,
-            onSubmit = onSubmitPin,
+            onConfirm = onConfirmCode,
             onCancel = onDisconnect
         )
     } else if (showHosts) {
@@ -246,45 +237,6 @@ fun HostSelectionDialog(
                 TextButton(onClick = onDismiss) { Text("Close", color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         },
-        containerColor = MaterialTheme.colorScheme.surface
-    )
-}
-
-@Composable
-fun PinDialog(hostName: String, wrongPin: Boolean, onSubmit: (Int) -> Unit, onCancel: () -> Unit) {
-    var text by remember { mutableStateOf("") }
-    val pin = parsePin(text)
-
-    AlertDialog(
-        onDismissRequest = onCancel,
-        title = { Text("Pair with $hostName", color = MaterialTheme.colorScheme.onSurface) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    "Enter the 6-digit PIN shown in Mouser on the computer (Phone Remote page).",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it.filter { c -> c.isDigit() }.take(6) },
-                    label = { Text("PIN") },
-                    singleLine = true,
-                    isError = wrongPin,
-                    supportingText = if (wrongPin) {
-                        { Text("Wrong PIN. After 5 wrong tries the computer waits a minute.") }
-                    } else null,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = { pin?.let(onSubmit) }, enabled = pin != null, colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)) {
-                Text("Pair")
-            }
-        },
-        dismissButton = { TextButton(onClick = onCancel) { Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant) } },
         containerColor = MaterialTheme.colorScheme.surface
     )
 }

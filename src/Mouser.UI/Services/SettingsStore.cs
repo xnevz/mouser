@@ -14,7 +14,6 @@ public sealed class AppSettings
 {
     public string DeviceId { get; set; } = Guid.NewGuid().ToString("N");
     public string DeviceName { get; set; } = Environment.MachineName;
-    public int PairingPin { get; set; } = PairingGate.GeneratePin();
     public int InputPort { get; set; } = InputInjectionService.DefaultPort;
     public int TcpPort { get; set; } = 58491;
     public bool LocalNetworkOnly { get; set; } = true;
@@ -132,8 +131,6 @@ public sealed class PeerSettings
     public string? AnchorId { get; set; }
     public int OffsetX { get; set; }
     public int OffsetY { get; set; }
-    /// <summary>The peer's PIN, kept so pairing survives restarts (like the phone app does).</summary>
-    public int? Pin { get; set; }
     /// <summary>V2 long-term PairKey (base64 or DPAPI protected) derived from ECDH + SAS confirmation.</summary>
     public string PairKeyProtected { get; set; } = string.Empty;
     public string Mac { get; set; } = string.Empty;
@@ -194,7 +191,6 @@ public sealed class SettingsStore
             settings.BlockedExtensions ??= new() { ".exe", ".msi", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".scr", ".lnk", ".jar", ".com", ".dll" };
             if (settings.MaxIncomingFileMB <= 0) settings.MaxIncomingFileMB = 2048;
             if (string.IsNullOrWhiteSpace(settings.DeviceName)) settings.DeviceName = Environment.MachineName;
-            if (settings.PairingPin is < 0 or > 999_999) settings.PairingPin = PairingGate.GeneratePin();
             if (settings.InputPort is < 1 or > 65535) settings.InputPort = InputInjectionService.DefaultPort;
             if (settings.ClipboardRetentionDays < 1) settings.ClipboardRetentionDays = 30;
             if (!rawJson.Contains(nameof(AppSettings.ClipboardRetentionHours)) || settings.ClipboardRetentionHours == 0)

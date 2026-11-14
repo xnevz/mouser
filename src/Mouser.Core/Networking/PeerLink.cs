@@ -28,7 +28,6 @@ public sealed class PeerLink : IDisposable
     private volatile bool _isSecure;
     private bool _allowOlderDevices = true;
 
-    private TaskCompletionSource<bool>? _pairResult;
     private int _sequence; // only the low 16 bits go on the wire
     private long _lastPongTicks;
     private volatile bool _paired;
@@ -45,9 +44,6 @@ public sealed class PeerLink : IDisposable
         get => _allowOlderDevices;
         set => _allowOlderDevices = value;
     }
-
-    /// <summary>Raised on the receive thread when the peer reports it no longer trusts us (restart or new PIN).</summary>
-    public event Action? PairingLost;
 
     public PeerLink(IPEndPoint target, Func<DateTime>? clock = null, byte[]? pairKey = null, string? ownDeviceId = null, string? peerDeviceId = null, bool allowOlderDevices = true)
     {
@@ -80,16 +76,6 @@ public sealed class PeerLink : IDisposable
             _paired = true;
             Interlocked.Exchange(ref _lastPongTicks, _clock().Ticks);
         }
-    }
-
-    /// <summary>Sends the peer's PIN and waits for its answer. False on a wrong PIN, lockout or timeout.</summary>
-    public async Task<bool> PairAsync(int pin, TimeSpan? timeout = null)
-    {
-        var result = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _pairResult = result;
-        SendPacket(InputMotionPacket.CreatePair(NextSequence(), pin));
-        var finished = await Task.WhenAny(result.Task, Task.Delay(timeout ?? TimeSpan.FromSeconds(2)));
-        return finished == result.Task && result.Task.Result;
     }
 
     public void Send(byte type, short dx = 0, short dy = 0, byte buttons = 0) =>
@@ -197,17 +183,6 @@ public sealed class PeerLink : IDisposable
         {
             case InputMotionPacket.TypePong:
                 Interlocked.Exchange(ref _lastPongTicks, _clock().Ticks);
-                if (packet.ButtonFlags == 0 && _paired && !_isSecure)
-                {
-                    _paired = false;
-                    PairingLost?.Invoke();
-                }
-                break;
-
-            case InputMotionPacket.TypePairAck:
-                _paired = packet.ButtonFlags == 1;
-                if (_paired) Interlocked.Exchange(ref _lastPongTicks, _clock().Ticks);
-                _pairResult?.TrySetResult(_paired);
                 break;
         }
     }

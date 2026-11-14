@@ -47,18 +47,17 @@ public class UdpNetworkingTests
     }
 
     [Fact]
-    public async Task PeerLink_PairsAndTracksLiveness()
+    public void PeerLink_TracksLiveness()
     {
         var now = DateTime.UtcNow;
-        var gate = new PairingGate(424_242);
-        using var host = new InputInjectionService(new RecordingSink(), gate, 0) { AllowOlderDevices = true };
+        using var host = new InputInjectionService(new RecordingSink(), 0) { AllowOlderDevices = true };
         host.Start();
         using var link = new PeerLink(new IPEndPoint(IPAddress.Loopback, host.BoundPort), () => now, allowOlderDevices: true);
 
-        Assert.False(await link.PairAsync(111_111));
+        Assert.False(link.IsPaired);
         Assert.False(link.IsAlive);
 
-        Assert.True(await link.PairAsync(424_242));
+        link.SetSecurity(new byte[32], "local", "peer");
         Assert.True(link.IsPaired);
         Assert.True(link.IsAlive);
 
@@ -66,22 +65,5 @@ public class UdpNetworkingTests
         host.Stop();
         now += PeerLink.PongTimeout + TimeSpan.FromSeconds(1);
         Assert.False(link.IsAlive);
-    }
-
-    [Fact]
-    public async Task PeerLink_ReportsLostPairingWhenHostChangesPin()
-    {
-        var gate = new PairingGate(424_242);
-        using var host = new InputInjectionService(new RecordingSink(), gate, 0) { AllowOlderDevices = true };
-        host.Start();
-        using var link = new PeerLink(new IPEndPoint(IPAddress.Loopback, host.BoundPort), allowOlderDevices: true);
-        var lost = new TaskCompletionSource();
-        link.PairingLost += () => lost.TrySetResult();
-
-        Assert.True(await link.PairAsync(424_242));
-        gate.Pin = 999_999;
-
-        Assert.Same(lost.Task, await Task.WhenAny(lost.Task, Task.Delay(3000)));
-        Assert.False(link.IsPaired);
     }
 }

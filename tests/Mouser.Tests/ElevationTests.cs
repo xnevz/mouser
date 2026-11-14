@@ -123,7 +123,6 @@ public class ElevationTests
 
         // When a real phone connects and sends input
         using var phone = new FakePhone(app.Host.Input!.BoundPort);
-        Assert.True(await phone.PairAsync(app.Settings.Current.PairingPin));
         phone.Send(InputMotionPacket.TypeMotion, 3, 4);
         await Wait.UntilAsync(() => app.Sink.Snapshot().Length == 1);
 

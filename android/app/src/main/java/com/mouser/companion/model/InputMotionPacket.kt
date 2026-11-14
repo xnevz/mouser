@@ -37,9 +37,6 @@ data class InputMotionPacket(
         return buffer.array()
     }
 
-    /** PIN carried by a PAIR packet. */
-    val pinValue: Int get() = ((deltaX.toInt() and 0xFFFF) shl 16) or (deltaY.toInt() and 0xFFFF)
-
     companion object {
         const val EXPECTED_MAGIC = 0x53554F4D // "MOUS" in little-endian
         const val CURRENT_VERSION: Byte = 0x01
@@ -50,8 +47,6 @@ data class InputMotionPacket(
         const val TYPE_KEY: Byte = 0x03
         const val TYPE_PING: Byte = 0x04
         const val TYPE_SCROLL: Byte = 0x05
-        const val TYPE_PAIR: Byte = 0x06
-        const val TYPE_PAIR_ACK: Byte = 0x07
         const val TYPE_PONG: Byte = 0x08
         const val TYPE_MOVE_ABSOLUTE: Byte = 0x09
         const val TYPE_CHAR: Byte = 0x0A
@@ -61,13 +56,6 @@ data class InputMotionPacket(
         const val BUTTON_MIDDLE: Byte = 0x04
 
         const val WHEEL_DELTA = 120
-
-        fun pair(sequenceId: Short, pin: Int) = InputMotionPacket(
-            packetType = TYPE_PAIR,
-            sequenceId = sequenceId,
-            deltaX = (pin shr 16).toShort(),
-            deltaY = (pin and 0xFFFF).toShort()
-        )
 
         fun fromByteArray(data: ByteArray, length: Int = data.size): InputMotionPacket? {
             if (length < PACKET_SIZE) return null

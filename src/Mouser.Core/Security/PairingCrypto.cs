@@ -70,7 +70,8 @@ public sealed class PairingHandshake : IDisposable
         string maxId = string.CompareOrdinal(ownDeviceId, peerDeviceId) < 0 ? peerDeviceId : ownDeviceId;
         byte[] salt = Encoding.UTF8.GetBytes($"{minId}:{maxId}");
 
-        byte[] okm = HKDF.DeriveKey(HashAlgorithmName.SHA256, shared, 64, salt, Encoding.UTF8.GetBytes("mouser-pair-v2"));
+        byte[] prk = HKDF.Extract(HashAlgorithmName.SHA256, shared, salt);
+        byte[] okm = HKDF.Expand(HashAlgorithmName.SHA256, prk, 64, Encoding.UTF8.GetBytes("mouser-pair-v2"));
         byte[] pairKey = okm[..32];
 
         uint codeNumber = BinaryPrimitives.ReadUInt32BigEndian(okm.AsSpan(32, 4)) % 1_000_000;

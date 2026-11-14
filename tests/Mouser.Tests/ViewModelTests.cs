@@ -123,15 +123,13 @@ public class ViewModelTests
     }
 
     [Fact]
-    public async Task PhoneRemote_ShowsPinAndListsAPairedPhone()
+    public async Task PhoneRemote_ListsConnectedPhone()
     {
         await using var app = new AppFixture();
         var remote = app.Main.AndroidRemote;
-        Assert.Equal(PairingGate.FormatPin(app.Settings.Current.PairingPin), remote.PairingPinText);
         Assert.True(remote.IsAccepting);
 
         using var phone = new FakePhone(app.Host.Input!.BoundPort);
-        Assert.True(await phone.PairAsync(app.Settings.Current.PairingPin));
         phone.Send(InputMotionPacket.TypeMotion, 3, 4);
         await Wait.UntilAsync(() => app.Sink.Snapshot().Length == 1);
 
@@ -151,7 +149,6 @@ public class ViewModelTests
     {
         await using var app = new AppFixture();
         using var phone = new FakePhone(app.Host.Input!.BoundPort);
-        Assert.True(await phone.PairAsync(app.Settings.Current.PairingPin));
         phone.Send(InputMotionPacket.TypeMotion, 3, 4);
         await Wait.UntilAsync(() => app.Sink.Snapshot().Length == 1);
 
@@ -180,21 +177,6 @@ public class ViewModelTests
         app.Main.FocusSearchCommand.Execute(null);
         Assert.True(fired);
         Assert.Same(app.Main.ClipboardHistory, app.Main.CurrentPage);
-    }
-
-    [Fact]
-    public async Task PhoneRemote_NewPinUnpairsPhonesAndIsSaved()
-    {
-        await using var app = new AppFixture();
-        int oldPin = app.Settings.Current.PairingPin;
-        app.Host.Pairing.TryPair(IPAddress.Loopback, oldPin);
-
-        app.Main.AndroidRemote.RegeneratePinCommand.Execute(null);
-
-        Assert.NotEqual(oldPin, app.Settings.Current.PairingPin);
-        Assert.False(app.Host.Pairing.IsTrusted(IPAddress.Loopback));
-        var reloaded = new SettingsStore(app.Settings.FilePath);
-        Assert.Equal(app.Settings.Current.PairingPin, reloaded.Current.PairingPin);
     }
 
     [Fact]
@@ -564,7 +546,7 @@ public class ViewModelTests
         {
             var store = new SettingsStore(path);
             Assert.True(File.Exists(path + ".corrupt"));
-            Assert.InRange(store.Current.PairingPin, 0, 999_999);
+            Assert.NotEmpty(store.Current.DeviceId);
         }
         finally
         {
@@ -798,29 +780,10 @@ public class ViewModelTests
     }
 
     [Fact]
-    public async Task DevicesViewModel_PairsComputer()
-    {
-        await using var app = new AppFixture();
-        var vm = new DevicesViewModel(app.Host, app.Settings, app.Main.AndroidRemote);
-        var device = new DeviceDetailViewModel("peer-1", DeviceKind.Computer)
-        {
-            Name = "Laptop-1",
-            PinText = "123456"
-        };
-        vm.Devices.Add(device);
-
-        await vm.PairComputerCommand.ExecuteAsync(device);
-
-        Assert.True(device.IsPaired);
-        Assert.True(app.Settings.Current.Peers.ContainsKey("peer-1"));
-        Assert.Equal(123456, app.Settings.Current.Peers["peer-1"].Pin);
-    }
-
-    [Fact]
     public async Task DevicesViewModel_ForgetsComputer()
     {
         await using var app = new AppFixture();
-        app.Settings.Current.Peers["saved-1"] = new PeerSettings { Name = "Desktop-Saved", Pin = 654321 };
+        app.Settings.Current.Peers["saved-1"] = new PeerSettings { Name = "Desktop-Saved", PairKeyProtected = SecretStore.Protect(new byte[32]) };
         var vm = new DevicesViewModel(app.Host, app.Settings, app.Main.AndroidRemote);
 
         Assert.Single(vm.Devices);
@@ -892,7 +855,6 @@ public class ViewModelTests
             Assert.False(store.Current.AcceptRemoteInput);
 
             // Step 3: Pair a device -> Done
-            Assert.NotEmpty(main.Onboarding.PairingPinText);
             Assert.Equal(0, main.Onboarding.DiscoveredDeviceCount);
             Assert.Equal("No devices discovered yet", main.Onboarding.DiscoveredDevicesText);
 

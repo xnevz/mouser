@@ -24,8 +24,9 @@ public sealed class SessionCrypto : IDisposable
         byte[] sessionSalt = new byte[8];
         BinaryPrimitives.WriteUInt64BigEndian(sessionSalt, sessionId);
 
-        byte[] kA2B = HKDF.DeriveKey(HashAlgorithmName.SHA256, pairKey, 32, sessionSalt, Encoding.UTF8.GetBytes("mouser-a2b"));
-        byte[] kB2A = HKDF.DeriveKey(HashAlgorithmName.SHA256, pairKey, 32, sessionSalt, Encoding.UTF8.GetBytes("mouser-b2a"));
+        byte[] prk = HKDF.Extract(HashAlgorithmName.SHA256, pairKey, sessionSalt);
+        byte[] kA2B = HKDF.Expand(HashAlgorithmName.SHA256, prk, 32, Encoding.UTF8.GetBytes("mouser-a2b"));
+        byte[] kB2A = HKDF.Expand(HashAlgorithmName.SHA256, prk, 32, Encoding.UTF8.GetBytes("mouser-b2a"));
 
         byte[] sendKey = isInitiator ? kA2B : kB2A;
         byte[] recvKey = isInitiator ? kB2A : kA2B;
