@@ -26,6 +26,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     private IClipboardAccess? _clipboard;
     private string? _lastSeenText;
     private string? _lastSeenImageHash;
+    private string? _lastSeenFilesText;
     private bool _isPolling;
 
     [ObservableProperty] private string _searchQuery = string.Empty;
@@ -45,12 +46,16 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
 
     public string? LastSeenImageHash => _lastSeenImageHash;
     public string? LastSeenText => _lastSeenText;
+    public string? LastSeenFilesText => _lastSeenFilesText;
 
     /// <summary>Invoked to select a destination file path when saving an image clip.</summary>
     public Func<Task<string?>>? PickSavePath { get; set; }
 
     /// <summary>Invoked to open an image with the default system viewer.</summary>
     public Action<string>? ImageOpener { get; set; }
+
+    /// <summary>Invoked to send a file to a connected peer.</summary>
+    public Func<string, Task>? SendFileToPeerAction { get; set; }
 
     /// <summary>Shown when the global quick-paste hotkey is available.</summary>
     [ObservableProperty] private string? _quickPasteHint;
@@ -61,7 +66,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     /// <summary>Probes whether the clipboard content is marked to be excluded by its owner (e.g. password manager).</summary>
     public Func<bool> ExcludedByOwnerProbe { get; set; } = ClipboardFormats.IsExcludedByOwner;
 
-    public static string[] TypeOptions { get; } = { "All types", "Text", "Link", "Code", "Image" };
+    public static string[] TypeOptions { get; } = { "All types", "Text", "Link", "Code", "Image", "Files" };
     public static string[] TimeOptions { get; } = { "Any time", "Today", "Yesterday", "Last 7 days", "Last 30 days" };
     public ObservableCollection<string> DeviceOptions { get; } = new() { "All devices" };
     [ObservableProperty] private string _selectedDevice = "All devices";
@@ -92,7 +97,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
         await ReloadAsync();
     }
 
-    /// <summary>Reads the system clipboard and records new text or image. Returns true when a clip was added.</summary>
+    /// <summary>Reads the system clipboard and records new text, image, or files. Returns true when a clip was added.</summary>
     public async Task<bool> PollClipboardAsync()
     {
         if (IsLocked || IsPaused || _clipboard == null || _isPolling) return false;
@@ -100,6 +105,37 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
         try
         {
             var snapshot = await _clipboard.GetSnapshotAsync();
+
+            if (snapshot.Files is { Count: > 0 })
+            {
+                string filesText = string.Join("\n", snapshot.Files);
+                if (filesText == _lastSeenFilesText) return false;
+
+                _lastSeenFilesText = filesText;
+                _lastSeenText = null;
+                _lastSeenImageHash = null;
+
+                var (fileApp, _) = AppProbe?.Invoke() ?? ("", "");
+                if ((ExcludedByOwnerProbe?.Invoke() ?? false) || ClipboardPrivacyFilter.IsIgnoredApp(fileApp, _settings.Current.IgnoredApps))
+                {
+                    StatusMessage = "Skipped a copy from a password manager.";
+                    return false;
+                }
+
+                if (!_settings.Current.ClipboardHistoryEnabled) return false;
+
+                var payload = new ClipboardPayload
+                {
+                    ContentType = ClipboardContentType.FileUri,
+                    TextContent = filesText,
+                    SourceDevice = string.IsNullOrWhiteSpace(_settings.Current.DeviceName) ? Environment.MachineName : _settings.Current.DeviceName,
+                    SourceApp = fileApp ?? string.Empty
+                };
+
+                await _storage.SaveClipAsync(payload);
+                await ReloadAsync();
+                return true;
+            }
 
             if (_settings.Current.SaveImages && snapshot.ImagePng is { Length: > 0 } && string.IsNullOrEmpty(snapshot.Text))
             {
@@ -114,6 +150,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
 
                 _lastSeenImageHash = hash;
                 _lastSeenText = null;
+                _lastSeenFilesText = null;
 
                 var (imgApp, _) = AppProbe?.Invoke() ?? ("", "");
                 if ((ExcludedByOwnerProbe?.Invoke() ?? false) || ClipboardPrivacyFilter.IsIgnoredApp(imgApp, _settings.Current.IgnoredApps))
@@ -150,6 +187,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
             if (text == null || text == _lastSeenText) return false;
             _lastSeenText = text;
             _lastSeenImageHash = null;
+            _lastSeenFilesText = null;
             var (app, _) = AppProbe?.Invoke() ?? ("", "");
             if ((ExcludedByOwnerProbe?.Invoke() ?? false) || ClipboardPrivacyFilter.IsIgnoredApp(app, _settings.Current.IgnoredApps))
             {
@@ -263,8 +301,46 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
             StatusMessage = "Copied to clipboard.";
             return;
         }
+        if (clip.IsFileClip)
+        {
+            await CopyFilesAsync(clip);
+            return;
+        }
         await CopyTextAsync(clip.Content);
         StatusMessage = "Copied to clipboard.";
+    }
+
+    [RelayCommand]
+    private async Task CopyFilesAsync(ClipboardItemViewModel? clip)
+    {
+        var target = clip ?? SelectedClip;
+        if (target == null || !target.IsFileClip || !target.HasFiles) return;
+        if (_clipboard != null)
+        {
+            await _clipboard.SetSnapshotAsync(new ClipboardSnapshot(null, null, null, target.FilePaths));
+        }
+        _lastSeenFilesText = target.Content;
+        _lastSeenText = null;
+        _lastSeenImageHash = null;
+        StatusMessage = target.FilePaths.Count == 1 ? "File copied to clipboard." : $"{target.FilePaths.Count} files copied to clipboard.";
+    }
+
+    [RelayCommand]
+    private async Task SendFileToPeerAsync(ClipboardItemViewModel? clip)
+    {
+        var target = clip ?? SelectedClip;
+        if (target == null || !target.IsFileClip || !target.HasFiles) return;
+        if (SendFileToPeerAction != null)
+        {
+            await SendFileToPeerAction(target.FilePaths[0]);
+            var fileName = Path.GetFileName(target.FilePaths[0]);
+            if (string.IsNullOrEmpty(fileName)) fileName = target.FilePaths[0];
+            StatusMessage = $"Sending {fileName} to peer…";
+        }
+        else
+        {
+            StatusMessage = "No connected computer found to receive files.";
+        }
     }
 
     [RelayCommand]
@@ -357,7 +433,8 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
         if (SelectedLibrary == "Starred") items = items.Where(c => c.IsFavorite);
         if (SelectedFilter != "All types" && SelectedFilter != "All")
         {
-            if (Enum.TryParse<ClipboardContentType>(SelectedFilter, out var kind)) items = items.Where(c => c.ContentType == kind);
+            if (SelectedFilter is "Files" or "File") items = items.Where(c => c.ContentType == ClipboardContentType.FileUri);
+            else if (Enum.TryParse<ClipboardContentType>(SelectedFilter, out var kind)) items = items.Where(c => c.ContentType == kind);
         }
         if (SelectedDevice != "All devices") items = items.Where(c => c.SourceDevice == SelectedDevice);
         var now = DateTime.Now.Date;

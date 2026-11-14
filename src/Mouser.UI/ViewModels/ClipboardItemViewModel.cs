@@ -1,10 +1,17 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Mouser.Core.Clipboard;
 
 namespace Mouser.UI.ViewModels;
+
+public sealed record FileClipItemInfo(string Path, string Name, string SizeOrType, bool Exists, bool IsDirectory)
+{
+    public string Icon => !Exists ? "⚠️" : (IsDirectory ? "📁" : "📄");
+}
 
 public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
 {
@@ -17,7 +24,6 @@ public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
     public string Id { get; }
     public ClipboardContentType Kind { get; }
     public string Content { get; }
-    public string PreviewTitle { get; }
     public string SourceDevice { get; }
     public DateTime Timestamp { get; }
     public string SourceApp => _payload.SourceApp;
@@ -31,6 +37,88 @@ public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
     public long? MediaBytes => _payload.MediaBytes;
     public bool IsImage => _payload.ContentType == ClipboardContentType.Image;
 
+    public bool IsFileClip => _payload.ContentType == ClipboardContentType.FileUri;
+
+    public IReadOnlyList<string> FilePaths =>
+        IsFileClip && !string.IsNullOrWhiteSpace(_payload.TextContent)
+            ? _payload.TextContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            : Array.Empty<string>();
+
+    public bool HasFiles => FilePaths.Count > 0;
+
+    public bool IsDirectoryOnly => HasFiles && FilePaths.All(p => Directory.Exists(p));
+
+    public bool IsTextClip => !IsImage && !IsFileClip;
+
+    public bool IsImagePlaceholder => IsImage && Thumbnail == null;
+
+    public string FileBadgeText => IsDirectoryOnly ? "FOLDER" : "FILE";
+
+    public string BadgeText => IsFileClip ? FileBadgeText : TypeIcon;
+
+    public string FileTitle
+    {
+        get
+        {
+            if (!IsFileClip || !HasFiles) return string.Empty;
+            var first = FilePaths[0];
+            var firstFileName = Path.GetFileName(first);
+            if (string.IsNullOrEmpty(firstFileName))
+            {
+                firstFileName = first;
+            }
+            return FilePaths.Count > 1
+                ? $"{firstFileName} and {FilePaths.Count - 1} more"
+                : firstFileName;
+        }
+    }
+
+    public string DisplayTitle => IsFileClip && HasFiles ? FileTitle : Content;
+
+    public string PreviewTitle => IsFileClip && HasFiles ? FileTitle : ClipboardClassifier.Title(_payload.TextContent);
+
+    public string FileSubtitle => FilePaths.Count == 1 ? (IsDirectoryOnly ? "1 folder" : "1 file") : $"{FilePaths.Count} items";
+
+    public IReadOnlyList<FileClipItemInfo> FileClipItems
+    {
+        get
+        {
+            if (!IsFileClip || !HasFiles) return Array.Empty<FileClipItemInfo>();
+            var items = new List<FileClipItemInfo>(FilePaths.Count);
+            foreach (var path in FilePaths)
+            {
+                try
+                {
+                    if (Directory.Exists(path))
+                    {
+                        var trimmed = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                        var name = Path.GetFileName(trimmed);
+                        if (string.IsNullOrEmpty(name)) name = path;
+                        items.Add(new FileClipItemInfo(path, name, "Folder", true, true));
+                    }
+                    else if (File.Exists(path))
+                    {
+                        var fi = new FileInfo(path);
+                        var name = Path.GetFileName(path);
+                        if (string.IsNullOrEmpty(name)) name = path;
+                        items.Add(new FileClipItemInfo(path, name, FormatFileSize(fi.Length), true, false));
+                    }
+                    else
+                    {
+                        var name = Path.GetFileName(path);
+                        if (string.IsNullOrEmpty(name)) name = path;
+                        items.Add(new FileClipItemInfo(path, name, "Missing", false, false));
+                    }
+                }
+                catch
+                {
+                    items.Add(new FileClipItemInfo(path, path, "Missing", false, false));
+                }
+            }
+            return items;
+        }
+    }
+
     public string DimensionsText => Width.HasValue && Height.HasValue ? $"{Width.Value} × {Height.Value}" : "";
 
     public string FormattedSizeText
@@ -38,12 +126,16 @@ public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
         get
         {
             if (!MediaBytes.HasValue || MediaBytes.Value <= 0) return string.Empty;
-            double bytes = MediaBytes.Value;
-            if (bytes < 1024) return FormattableString.Invariant($"{bytes:0} B");
-            if (bytes < 1024 * 1024) return FormattableString.Invariant($"{bytes / 1024.0:0.#} KB");
-            if (bytes < 1024 * 1024 * 1024) return FormattableString.Invariant($"{bytes / (1024.0 * 1024.0):0.#} MB");
-            return FormattableString.Invariant($"{bytes / (1024.0 * 1024.0 * 1024.0):0.#} GB");
+            return FormatFileSize(MediaBytes.Value);
         }
+    }
+
+    public static string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024) return FormattableString.Invariant($"{bytes:0} B");
+        if (bytes < 1024 * 1024) return FormattableString.Invariant($"{bytes / 1024.0:0.#} KB");
+        if (bytes < 1024 * 1024 * 1024) return FormattableString.Invariant($"{bytes / (1024.0 * 1024.0):0.#} MB");
+        return FormattableString.Invariant($"{bytes / (1024.0 * 1024.0 * 1024.0):0.#} GB");
     }
 
     public string ImageFormatText => !string.IsNullOrEmpty(FormattedSizeText) ? $"PNG · {FormattedSizeText}" : "PNG";
@@ -110,7 +202,6 @@ public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
         Id = payload.Id;
         Kind = payload.ContentType;
         Content = payload.TextContent;
-        PreviewTitle = ClipboardClassifier.Title(payload.TextContent);
         SourceDevice = payload.SourceDevice;
         Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(payload.TimestampUtc).UtcDateTime;
         _isPinned = payload.IsFavorite;
@@ -147,6 +238,7 @@ public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
         ClipboardContentType.Code => "</>",
         ClipboardContentType.Link => "🔗",
         ClipboardContentType.Image => "🖼️",
+        ClipboardContentType.FileUri => IsDirectoryOnly ? "FOLDER" : "FILE",
         _ => "¶"
     };
 
@@ -155,6 +247,7 @@ public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
         ClipboardContentType.Code => "#8b5cf6",
         ClipboardContentType.Link => "#06b6d4",
         ClipboardContentType.Image => "#10b981",
+        ClipboardContentType.FileUri => "#f59e0b",
         _ => "#3b82f6"
     };
 

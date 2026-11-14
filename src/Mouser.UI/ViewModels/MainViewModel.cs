@@ -74,6 +74,14 @@ public partial class MainViewModel : ViewModelBase
         DevicesPage = new DevicesViewModel(host, MonitorLayout, AndroidRemote, settings);
         Activity = new ActivityViewModel(host.Log, host, clipboardAccess);
         ClipboardHistory.ShareCapturedText = host.ShareClipboardAsync;
+        ClipboardHistory.SendFileToPeerAction = async filePath =>
+        {
+            var peer = host.Peers.FirstOrDefault(p => host.CanSendFileTo(p));
+            if (peer != null)
+            {
+                await host.SendFileAsync(peer, filePath);
+            }
+        };
         _currentPage = ClipboardHistory;
         _currentTab = NavigationTab.SmartClipboard;
 

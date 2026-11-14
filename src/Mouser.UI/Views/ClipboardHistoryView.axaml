@@ -86,9 +86,22 @@
                                                         IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNotNull}}">
                                                     <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" Width="36" Height="36" />
                                                 </Border>
+                                                <!-- Text clip badge -->
                                                 <Border Background="{Binding BadgeColor}" CornerRadius="6" Width="36" Height="36"
-                                                        IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNull}}">
+                                                        IsVisible="{Binding IsTextClip}">
                                                     <TextBlock Text="{Binding TypeIcon}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource OnAccent}"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Border>
+                                                <!-- Image placeholder badge -->
+                                                <Border Background="{Binding BadgeColor}" CornerRadius="6" Width="36" Height="36"
+                                                        IsVisible="{Binding IsImagePlaceholder}">
+                                                    <TextBlock Text="{Binding TypeIcon}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource OnAccent}"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Border>
+                                                <!-- File clip badge -->
+                                                <Border Background="{DynamicResource Warning}" CornerRadius="6" Width="36" Height="36"
+                                                        IsVisible="{Binding IsFileClip}">
+                                                    <TextBlock Text="{Binding FileBadgeText}" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource OnAccent}"
                                                                HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                 </Border>
                                             </Panel>
@@ -98,7 +111,7 @@
 
                                             <!-- Text clip subtitle -->
                                             <TextBlock Grid.Column="1" Grid.Row="1" FontSize="11" Foreground="{DynamicResource TextFaint}" Margin="0,3,0,0"
-                                                       IsVisible="{Binding !IsImage}">
+                                                       IsVisible="{Binding IsTextClip}">
                                                 <Run Text="{Binding SourceDevice}" /><Run Text=" • " /><Run Text="{Binding FormattedTime}" /><Run Text=" • " /><Run Text="{Binding LineCount, StringFormat='{}{0} lines'}" />
                                             </TextBlock>
 
@@ -106,6 +119,12 @@
                                             <TextBlock Grid.Column="1" Grid.Row="1" FontSize="11" Foreground="{DynamicResource TextFaint}" Margin="0,3,0,0"
                                                        IsVisible="{Binding IsImage}">
                                                 <Run Text="{Binding SourceDevice}" /><Run Text=" • " /><Run Text="{Binding FormattedTime}" /><Run Text=" • " /><Run Text="{Binding ImageFormatText}" />
+                                            </TextBlock>
+
+                                            <!-- File clip subtitle -->
+                                            <TextBlock Grid.Column="1" Grid.Row="1" FontSize="11" Foreground="{DynamicResource TextFaint}" Margin="0,3,0,0"
+                                                       IsVisible="{Binding IsFileClip}">
+                                                <Run Text="{Binding SourceDevice}" /><Run Text=" • " /><Run Text="{Binding FormattedTime}" /><Run Text=" • " /><Run Text="{Binding FileSubtitle}" />
                                             </TextBlock>
 
                                             <TextBlock Grid.Column="2" Grid.RowSpan="2" Text="{Binding StarIcon}" FontSize="15"
@@ -128,7 +147,7 @@
 
                         <!-- Action buttons row for Text -->
                         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"
-                                    IsVisible="{Binding !SelectedClip.IsImage}">
+                                    IsVisible="{Binding SelectedClip.IsTextClip}">
                             <Button Classes="primary-btn" Content="Copy" Command="{Binding CopyClipCommand}" CommandParameter="{Binding SelectedClip}" />
                             <Button Classes="secondary-btn" Command="{Binding ToggleStarCommand}" CommandParameter="{Binding SelectedClip}"
                                     Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}" />
@@ -146,12 +165,22 @@
                             <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}" />
                         </StackPanel>
 
+                        <!-- Action buttons row for Files -->
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"
+                                    IsVisible="{Binding SelectedClip.IsFileClip}">
+                            <Button Classes="primary-btn" Content="Copy" Command="{Binding CopyFilesCommand}" CommandParameter="{Binding SelectedClip}" />
+                            <Button Classes="secondary-btn" Content="Send to…" Command="{Binding SendFileToPeerCommand}" CommandParameter="{Binding SelectedClip}" />
+                            <Button Classes="secondary-btn" Command="{Binding ToggleStarCommand}" CommandParameter="{Binding SelectedClip}"
+                                    Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}" />
+                            <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}" />
+                        </StackPanel>
+
                         <!-- Preview for Text -->
                         <TextBox Grid.Row="1" Text="{Binding SelectedClip.Content, Mode=OneWay, FallbackValue=''}"
                                  IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
                                  FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12"
                                  VerticalContentAlignment="Top"
-                                 IsVisible="{Binding !SelectedClip.IsImage}" />
+                                 IsVisible="{Binding SelectedClip.IsTextClip}" />
 
                         <!-- Preview for Image -->
                         <Border Grid.Row="1" Background="{DynamicResource BgSunken}" CornerRadius="8" Padding="12"
@@ -173,10 +202,30 @@
                             </Grid>
                         </Border>
 
+                        <!-- Preview for Files -->
+                        <Border Grid.Row="1" Background="{DynamicResource BgSunken}" CornerRadius="8" Padding="12"
+                                IsVisible="{Binding SelectedClip.IsFileClip}">
+                            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding SelectedClip.FileClipItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="vm:FileClipItemInfo">
+                                            <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4">
+                                                <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource TextPrimary}"
+                                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding Path}" />
+                                                <TextBlock Grid.Column="2" Text="{Binding SizeOrType}" FontSize="11" Foreground="{DynamicResource TextMuted}"
+                                                           HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+
                         <!-- Metadata card for Text -->
                         <Border Grid.Row="2" Margin="0,10,0,0" Padding="12,10" Background="{DynamicResource BgRaised}"
                                 BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8"
-                                IsVisible="{Binding !SelectedClip.IsImage}">
+                                IsVisible="{Binding SelectedClip.IsTextClip}">
                             <StackPanel Spacing="4">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <TextBlock Classes="label" Text="METADATA" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
@@ -219,6 +268,22 @@
                                 </TextBlock>
                                 <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextSecondary}">
                                     <Run Text="Device: " /><Run Text="{Binding SelectedClip.SourceDevice}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Metadata card for Files -->
+                        <Border Grid.Row="2" Margin="0,10,0,0" Padding="12,10" Background="{DynamicResource BgRaised}"
+                                BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8"
+                                IsVisible="{Binding SelectedClip.IsFileClip}">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="label" Text="FILE DETAILS" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" />
+                                <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextSecondary}">
+                                    <Run Text="Items: " /><Run Text="{Binding SelectedClip.FilePaths.Count, Mode=OneWay}" /><Run Text=" · Source: " /><Run Text="{Binding SelectedClip.SourceDevice}" /><Run Text=" · Copied: " /><Run Text="{Binding SelectedClip.FormattedTime}" />
+                                </TextBlock>
+                                <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextSecondary}"
+                                           IsVisible="{Binding SelectedClip.HasSourceApp}">
+                                    <Run Text="App: " /><Run Text="{Binding SelectedClip.SourceApp}" />
                                 </TextBlock>
                             </StackPanel>
                         </Border>
