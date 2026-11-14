@@ -109,6 +109,8 @@ public sealed class PeerSettings
     public int OffsetY { get; set; }
     /// <summary>The peer's PIN, kept so pairing survives restarts (like the phone app does).</summary>
     public int? Pin { get; set; }
+    /// <summary>V2 long-term PairKey (base64 or DPAPI protected) derived from ECDH + SAS confirmation.</summary>
+    public string PairKeyProtected { get; set; } = string.Empty;
     public string Mac { get; set; } = string.Empty;
     public bool SendClipboard { get; set; } = true;
     public bool ReceiveClipboard { get; set; } = true;

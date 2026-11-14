@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Mouser.Core.Clipboard;
 using Mouser.Core.Files;
+using Mouser.Core.Security;
 
 namespace Mouser.Core.Networking;
 
@@ -23,17 +24,34 @@ public sealed class PeerTransferService : IDisposable
     private const int KdfIterations = 200_000;
     private static readonly byte[] Magic = "MCH1"u8.ToArray();
 
-    private enum FrameType : byte { Clip = 1, FileStart = 2, FileChunk = 3, FileEnd = 4, Hello = 5, LockRequest = 6, PowerEvent = 7 }
+    public enum FrameType : byte
+    {
+        Clip = 1,
+        FileStart = 2,
+        FileChunk = 3,
+        FileEnd = 4,
+        Hello = 5,
+        LockRequest = 6,
+        PowerEvent = 7,
+        PairRequest = 8,
+        PairResponse = 9,
+        PairRefused = 10,
+        PairConfirm = 11
+    }
 
     private static readonly ConcurrentDictionary<(int, string), byte[]> KeyCache = new();
 
     private readonly string _deviceId;
+    private readonly string _deviceName;
     private readonly Func<string, IPAddress, IReadOnlyList<byte[]>> _receiveKeys;
     private readonly string _downloadDirectory;
     private readonly TcpListener _listener;
     private readonly CancellationTokenSource _cts = new();
+    private readonly PairingRateLimiter _rateLimiter = new();
+    private DateTime _pairingWindowEndUtc = DateTime.MinValue;
 
     public int BoundPort => ((IPEndPoint)_listener.LocalEndpoint).Port;
+    public PairingRateLimiter RateLimiter => _rateLimiter;
 
     /// <summary>A clip arrived from a paired computer (sender device id, clip).</summary>
     public event Action<string, ClipboardPayload>? ClipReceived;
@@ -53,16 +71,42 @@ public sealed class PeerTransferService : IDisposable
     /// <summary>A lock request arrived from a paired computer (sender device id).</summary>
     public event Action<string>? LockRequested;
 
+    /// <summary>An incoming pairing request arrived within the allowed window.</summary>
+    public event Action<PairingRequestArgs>? PairingRequested;
+
+    /// <summary>Pairing handshake completed successfully with mutual confirmation (peerDeviceId, peerDeviceName, pairKey).</summary>
+    public event Action<string, string, byte[]>? PairingCompleted;
+
     /// <param name="receiveKeys">Keys that may have encrypted traffic from this sender (empty = not paired, reject).</param>
     public PeerTransferService(string deviceId, Func<string, IPAddress, IReadOnlyList<byte[]>> receiveKeys,
-        string downloadDirectory, int port = 0)
+        string downloadDirectory, int port = 0, string? deviceName = null)
     {
         _deviceId = deviceId;
+        _deviceName = string.IsNullOrWhiteSpace(deviceName) ? Environment.MachineName : deviceName;
         _receiveKeys = receiveKeys;
         _downloadDirectory = downloadDirectory;
         _listener = new TcpListener(IPAddress.Any, port);
         _listener.Start();
         _ = AcceptLoopAsync();
+    }
+
+    public bool IsPairingWindowOpen(DateTime? now = null) =>
+        (now ?? DateTime.UtcNow) < _pairingWindowEndUtc;
+
+    public TimeSpan PairingWindowRemaining(DateTime? now = null)
+    {
+        var current = now ?? DateTime.UtcNow;
+        return _pairingWindowEndUtc > current ? _pairingWindowEndUtc - current : TimeSpan.Zero;
+    }
+
+    public void AllowNewDevices(TimeSpan window)
+    {
+        _pairingWindowEndUtc = DateTime.UtcNow + window;
+    }
+
+    public void CancelPairingWindow()
+    {
+        _pairingWindowEndUtc = DateTime.MinValue;
     }
 
     /// <summary>Key shared by a pairing: derived from the PIN of the computer that was paired to, salted with its id.</summary>
@@ -126,18 +170,26 @@ public sealed class PeerTransferService : IDisposable
             throw new IOException("The other computer didn't accept the file (wrong pairing or corrupted transfer).");
     }
 
-    private async Task WriteFrameAsync(Stream stream, FrameType type, byte[] key, byte[] plaintext, CancellationToken ct)
+    public static async Task WritePlainFrameAsync(Stream stream, string deviceId, FrameType type, byte[] plaintext, CancellationToken ct)
     {
-        byte[] sender = Encoding.UTF8.GetBytes(_deviceId);
-        byte[] sealedBody = ClipboardCryptoEngine.Encrypt(plaintext, key);
+        byte[] sender = Encoding.UTF8.GetBytes(deviceId);
         var head = new byte[Magic.Length + 1 + 1 + sender.Length + 4];
         Magic.CopyTo(head, 0);
         head[4] = (byte)type;
         head[5] = (byte)sender.Length;
         sender.CopyTo(head, 6);
-        BinaryPrimitives.WriteInt32BigEndian(head.AsSpan(6 + sender.Length), sealedBody.Length);
+        BinaryPrimitives.WriteInt32BigEndian(head.AsSpan(6 + sender.Length), plaintext.Length);
         await stream.WriteAsync(head, ct);
-        await stream.WriteAsync(sealedBody, ct);
+        if (plaintext.Length > 0)
+        {
+            await stream.WriteAsync(plaintext, ct);
+        }
+    }
+
+    private async Task WriteFrameAsync(Stream stream, FrameType type, byte[] key, byte[] plaintext, CancellationToken ct)
+    {
+        byte[] sealedBody = ClipboardCryptoEngine.Encrypt(plaintext, key);
+        await WritePlainFrameAsync(stream, _deviceId, type, sealedBody, ct);
     }
 
     private async Task AcceptLoopAsync()
@@ -198,6 +250,10 @@ public sealed class PeerTransferService : IDisposable
                 {
                     await ReceiveFileAsync(stream, remote, sender, key, DecodeHeader(body), ct);
                 }
+                else if (type == FrameType.PairRequest)
+                {
+                    await HandlePairRequestAsync(stream, remote, body, ct);
+                }
             }
             catch (Exception e) when (e is IOException or SocketException or CryptographicException or
                                           InvalidDataException or EndOfStreamException or OperationCanceledException)
@@ -256,6 +312,11 @@ public sealed class PeerTransferService : IDisposable
         if (!await ReadExactAsync(stream, sealedBody, ct)) throw new EndOfStreamException();
 
         string sender = Encoding.UTF8.GetString(senderBytes);
+        if (type is FrameType.PairRequest or FrameType.PairResponse or FrameType.PairRefused or FrameType.PairConfirm)
+        {
+            return (type, sender, Array.Empty<byte>(), sealedBody);
+        }
+
         var keys = knownKey != null ? new[] { knownKey } : _receiveKeys(sender, remote);
         foreach (var key in keys)
         {
@@ -315,6 +376,166 @@ public sealed class PeerTransferService : IDisposable
             string candidate = Path.Combine(dir, $"{name} ({i}){ext}");
             if (!File.Exists(candidate)) return candidate;
         }
+    }
+
+    private async Task HandlePairRequestAsync(NetworkStream stream, IPAddress remote, byte[] body, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        if (!_rateLimiter.CanAttempt(remote, now, out var refusalReason))
+        {
+            await WritePlainFrameAsync(stream, _deviceId, FrameType.PairRefused,
+                new PairRefusedPayload(refusalReason ?? "RateLimited").Serialize(), ct);
+            return;
+        }
+        _rateLimiter.RecordAttempt(remote, now);
+
+        if (!IsPairingWindowOpen(now))
+        {
+            await WritePlainFrameAsync(stream, _deviceId, FrameType.PairRefused,
+                new PairRefusedPayload("PairingDisabled").Serialize(), ct);
+            return;
+        }
+
+        PairRequestPayload request;
+        try
+        {
+            request = PairRequestPayload.Deserialize(body);
+        }
+        catch
+        {
+            await WritePlainFrameAsync(stream, _deviceId, FrameType.PairRefused,
+                new PairRefusedPayload("InvalidPayload").Serialize(), ct);
+            return;
+        }
+
+        using var handshake = PairingHandshake.Start();
+        PairingResult result;
+        try
+        {
+            result = handshake.Complete(request.PublicKey, _deviceId, request.DeviceId);
+        }
+        catch
+        {
+            await WritePlainFrameAsync(stream, _deviceId, FrameType.PairRefused,
+                new PairRefusedPayload("InvalidPublicKey").Serialize(), ct);
+            return;
+        }
+
+        // Send PairResponse with our public key
+        var response = new PairResponsePayload(_deviceId, _deviceName, handshake.PublicKey);
+        await WritePlainFrameAsync(stream, _deviceId, FrameType.PairResponse, response.Serialize(), ct);
+
+        var localDecisionTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnAllow() => localDecisionTcs.TrySetResult(true);
+        void OnDeny() => localDecisionTcs.TrySetResult(false);
+
+        var args = new PairingRequestArgs(request.DeviceName, request.DeviceId, result.ConfirmationCode, OnAllow, OnDeny);
+        PairingRequested?.Invoke(args);
+
+        // Read remote frame concurrently
+        var remoteConfirmTask = ReadFrameAsync(stream, remote, null, ct);
+
+        // Await local user decision or remote disconnect/refusal
+        var first = await Task.WhenAny(localDecisionTcs.Task, remoteConfirmTask);
+        if (first == remoteConfirmTask)
+        {
+            var rf = await remoteConfirmTask;
+            if (rf == null || rf.Value.Type == FrameType.PairRefused)
+            {
+                return;
+            }
+        }
+
+        bool localDecision;
+        try
+        {
+            localDecision = await localDecisionTcs.Task.WaitAsync(TimeSpan.FromSeconds(60), ct);
+        }
+        catch (TimeoutException)
+        {
+            localDecision = false;
+        }
+
+        if (!localDecision)
+        {
+            _rateLimiter.RecordDenial(remote, DateTime.UtcNow);
+            await WritePlainFrameAsync(stream, _deviceId, FrameType.PairRefused,
+                new PairRefusedPayload("DeniedByUser").Serialize(), ct);
+            return;
+        }
+
+        // Local user clicked Allow: send PairConfirm
+        await WritePlainFrameAsync(stream, _deviceId, FrameType.PairConfirm, Array.Empty<byte>(), ct);
+
+        // Await remote confirmation
+        var finalRemoteFrame = await remoteConfirmTask;
+        if (finalRemoteFrame != null && finalRemoteFrame.Value.Type == FrameType.PairConfirm)
+        {
+            PairingCompleted?.Invoke(request.DeviceId, request.DeviceName, result.PairKey);
+        }
+    }
+
+    public async Task<PairingInitiatorResult> RequestPairingAsync(
+        IPEndPoint target,
+        Func<string, string, Task<bool>> confirmationPrompt,
+        CancellationToken ct = default)
+    {
+        using var client = new TcpClient();
+        await client.ConnectAsync(target, ct);
+        await using var stream = client.GetStream();
+
+        using var handshake = PairingHandshake.Start();
+        var req = new PairRequestPayload(_deviceId, _deviceName, handshake.PublicKey);
+        await WritePlainFrameAsync(stream, _deviceId, FrameType.PairRequest, req.Serialize(), ct);
+
+        var firstFrame = await ReadFrameAsync(stream, target.Address, null, ct);
+        if (firstFrame == null) return PairingInitiatorResult.Failed("ConnectionClosed");
+
+        if (firstFrame.Value.Type == FrameType.PairRefused)
+        {
+            var refused = PairRefusedPayload.Deserialize(firstFrame.Value.Body);
+            return PairingInitiatorResult.Refused(refused.Reason);
+        }
+
+        if (firstFrame.Value.Type != FrameType.PairResponse)
+        {
+            return PairingInitiatorResult.Failed("UnexpectedFrame");
+        }
+
+        var resp = PairResponsePayload.Deserialize(firstFrame.Value.Body);
+        PairingResult result = handshake.Complete(resp.PublicKey, _deviceId, resp.DeviceId);
+
+        // Read remote frame concurrently
+        var remoteConfirmTask = ReadFrameAsync(stream, target.Address, null, ct);
+
+        // Prompt local user
+        bool confirmed = await confirmationPrompt(resp.DeviceName, result.ConfirmationCode);
+        if (!confirmed)
+        {
+            await WritePlainFrameAsync(stream, _deviceId, FrameType.PairRefused,
+                new PairRefusedPayload("CancelledByUser").Serialize(), ct);
+            return PairingInitiatorResult.Refused("CancelledByUser");
+        }
+
+        // Local user confirmed: send PairConfirm
+        await WritePlainFrameAsync(stream, _deviceId, FrameType.PairConfirm, Array.Empty<byte>(), ct);
+
+        var finalFrame = await remoteConfirmTask;
+        if (finalFrame == null)
+        {
+            return PairingInitiatorResult.Failed("ConnectionClosed");
+        }
+        if (finalFrame.Value.Type == FrameType.PairRefused)
+        {
+            var refused = PairRefusedPayload.Deserialize(finalFrame.Value.Body);
+            return PairingInitiatorResult.Refused(refused.Reason);
+        }
+        if (finalFrame.Value.Type == FrameType.PairConfirm)
+        {
+            return PairingInitiatorResult.Success(resp.DeviceId, resp.DeviceName, result.PairKey, result.ConfirmationCode);
+        }
+
+        return PairingInitiatorResult.Failed("UnexpectedConfirmationFrame");
     }
 
     public void Dispose()

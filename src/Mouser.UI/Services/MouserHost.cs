@@ -53,6 +53,12 @@ public sealed class MouserHost : IDisposable
     /// <summary>A lock request arrived from a paired computer (sender device id). Background thread.</summary>
     public event Action<string>? LockRequestedByPeer;
 
+    /// <summary>An incoming pairing request arrived (peerDeviceName, confirmationCode, allow, deny).</summary>
+    public event Action<string, string, Action, Action>? PairingRequested;
+
+    /// <summary>Raised when the pairing window is opened, closed, or canceled.</summary>
+    public event Action? PairingWindowChanged;
+
     public static string DefaultDownloadDirectory { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "Mouser");
 
@@ -69,6 +75,21 @@ public sealed class MouserHost : IDisposable
     public DateTime? LastPowerEventUtc => _lastPowerEventUtc;
 
     public string DeviceName => _settings.Current.DeviceName;
+    public bool IsPairingWindowOpen => Transfer?.IsPairingWindowOpen() ?? false;
+    public TimeSpan PairingWindowRemaining => Transfer?.PairingWindowRemaining() ?? TimeSpan.Zero;
+
+    public void AllowNewDevices(TimeSpan? window = null)
+    {
+        var duration = window ?? TimeSpan.FromMinutes(2);
+        Transfer?.AllowNewDevices(duration);
+        PairingWindowChanged?.Invoke();
+    }
+
+    public void CancelPairingWindow()
+    {
+        Transfer?.CancelPairingWindow();
+        PairingWindowChanged?.Invoke();
+    }
 
     public IReadOnlyCollection<DiscoveredPeer> Peers =>
         Discovery?.ActivePeers ?? (IReadOnlyCollection<DiscoveredPeer>)Array.Empty<DiscoveredPeer>();
@@ -212,7 +233,7 @@ public sealed class MouserHost : IDisposable
     {
         try
         {
-            var transfer = new PeerTransferService(_settings.Current.DeviceId, ReceiveKeys, _downloadDirectory, port);
+            var transfer = new PeerTransferService(_settings.Current.DeviceId, ReceiveKeys, _downloadDirectory, port, _settings.Current.DeviceName);
             transfer.ClipReceived += (sender, clip) =>
             {
                 if (_settings.Current.ClipboardSyncEnabled)
@@ -272,6 +293,23 @@ public sealed class MouserHost : IDisposable
                     }
                 }
             };
+            transfer.PairingRequested += args =>
+            {
+                PairingRequested?.Invoke(args.DeviceName, args.ConfirmationCode, args.Allow, args.Deny);
+            };
+            transfer.PairingCompleted += (senderId, peerName, pairKey) =>
+            {
+                if (!_settings.Current.Peers.TryGetValue(senderId, out var saved))
+                {
+                    saved = new PeerSettings { Name = peerName };
+                    _settings.Current.Peers[senderId] = saved;
+                }
+                saved.PairKeyProtected = Convert.ToBase64String(pairKey);
+                if (saved.Placement == PeerPlacement.None) saved.Placement = PeerPlacement.Right;
+                _settings.Save();
+                SyncPeers();
+                Log.Record(ActivityCategory.Pairing, $"Paired with {peerName} (v2 code)");
+            };
             return transfer;
         }
         catch (SocketException) when (port != 0)
@@ -285,16 +323,30 @@ public sealed class MouserHost : IDisposable
     /// <summary>Keys a paired computer may use: ours if it paired with us, its own if we paired with it.</summary>
     private IReadOnlyList<byte[]> ReceiveKeys(string senderId, IPAddress senderAddress)
     {
-        var keys = new List<byte[]>(2);
+        var keys = new List<byte[]>(3);
         if (Pairing.IsTrusted(senderAddress) || _pairedWithUs.ContainsKey(senderId)) keys.Add(OwnKey);
-        if (_settings.Current.Peers.TryGetValue(senderId, out var s) && s.Pin is int pin) keys.Add(PeerTransferService.DeriveKey(pin, senderId));
+        if (_settings.Current.Peers.TryGetValue(senderId, out var s))
+        {
+            if (s.Pin is int pin) keys.Add(PeerTransferService.DeriveKey(pin, senderId));
+            if (!string.IsNullOrEmpty(s.PairKeyProtected))
+            {
+                try { keys.Add(Convert.FromBase64String(s.PairKeyProtected)); } catch { }
+            }
+        }
         return keys;
     }
 
     private byte[]? SendKey(DiscoveredPeer peer)
     {
-        if (_settings.Current.Peers.TryGetValue(peer.DeviceId, out var s) && s.Pin is int pin)
-            return PeerTransferService.DeriveKey(pin, peer.DeviceId);
+        if (_settings.Current.Peers.TryGetValue(peer.DeviceId, out var s))
+        {
+            if (!string.IsNullOrEmpty(s.PairKeyProtected))
+            {
+                try { return Convert.FromBase64String(s.PairKeyProtected); } catch { }
+            }
+            if (s.Pin is int pin)
+                return PeerTransferService.DeriveKey(pin, peer.DeviceId);
+        }
         return _pairedWithUs.ContainsKey(peer.DeviceId) || Pairing.IsTrusted(peer.IpAddress) ? OwnKey : null;
     }
 
@@ -519,9 +571,32 @@ public sealed class MouserHost : IDisposable
         if (_pairing.Contains(deviceId)) return PeerLinkStatus.Pairing;
         if (!_links.TryGetValue(deviceId, out var link)) return PeerLinkStatus.NotPaired;
         if (link.IsAlive) return PeerLinkStatus.Paired;
-        return _settings.Current.Peers.TryGetValue(deviceId, out var s) && s.Pin != null
+        return _settings.Current.Peers.TryGetValue(deviceId, out var s) && (s.Pin != null || !string.IsNullOrEmpty(s.PairKeyProtected))
             ? PeerLinkStatus.Unreachable
             : PeerLinkStatus.NotPaired;
+    }
+
+    /// <summary>Pairs with another Mouser computer using TCP ECDH + SAS confirmation code.</summary>
+    public async Task<bool> PairPeerV2Async(DiscoveredPeer peer, Func<string, string, Task<bool>> confirmationPrompt)
+    {
+        if (Transfer == null || peer.ControlPort <= 0) return false;
+        var target = new IPEndPoint(peer.IpAddress, peer.ControlPort);
+        var result = await Transfer.RequestPairingAsync(target, confirmationPrompt);
+        if (result.IsSuccess && result.PairKey != null)
+        {
+            var saved = PeerSettingsFor(peer);
+            saved.PairKeyProtected = Convert.ToBase64String(result.PairKey);
+            if (saved.Placement == PeerPlacement.None) saved.Placement = PeerPlacement.Right;
+            _settings.Save();
+            SyncPeers();
+            Log.Record(ActivityCategory.Pairing, $"Paired with {peer.Hostname} (v2 code)");
+            return true;
+        }
+        if (result.IsRefused)
+        {
+            Log.Record(ActivityCategory.Pairing, $"Pairing refused by {peer.Hostname}: {result.Reason}");
+        }
+        return false;
     }
 
     /// <summary>Pairs with another Mouser computer using the PIN shown on its Phone Remote page.</summary>

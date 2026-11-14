@@ -35,6 +35,19 @@ public partial class DevicesViewModel : ViewModelBase
     [ObservableProperty] private DeviceDetailViewModel? _selectedDevice;
     [ObservableProperty] private bool _foregroundIsElevated;
 
+    [ObservableProperty] private bool _isPairingWindowOpen;
+    [ObservableProperty] private string _pairingWindowRemainingText = string.Empty;
+
+    [ObservableProperty] private bool _isPairingPromptVisible;
+    [ObservableProperty] private string _pairingPromptTitle = string.Empty;
+    [ObservableProperty] private string _pairingPromptSubtitle = string.Empty;
+    [ObservableProperty] private string _pairingPromptCode = string.Empty;
+    [ObservableProperty] private string _confirmButtonText = "Allow";
+    [ObservableProperty] private string _denyButtonText = "Deny";
+
+    private Action? _activeConfirmAction;
+    private Action? _activeDenyAction;
+
     [ObservableProperty] private string _manualAddress = string.Empty;
     [ObservableProperty] private string? _manualError;
 
@@ -61,6 +74,10 @@ public partial class DevicesViewModel : ViewModelBase
         Layout = layout;
         Remote = remote;
         _settings = settings;
+
+        _host.PairingRequested += OnHostPairingRequested;
+        _host.PairingWindowChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(UpdatePairingWindowState);
+
         Refresh();
     }
 
@@ -72,6 +89,7 @@ public partial class DevicesViewModel : ViewModelBase
     public void Refresh()
     {
         OnPropertyChanged(nameof(ThisDeviceName));
+        UpdatePairingWindowState();
 
         var currentIds = new HashSet<string>();
 
@@ -80,7 +98,8 @@ public partial class DevicesViewModel : ViewModelBase
         {
             currentIds.Add(peer.DeviceId);
             var existing = Devices.FirstOrDefault(d => d.Id == peer.DeviceId && d.Kind == DeviceKind.Computer);
-            bool isPaired = _settings.Current.Peers.TryGetValue(peer.DeviceId, out var saved) && saved.Pin != null;
+            bool isPaired = _settings.Current.Peers.TryGetValue(peer.DeviceId, out var saved)
+                && (saved.Pin != null || !string.IsNullOrEmpty(saved.PairKeyProtected));
             var placement = saved?.Placement ?? PeerPlacement.None;
             if (existing == null)
             {
@@ -131,7 +150,7 @@ public partial class DevicesViewModel : ViewModelBase
                     {
                         Name = name,
                         IsOnline = false,
-                        IsPaired = peerSettings.Pin != null,
+                        IsPaired = peerSettings.Pin != null || !string.IsNullOrEmpty(peerSettings.PairKeyProtected),
                         Placement = peerSettings.Placement,
                         StatusText = "Offline",
                         SendClipboard = peerSettings.SendClipboard,
@@ -147,7 +166,7 @@ public partial class DevicesViewModel : ViewModelBase
                 {
                     existing.Name = name;
                     existing.IsOnline = false;
-                    existing.IsPaired = peerSettings.Pin != null;
+                    existing.IsPaired = peerSettings.Pin != null || !string.IsNullOrEmpty(peerSettings.PairKeyProtected);
                     existing.Placement = peerSettings.Placement;
                     existing.StatusText = "Offline";
                     existing.SendClipboard = peerSettings.SendClipboard;
@@ -257,6 +276,109 @@ public partial class DevicesViewModel : ViewModelBase
             _settings.Save();
             _host.SyncPeers();
         }
+    }
+
+    [RelayCommand]
+    public void AllowNewDevices()
+    {
+        _host.AllowNewDevices(TimeSpan.FromMinutes(2));
+        UpdatePairingWindowState();
+    }
+
+    [RelayCommand]
+    public void CancelPairingWindow()
+    {
+        _host.CancelPairingWindow();
+        UpdatePairingWindowState();
+    }
+
+    [RelayCommand]
+    public void ConfirmPairing()
+    {
+        var action = _activeConfirmAction;
+        DismissPairingPrompt();
+        action?.Invoke();
+    }
+
+    [RelayCommand]
+    public void DenyPairing()
+    {
+        var action = _activeDenyAction;
+        DismissPairingPrompt();
+        action?.Invoke();
+    }
+
+    public void DismissPairingPrompt()
+    {
+        IsPairingPromptVisible = false;
+        _activeConfirmAction = null;
+        _activeDenyAction = null;
+    }
+
+    public void UpdatePairingWindowState()
+    {
+        IsPairingWindowOpen = _host.IsPairingWindowOpen;
+        if (IsPairingWindowOpen)
+        {
+            var rem = _host.PairingWindowRemaining;
+            PairingWindowRemainingText = $"Waiting for a new device… {rem.Minutes}:{rem.Seconds:D2}";
+        }
+        else
+        {
+            PairingWindowRemainingText = string.Empty;
+        }
+    }
+
+    private void OnHostPairingRequested(string deviceName, string code, Action allow, Action deny)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            PairingPromptTitle = $"{deviceName} wants to connect";
+            PairingPromptSubtitle = $"Compare this code with the one on {deviceName}:";
+            PairingPromptCode = code;
+            ConfirmButtonText = "Allow";
+            DenyButtonText = "Deny";
+            _activeConfirmAction = allow;
+            _activeDenyAction = deny;
+            IsPairingPromptVisible = true;
+        });
+    }
+
+    [RelayCommand]
+    public async Task PairComputerV2Async(object? param)
+    {
+        string? peerId = param switch
+        {
+            DeviceDetailViewModel d => d.Id,
+            PeerViewModel p => p.Id,
+            string s => s,
+            _ => null
+        };
+        if (peerId == null) return;
+        var peer = _host.Peers.FirstOrDefault(p => p.DeviceId == peerId);
+        if (peer == null) return;
+
+        var promptTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Task<bool> ShowPromptAsync(string peerName, string code)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                PairingPromptTitle = $"Is the code on the other screen:";
+                PairingPromptSubtitle = $"Compare with the screen of {peerName}";
+                PairingPromptCode = code;
+                ConfirmButtonText = "Codes match";
+                DenyButtonText = "Cancel";
+                _activeConfirmAction = () => promptTcs.TrySetResult(true);
+                _activeDenyAction = () => promptTcs.TrySetResult(false);
+                IsPairingPromptVisible = true;
+            });
+            return promptTcs.Task;
+        }
+
+        await _host.PairPeerV2Async(peer, ShowPromptAsync);
+        DismissPairingPrompt();
+        Refresh();
     }
 
     [RelayCommand]

@@ -9,12 +9,30 @@
              x:DataType="vm:DevicesViewModel">
 
     <Grid ColumnDefinitions="260,*" RowDefinitions="Auto,*,Auto" Margin="24">
-        <!-- Elevated window warning banner -->
-        <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Classes="banner-warning" Margin="0,0,0,16"
-                IsVisible="{Binding ForegroundIsElevated}">
-            <TextBlock Foreground="{DynamicResource BannerWarningText}" FontSize="12" TextWrapping="Wrap"
-                       Text="The window in front runs as administrator. Mouser cannot type or click in it until you run Mouser as administrator." />
-        </Border>
+        <!-- Top Banners -->
+        <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Spacing="8" Margin="0,0,0,16">
+            <!-- Elevated window warning banner -->
+            <Border Classes="banner-warning" IsVisible="{Binding ForegroundIsElevated}">
+                <TextBlock Foreground="{DynamicResource BannerWarningText}" FontSize="12" TextWrapping="Wrap"
+                           Text="The window in front runs as administrator. Mouser cannot type or click in it until you run Mouser as administrator." />
+            </Border>
+
+            <!-- Pairing countdown banner -->
+            <Border Background="{DynamicResource BannerInfoBg}" BorderBrush="{DynamicResource BannerInfoBorder}"
+                    BorderThickness="1" CornerRadius="6" Padding="12,8"
+                    IsVisible="{Binding IsPairingWindowOpen}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text="📡" FontSize="14" VerticalAlignment="Center" />
+                        <TextBlock Foreground="{DynamicResource BannerInfoText}" FontSize="13" VerticalAlignment="Center"
+                                   Text="{Binding PairingWindowRemainingText}" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="secondary-btn" Content="Cancel"
+                            Command="{Binding CancelPairingWindowCommand}" Padding="10,4" FontSize="12"
+                            ToolTip.Tip="Cancel device pairing window" />
+                </Grid>
+            </Border>
+        </StackPanel>
 
         <!-- Left Side: Devices navigation list -->
         <ScrollViewer Grid.Row="1" Grid.Column="0" Margin="0,0,16,0">
@@ -30,9 +48,13 @@
                 </Button>
 
                 <!-- Computers section header -->
-                <Grid ColumnDefinitions="*,Auto" Margin="12,12,0,4">
+                <Grid ColumnDefinitions="*,Auto,Auto" Margin="12,12,0,4">
                     <TextBlock Classes="label" Text="COMPUTERS" VerticalAlignment="Center" />
-                    <Button Classes="secondary-btn" Content="Lock all"
+                    <Button Classes="primary-btn" Content="Add computer"
+                            Command="{Binding AllowNewDevicesCommand}"
+                            ToolTip.Tip="Allow a new computer to connect (2 min window)"
+                            Padding="8,2" FontSize="11" Margin="0,0,4,0" />
+                    <Button Grid.Column="2" Classes="secondary-btn" Content="Lock all"
                             Command="{Binding LockAllDevicesCommand}"
                             ToolTip.Tip="Send lock request to all paired computers"
                             Padding="8,2" FontSize="11" Margin="0,0,4,0" />
@@ -186,11 +208,15 @@
 
                                     <!-- If not paired -->
                                     <StackPanel Spacing="12" IsVisible="{Binding NeedsPin}">
-                                        <TextBlock Classes="hint" Text="Enter the PIN shown on that computer to pair with it." />
+                                        <TextBlock Classes="hint" Text="Pair with confirmation code or enter PIN." />
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <TextBox Text="{Binding PinText}" PlaceholderText="Enter PIN" Width="140" MaxLength="7" />
-                                            <Button Classes="primary-btn" Content="Pair" Command="{Binding PairCommand}"
-                                                    ToolTip.Tip="Pair with this computer" />
+                                            <Button Classes="primary-btn" Content="Connect &amp; Pair"
+                                                    Command="{Binding $parent[UserControl].((vm:DevicesViewModel)DataContext).PairComputerV2Command}"
+                                                    CommandParameter="{Binding}"
+                                                    ToolTip.Tip="Connect and verify confirmation code" />
+                                            <TextBox Text="{Binding PinText}" PlaceholderText="Or PIN" Width="90" MaxLength="7" />
+                                            <Button Classes="secondary-btn" Content="Pair PIN" Command="{Binding PairCommand}"
+                                                    ToolTip.Tip="Pair with older PIN" />
                                         </StackPanel>
                                     </StackPanel>
 
@@ -416,5 +442,35 @@
                   Header="Screen layout" IsExpanded="False" Margin="0,12,0,0">
             <views:MonitorLayoutView DataContext="{Binding Layout}" />
         </Expander>
+
+        <!-- Modal pairing card overlay (SAS verification) -->
+        <Grid Grid.Row="0" Grid.Column="0" Grid.RowSpan="3" Grid.ColumnSpan="2"
+              IsVisible="{Binding IsPairingPromptVisible}">
+            <Border Background="{DynamicResource BgApp}" Opacity="0.8" />
+            <Border Classes="glass-card" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Padding="28" Width="400" CornerRadius="12"
+                    BorderBrush="{DynamicResource BorderStrong}" BorderThickness="1"
+                    Background="{DynamicResource BgSurface}">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="{Binding PairingPromptTitle}" FontWeight="SemiBold" FontSize="18"
+                               Foreground="{DynamicResource TextPrimary}" TextAlignment="Center" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding PairingPromptSubtitle}" Classes="hint"
+                               Foreground="{DynamicResource TextSecondary}" TextAlignment="Center" TextWrapping="Wrap" />
+                    <Border Background="{DynamicResource BgSunken}" CornerRadius="8" Padding="20,12"
+                            BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
+                            HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding PairingPromptCode}" FontFamily="{DynamicResource CodeFontFamily}"
+                                   FontSize="32" FontWeight="Bold" Foreground="{DynamicResource Accent}"
+                                   LetterSpacing="4" TextAlignment="Center" />
+                    </Border>
+                    <Grid ColumnDefinitions="*,12,*" Margin="0,8,0,0">
+                        <Button Grid.Column="0" Classes="primary-btn" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                Content="{Binding ConfirmButtonText}" Command="{Binding ConfirmPairingCommand}" />
+                        <Button Grid.Column="2" Classes="secondary-btn" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                Content="{Binding DenyButtonText}" Command="{Binding DenyPairingCommand}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>
