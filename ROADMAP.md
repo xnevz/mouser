@@ -158,7 +158,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | E9c | Use per-monitor crossing in the KVM | E9b | L |
 | ✅ | E9d | Layout view draws every monitor | E9c | S |
 | ✅ | E10 | Draggable layout with offsets | E9d | L |
-| ⬜ | E11 | Several computers per side and chains (design review first) | E10 | XL |
+| ✅ | E11 | Several computers per side and chains (design review first) | E10 | XL |
 | ✅ | E12 | Layout-aware typing (Unicode path) | – | L |
 | ✅ | E13 | Lock/sleep/display-off sync | C4, B9 | M |
 | ✅ | E14 | Wake-on-LAN | B9 | M |
@@ -329,3 +329,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - C8: Completed Windows Hello spike; verified UserConsentVerifier requires net8.0-windows10.0.19041.0 on Mouser.UI/Desktop which breaks cross-platform Linux packaging (NETSDK1139); per card instructions ('If the TFM change breaks the build or Linux/mac targeting, STOP and move this item to the backlog'), parked in backlog (🅿️).
 - H5: Authored docs/windows-service.md comprehensive design specification covering LocalSystem service architecture, WTS session monitoring, winlogon desktop injection (lpDesktop = "winsta0\\winlogon"), secure named pipe IPC with interactive user ACL, failure mitigations, Inno Setup service registration, and VM testing plan.
 - E17: Implemented DragDropPolicy pure logic (checking left-button state, Explorer shell window classes, and 500 MB budget cap); authored docs/cross-screen-drag-drop.md answering spike questions (clipboard snapshot/restore, Explorer target folder paste semantics, 500 MB budget); added 13 unit tests across DragDropPolicyTests (all pass in 26 ms).
+- E11: Implemented VirtualPlane for multi-computer chains (A-B-C) with non-overlapping bounding validation, gap edge-stopping, and direct peer-to-peer active link switching; added AnchorId to PeerSettings, DeviceDetailViewModel, and MonitorLayoutViewModel; wired SwitchPeerLocked and ReleasePeerInput in KvmController; added 4 unit tests in VirtualPlaneTests and all 47 KvmControllerTests green (3 s).
