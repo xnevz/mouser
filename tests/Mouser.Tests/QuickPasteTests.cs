@@ -12,7 +12,9 @@ public class QuickPasteTests
         var history = app.Main.ClipboardHistory;
         await history.InitializeAsync();
         await history.CaptureAsync("ssh deploy@build-server");
+        await Task.Delay(15);
         await history.CaptureAsync("Meeting moved to Thursday 3pm");
+        await Task.Delay(15);
         await history.CaptureAsync("https://example.com/invoice/42");
         var paste = new QuickPasteViewModel(app.Storage);
         await paste.LoadAsync();
