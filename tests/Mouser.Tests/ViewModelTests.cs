@@ -14,8 +14,24 @@ namespace Mouser.Tests;
 public sealed class FakeClipboard : IClipboardAccess
 {
     public string? Text { get; set; }
+    public string? Html { get; set; }
+    public byte[]? ImagePng { get; set; }
+    public IReadOnlyList<string>? Files { get; set; }
+
     public Task<string?> GetTextAsync() => Task.FromResult(Text);
     public Task SetTextAsync(string text) { Text = text; return Task.CompletedTask; }
+
+    public Task<ClipboardSnapshot> GetSnapshotAsync() =>
+        Task.FromResult(new ClipboardSnapshot(Text, Html, ImagePng, Files));
+
+    public Task SetSnapshotAsync(ClipboardSnapshot s)
+    {
+        Text = s.Text;
+        Html = s.Html;
+        ImagePng = s.ImagePng;
+        Files = s.Files;
+        return Task.CompletedTask;
+    }
 }
 
 /// <summary>A full app instance on temp storage with networking on random ports.</summary>
