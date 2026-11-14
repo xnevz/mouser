@@ -30,6 +30,8 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     private bool _isPolling;
 
     [ObservableProperty] private string _searchQuery = string.Empty;
+    [ObservableProperty] private string? _selectedTag;
+    [ObservableProperty] private string _newTagName = string.Empty;
     [ObservableProperty] private bool _isPaused;
     [ObservableProperty] private string _selectedLibrary = "All";   // All, Starred
     [ObservableProperty] private string _selectedFilter = "All types";    // All types, Text, Link, Code
@@ -276,8 +278,47 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     partial void OnSelectedFilterChanged(string value) => _ = ReloadAsync();
     partial void OnSelectedLibraryChanged(string value) => _ = ReloadAsync();
 
+    public event Func<Task>? TagsChanged;
+
     [RelayCommand] private void SetLibrary(string library) => SelectedLibrary = library;
     [RelayCommand] private void SetFilter(string filter) => SelectedFilter = filter;
+
+    [RelayCommand]
+    public void SetTag(string? tag)
+    {
+        SelectedTag = tag;
+        _ = ReloadAsync();
+    }
+
+    [RelayCommand]
+    public void ClearTag()
+    {
+        SelectedTag = null;
+        _ = ReloadAsync();
+    }
+
+    [RelayCommand]
+    public async Task AddTagAsync(string? tagName)
+    {
+        var name = !string.IsNullOrWhiteSpace(tagName) ? tagName : NewTagName;
+        if (SelectedClip == null || string.IsNullOrWhiteSpace(name)) return;
+        NewTagName = string.Empty;
+        await _storage.AddTagAsync(SelectedClip.Id, name);
+        var updated = await _storage.GetClipTagsAsync(SelectedClip.Id);
+        SelectedClip.SetTags(updated.Select(t => new TagViewModel(t)));
+        if (TagsChanged != null) await TagsChanged.Invoke();
+    }
+
+    [RelayCommand]
+    public async Task RemoveTagAsync(TagViewModel? tag)
+    {
+        if (SelectedClip == null || tag == null || tag.IsSystem) return;
+        await _storage.RemoveTagAsync(SelectedClip.Id, tag.Id);
+        var updated = await _storage.GetClipTagsAsync(SelectedClip.Id);
+        SelectedClip.SetTags(updated.Select(t => new TagViewModel(t)));
+        if (TagsChanged != null) await TagsChanged.Invoke();
+    }
+
     [RelayCommand] private void ToggleImageZoom() => IsImageFitToWindow = !IsImageFitToWindow;
     [RelayCommand] private void SetImageFit() => IsImageFitToWindow = true;
     [RelayCommand] private void SetImageActualSize() => IsImageFitToWindow = false;
@@ -423,9 +464,44 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     {
         (AllCount, StarredCount) = await _storage.GetCountsAsync();
 
-        var results = string.IsNullOrWhiteSpace(SearchQuery)
-            ? await _storage.GetRecentClipsAsync(PageSize, favoritesOnly: SelectedLibrary == "Starred")
-            : await _storage.SearchClipsAsync(SearchQuery, PageSize);
+        string? tagFromSearch = null;
+        string cleanedSearch = SearchQuery?.Trim() ?? string.Empty;
+
+        if (!string.IsNullOrEmpty(cleanedSearch))
+        {
+            var tokens = cleanedSearch.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var hashToken = tokens.FirstOrDefault(t => t.StartsWith("#") && t.Length > 1);
+            if (hashToken != null)
+            {
+                tagFromSearch = hashToken.TrimStart('#');
+                cleanedSearch = string.Join(" ", tokens.Where(t => t != hashToken));
+            }
+        }
+
+        string? activeTag = !string.IsNullOrEmpty(tagFromSearch) ? tagFromSearch : SelectedTag;
+
+        List<ClipboardPayload> results;
+        if (!string.IsNullOrEmpty(activeTag))
+        {
+            var tagResults = (await _storage.GetClipsByTagAsync(activeTag, PageSize)).ToList();
+            if (!string.IsNullOrWhiteSpace(cleanedSearch))
+            {
+                tagResults = tagResults
+                    .Where(c => (c.TextContent != null && c.TextContent.Contains(cleanedSearch, StringComparison.OrdinalIgnoreCase))
+                             || (!string.IsNullOrEmpty(c.SourceDevice) && c.SourceDevice.Contains(cleanedSearch, StringComparison.OrdinalIgnoreCase))
+                             || (!string.IsNullOrEmpty(c.SourceApp) && c.SourceApp.Contains(cleanedSearch, StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
+            }
+            results = tagResults;
+        }
+        else if (!string.IsNullOrWhiteSpace(cleanedSearch))
+        {
+            results = await _storage.SearchClipsAsync(cleanedSearch, PageSize);
+        }
+        else
+        {
+            results = await _storage.GetRecentClipsAsync(PageSize, favoritesOnly: SelectedLibrary == "Starred");
+        }
 
         PopulateDeviceOptions(results);
 
@@ -450,7 +526,13 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
         string? selectedId = SelectedClip?.Id;
         foreach (var oldItem in FilteredClips) oldItem.Dispose();
         FilteredClips.Clear();
-        foreach (var payload in items) FilteredClips.Add(new ClipboardItemViewModel(payload));
+        foreach (var payload in items)
+        {
+            var itemVm = new ClipboardItemViewModel(payload);
+            var clipTags = await _storage.GetClipTagsAsync(itemVm.Id);
+            itemVm.SetTags(clipTags.Select(t => new TagViewModel(t)));
+            FilteredClips.Add(itemVm);
+        }
 
         string? lastLabel = null;
         for (int i = 0; i < FilteredClips.Count; i++)
@@ -474,5 +556,14 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
 
         SelectedClip = FilteredClips.FirstOrDefault(c => c.Id == selectedId) ?? FilteredClips.FirstOrDefault();
         OnPropertyChanged(nameof(IsEmpty));
+
+        if (TagsChanged != null)
+        {
+            try
+            {
+                await TagsChanged.Invoke();
+            }
+            catch { }
+        }
     }
 }

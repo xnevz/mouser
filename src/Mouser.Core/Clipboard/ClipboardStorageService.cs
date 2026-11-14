@@ -14,6 +14,24 @@ public sealed class ClipboardStorageService : IAsyncDisposable
     private readonly string _connectionString;
     private SqliteConnection? _connection;
 
+    public static readonly string[] TagPalette = new[]
+    {
+        "#6366f1", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6", "#06b6d4", "#f97316", "#14b8a6"
+    };
+
+    public static string GetTagColor(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return TagPalette[0];
+        var clean = name.Trim().TrimStart('#').Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(clean)) return TagPalette[0];
+        uint hash = 2166136261;
+        foreach (char c in clean)
+        {
+            hash = (hash ^ c) * 16777619;
+        }
+        return TagPalette[hash % (uint)TagPalette.Length];
+    }
+
     public ClipboardStorageService(string? databasePath = null)
     {
         databasePath ??= Path.Combine(
@@ -46,6 +64,12 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             await walCmd.ExecuteNonQueryAsync();
         }
 
+        using (var fkCmd = _connection.CreateCommand())
+        {
+            fkCmd.CommandText = "PRAGMA foreign_keys = ON;";
+            await fkCmd.ExecuteNonQueryAsync();
+        }
+
         // Schema creation
         const string schemaSql = @"
             CREATE TABLE IF NOT EXISTS clips (
@@ -71,6 +95,24 @@ public sealed class ClipboardStorageService : IAsyncDisposable
                 text_content,
                 source_device UNINDEXED
             );
+
+            CREATE TABLE IF NOT EXISTS tags (
+                id TEXT PRIMARY KEY,
+                name TEXT UNIQUE COLLATE NOCASE,
+                color TEXT,
+                is_system INTEGER DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS clip_tags (
+                clip_id TEXT,
+                tag_id TEXT,
+                PRIMARY KEY(clip_id, tag_id),
+                FOREIGN KEY(clip_id) REFERENCES clips(id) ON DELETE CASCADE,
+                FOREIGN KEY(tag_id) REFERENCES tags(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_clip_tags_clip ON clip_tags(clip_id);
+            CREATE INDEX IF NOT EXISTS idx_clip_tags_tag ON clip_tags(tag_id);
         ";
 
         using var cmd = _connection.CreateCommand();
@@ -386,7 +428,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         }
 
         using var transaction = _connection.BeginTransaction();
-        foreach (var sql in new[] { "DELETE FROM clips WHERE id = @id;", "DELETE FROM clips_fts WHERE id = @id;" })
+        foreach (var sql in new[] { "DELETE FROM clip_tags WHERE clip_id = @id;", "DELETE FROM clips WHERE id = @id;", "DELETE FROM clips_fts WHERE id = @id;" })
         {
             using var cmd = _connection.CreateCommand();
             cmd.Transaction = transaction;
@@ -429,6 +471,11 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         }
 
         using var transaction = _connection!.BeginTransaction();
+
+        using var tagCmd = _connection.CreateCommand();
+        tagCmd.Transaction = transaction;
+        tagCmd.CommandText = $"DELETE FROM clip_tags WHERE clip_id IN (SELECT id FROM clips{filter});";
+        await tagCmd.ExecuteNonQueryAsync();
 
         using var ftsCmd = _connection.CreateCommand();
         ftsCmd.Transaction = transaction;
@@ -490,6 +537,13 @@ public sealed class ClipboardStorageService : IAsyncDisposable
 
             if (idsToDelete.Count == 0) return 0;
 
+            const string deleteTags = "DELETE FROM clip_tags WHERE clip_id IN (SELECT id FROM clips WHERE timestamp < @threshold AND is_favorite = 0);";
+            using var delTagCmd = _connection.CreateCommand();
+            delTagCmd.Transaction = transaction;
+            delTagCmd.CommandText = deleteTags;
+            delTagCmd.Parameters.AddWithValue("@threshold", threshold);
+            await delTagCmd.ExecuteNonQueryAsync();
+
             const string deleteClips = "DELETE FROM clips WHERE timestamp < @threshold AND is_favorite = 0;";
             using var delCmd = _connection.CreateCommand();
             delCmd.Transaction = transaction;
@@ -527,6 +581,330 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             await transaction.RollbackAsync();
             throw;
         }
+    }
+
+    public async Task<IReadOnlyList<TagInfo>> GetTagsAsync()
+    {
+        if (_connection == null) await InitializeAsync();
+
+        var list = new List<TagInfo>();
+
+        // System tags derived from ContentType
+        int linkCount = 0;
+        int codeCount = 0;
+        int imageCount = 0;
+        int fileCount = 0;
+
+        const string countsSql = "SELECT content_type, COUNT(*) FROM clips GROUP BY content_type;";
+        using (var countsCmd = _connection!.CreateCommand())
+        {
+            countsCmd.CommandText = countsSql;
+            using var reader = await countsCmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var kind = (ClipboardContentType)reader.GetInt32(0);
+                int cnt = reader.GetInt32(1);
+                switch (kind)
+                {
+                    case ClipboardContentType.Link:
+                        linkCount = cnt;
+                        break;
+                    case ClipboardContentType.Code:
+                        codeCount = cnt;
+                        break;
+                    case ClipboardContentType.Image:
+                        imageCount = cnt;
+                        break;
+                    case ClipboardContentType.FileUri:
+                        fileCount = cnt;
+                        break;
+                }
+            }
+        }
+
+        list.Add(new TagInfo("system:link", "Link", "#06b6d4", linkCount, true));
+        list.Add(new TagInfo("system:code", "Code", "#8b5cf6", codeCount, true));
+        list.Add(new TagInfo("system:image", "Image", "#10b981", imageCount, true));
+        list.Add(new TagInfo("system:file", "File", "#f59e0b", fileCount, true));
+
+        // Custom tags
+        const string tagsSql = @"
+            SELECT t.id, t.name, t.color, COUNT(ct.clip_id) as cnt
+            FROM tags t
+            LEFT JOIN clip_tags ct ON t.id = ct.tag_id
+            GROUP BY t.id, t.name, t.color
+            HAVING cnt > 0
+            ORDER BY t.name COLLATE NOCASE ASC;";
+
+        using (var tagsCmd = _connection!.CreateCommand())
+        {
+            tagsCmd.CommandText = tagsSql;
+            using var reader = await tagsCmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                list.Add(new TagInfo(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    reader.GetInt32(3),
+                    false));
+            }
+        }
+
+        return list;
+    }
+
+    public async Task<TagInfo> AddTagAsync(string clipId, string name)
+    {
+        if (_connection == null) await InitializeAsync();
+
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Tag name cannot be empty.", nameof(name));
+
+        var cleanName = name.Trim().TrimStart('#').Trim();
+        if (string.IsNullOrWhiteSpace(cleanName))
+            throw new ArgumentException("Tag name cannot be empty.", nameof(name));
+
+        string tagId;
+        string color;
+        using (var findCmd = _connection!.CreateCommand())
+        {
+            findCmd.CommandText = "SELECT id, name, color FROM tags WHERE name = @name COLLATE NOCASE LIMIT 1;";
+            findCmd.Parameters.AddWithValue("@name", cleanName);
+            using var reader = await findCmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                tagId = reader.GetString(0);
+                cleanName = reader.GetString(1);
+                color = reader.GetString(2);
+            }
+            else
+            {
+                tagId = Guid.NewGuid().ToString("N");
+                color = GetTagColor(cleanName);
+                using var insertCmd = _connection.CreateCommand();
+                insertCmd.CommandText = "INSERT INTO tags (id, name, color, is_system) VALUES (@id, @name, @color, 0);";
+                insertCmd.Parameters.AddWithValue("@id", tagId);
+                insertCmd.Parameters.AddWithValue("@name", cleanName);
+                insertCmd.Parameters.AddWithValue("@color", color);
+                await insertCmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        using (var linkCmd = _connection!.CreateCommand())
+        {
+            linkCmd.CommandText = "INSERT OR IGNORE INTO clip_tags (clip_id, tag_id) VALUES (@clipId, @tagId);";
+            linkCmd.Parameters.AddWithValue("@clipId", clipId);
+            linkCmd.Parameters.AddWithValue("@tagId", tagId);
+            await linkCmd.ExecuteNonQueryAsync();
+        }
+
+        int count = 0;
+        using (var countCmd = _connection!.CreateCommand())
+        {
+            countCmd.CommandText = "SELECT COUNT(*) FROM clip_tags WHERE tag_id = @tagId;";
+            countCmd.Parameters.AddWithValue("@tagId", tagId);
+            var result = await countCmd.ExecuteScalarAsync();
+            if (result is long val) count = (int)val;
+        }
+
+        return new TagInfo(tagId, cleanName, color, count, false);
+    }
+
+    public async Task RemoveTagAsync(string clipId, string tagIdOrName)
+    {
+        if (_connection == null) await InitializeAsync();
+        if (string.IsNullOrWhiteSpace(tagIdOrName)) return;
+
+        var clean = tagIdOrName.Trim().TrimStart('#').Trim();
+        if (string.IsNullOrWhiteSpace(clean)) return;
+
+        string? tagId = null;
+        using (var findCmd = _connection!.CreateCommand())
+        {
+            findCmd.CommandText = "SELECT id FROM tags WHERE id = @val OR name = @val COLLATE NOCASE LIMIT 1;";
+            findCmd.Parameters.AddWithValue("@val", clean);
+            var result = await findCmd.ExecuteScalarAsync();
+            if (result is string id) tagId = id;
+        }
+
+        if (!string.IsNullOrEmpty(tagId))
+        {
+            using var delCmd = _connection!.CreateCommand();
+            delCmd.CommandText = "DELETE FROM clip_tags WHERE clip_id = @clipId AND tag_id = @tagId;";
+            delCmd.Parameters.AddWithValue("@clipId", clipId);
+            delCmd.Parameters.AddWithValue("@tagId", tagId);
+            await delCmd.ExecuteNonQueryAsync();
+        }
+    }
+
+    public async Task DeleteTagAsync(string name)
+    {
+        if (_connection == null) await InitializeAsync();
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        var clean = name.Trim().TrimStart('#').Trim();
+        if (string.IsNullOrWhiteSpace(clean)) return;
+
+        string? tagId = null;
+        using (var findCmd = _connection!.CreateCommand())
+        {
+            findCmd.CommandText = "SELECT id FROM tags WHERE id = @val OR name = @val COLLATE NOCASE LIMIT 1;";
+            findCmd.Parameters.AddWithValue("@val", clean);
+            var result = await findCmd.ExecuteScalarAsync();
+            if (result is string id) tagId = id;
+        }
+
+        if (!string.IsNullOrEmpty(tagId))
+        {
+            using var transaction = _connection!.BeginTransaction();
+            using (var delLinks = _connection.CreateCommand())
+            {
+                delLinks.Transaction = transaction;
+                delLinks.CommandText = "DELETE FROM clip_tags WHERE tag_id = @tagId;";
+                delLinks.Parameters.AddWithValue("@tagId", tagId);
+                await delLinks.ExecuteNonQueryAsync();
+            }
+
+            using (var delTag = _connection.CreateCommand())
+            {
+                delTag.Transaction = transaction;
+                delTag.CommandText = "DELETE FROM tags WHERE id = @tagId;";
+                delTag.Parameters.AddWithValue("@tagId", tagId);
+                await delTag.ExecuteNonQueryAsync();
+            }
+
+            await transaction.CommitAsync();
+        }
+    }
+
+    public async Task<IReadOnlyList<TagInfo>> GetClipTagsAsync(string clipId)
+    {
+        if (_connection == null) await InitializeAsync();
+
+        var list = new List<TagInfo>();
+
+        // System tag derived from ContentType
+        int? contentType = null;
+        using (var typeCmd = _connection!.CreateCommand())
+        {
+            typeCmd.CommandText = "SELECT content_type FROM clips WHERE id = @id LIMIT 1;";
+            typeCmd.Parameters.AddWithValue("@id", clipId);
+            var result = await typeCmd.ExecuteScalarAsync();
+            if (result is long val) contentType = (int)val;
+        }
+
+        if (contentType.HasValue)
+        {
+            var kind = (ClipboardContentType)contentType.Value;
+            switch (kind)
+            {
+                case ClipboardContentType.Link:
+                    list.Add(new TagInfo("system:link", "Link", "#06b6d4", 1, true));
+                    break;
+                case ClipboardContentType.Code:
+                    list.Add(new TagInfo("system:code", "Code", "#8b5cf6", 1, true));
+                    break;
+                case ClipboardContentType.Image:
+                    list.Add(new TagInfo("system:image", "Image", "#10b981", 1, true));
+                    break;
+                case ClipboardContentType.FileUri:
+                    list.Add(new TagInfo("system:file", "File", "#f59e0b", 1, true));
+                    break;
+            }
+        }
+
+        const string sql = @"
+            SELECT t.id, t.name, t.color, (SELECT COUNT(*) FROM clip_tags ct2 WHERE ct2.tag_id = t.id)
+            FROM tags t
+            JOIN clip_tags ct ON t.id = ct.tag_id
+            WHERE ct.clip_id = @clipId
+            ORDER BY t.name COLLATE NOCASE ASC;";
+
+        using (var cmd = _connection!.CreateCommand())
+        {
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("@clipId", clipId);
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                list.Add(new TagInfo(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    reader.GetInt32(3),
+                    false));
+            }
+        }
+
+        return list;
+    }
+
+    public async Task<IReadOnlyList<ClipboardPayload>> GetClipsByTagAsync(string tagName, int limit = 200)
+    {
+        if (_connection == null) await InitializeAsync();
+        if (string.IsNullOrWhiteSpace(tagName)) return Array.Empty<ClipboardPayload>();
+
+        var clean = tagName.Trim().TrimStart('#').Trim();
+        if (string.IsNullOrWhiteSpace(clean)) return Array.Empty<ClipboardPayload>();
+
+        var list = new List<ClipboardPayload>();
+
+        ClipboardContentType? systemType = null;
+        if (string.Equals(clean, "Link", StringComparison.OrdinalIgnoreCase))
+            systemType = ClipboardContentType.Link;
+        else if (string.Equals(clean, "Code", StringComparison.OrdinalIgnoreCase))
+            systemType = ClipboardContentType.Code;
+        else if (string.Equals(clean, "Image", StringComparison.OrdinalIgnoreCase))
+            systemType = ClipboardContentType.Image;
+        else if (string.Equals(clean, "File", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(clean, "Files", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(clean, "Folder", StringComparison.OrdinalIgnoreCase))
+            systemType = ClipboardContentType.FileUri;
+
+        if (systemType.HasValue)
+        {
+            const string sql = @"
+                SELECT id, timestamp, content_type, text_content, html_content, source_device, is_favorite, source_app, media_path, media_hash, width, height, bytes
+                FROM clips
+                WHERE content_type = @contentType
+                ORDER BY timestamp DESC
+                LIMIT @limit;";
+
+            using var sysCmd = _connection!.CreateCommand();
+            sysCmd.CommandText = sql;
+            sysCmd.Parameters.AddWithValue("@contentType", (int)systemType.Value);
+            sysCmd.Parameters.AddWithValue("@limit", limit);
+
+            using var sysReader = await sysCmd.ExecuteReaderAsync();
+            while (await sysReader.ReadAsync())
+            {
+                list.Add(ReadPayload(sysReader));
+            }
+            return list;
+        }
+
+        const string customSql = @"
+            SELECT c.id, c.timestamp, c.content_type, c.text_content, c.html_content, c.source_device, c.is_favorite, c.source_app, c.media_path, c.media_hash, c.width, c.height, c.bytes
+            FROM clips c
+            JOIN clip_tags ct ON c.id = ct.clip_id
+            JOIN tags t ON ct.tag_id = t.id
+            WHERE t.name = @tagName COLLATE NOCASE
+            ORDER BY c.timestamp DESC
+            LIMIT @limit;";
+
+        using var customCmd = _connection!.CreateCommand();
+        customCmd.CommandText = customSql;
+        customCmd.Parameters.AddWithValue("@tagName", clean);
+        customCmd.Parameters.AddWithValue("@limit", limit);
+
+        using var customReader = await customCmd.ExecuteReaderAsync();
+        while (await customReader.ReadAsync())
+        {
+            list.Add(ReadPayload(customReader));
+        }
+
+        return list;
     }
 
     private static ClipboardPayload ReadPayload(SqliteDataReader reader)

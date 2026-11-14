@@ -61,6 +61,29 @@
                         </Grid>
                     </Button>
 
+                    <TextBlock Classes="label" Text="TAGS" Margin="12,12,0,4" />
+
+                    <ItemsControl ItemsSource="{Binding Tags}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:TagViewModel">
+                                <Button Classes="nav-button"
+                                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).FilterByTagCommand}"
+                                        CommandParameter="{Binding}">
+                                    <Grid ColumnDefinitions="24,*,Auto">
+                                        <Rectangle Grid.Column="0" Width="8" Height="8" RadiusX="2" RadiusY="2"
+                                                   Fill="{Binding Brush}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{Binding DisplayName}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!Count}">
+                                            <TextBlock Text="{Binding Count}" Foreground="{DynamicResource BadgeViolet}" />
+                                        </Border>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Classes="hint" Text="No tags yet" IsVisible="{Binding !Tags.Count}" Margin="12,4" />
+
                     <TextBlock Classes="label" Text="DEVICES" Margin="12,12,0,4" />
 
                     <ItemsControl ItemsSource="{Binding Devices}">

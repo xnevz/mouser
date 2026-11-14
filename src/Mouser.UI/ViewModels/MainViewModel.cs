@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Mouser.Core.Clipboard;
@@ -24,6 +25,7 @@ public partial class MainViewModel : ViewModelBase
 {
     private readonly MouserHost _host;
     private readonly SettingsStore _settings;
+    private readonly ClipboardStorageService _clipboardStorage;
     private readonly AppLockService? _appLock;
 
     public bool IsLocked => _appLock?.IsLocked ?? false;
@@ -31,6 +33,7 @@ public partial class MainViewModel : ViewModelBase
     public LockViewModel? Lock { get; }
 
     public ObservableCollection<SidebarDeviceViewModel> Devices { get; } = new();
+    public ObservableCollection<TagViewModel> Tags { get; } = new();
     [ObservableProperty] private int _onlineDeviceCount;
 
     public AndroidRemoteViewModel AndroidRemote { get; }
@@ -66,9 +69,11 @@ public partial class MainViewModel : ViewModelBase
     {
         _host = host;
         _settings = settings;
+        _clipboardStorage = clipboardStorage;
         _appLock = appLock;
         AndroidRemote = new AndroidRemoteViewModel(host, settings);
         ClipboardHistory = new ClipboardHistoryViewModel(clipboardStorage, settings);
+        ClipboardHistory.TagsChanged += async () => await RefreshTagsAsync();
         Settings = new SettingsViewModel(settings, host, appLock);
         MonitorLayout = new MonitorLayoutViewModel(host, settings);
         DevicesPage = new DevicesViewModel(host, MonitorLayout, AndroidRemote, settings);
@@ -114,6 +119,7 @@ public partial class MainViewModel : ViewModelBase
             Onboarding = new OnboardingViewModel(_settings, _host, () => Onboarding = null);
         }
         Refresh();
+        _ = RefreshTagsAsync();
     }
 
     public void AttachClipboard(IClipboardAccess clipboard)
@@ -265,7 +271,25 @@ public partial class MainViewModel : ViewModelBase
     private void ShowLibrary(string library)
     {
         Navigate("SmartClipboard");
+        ClipboardHistory.ClearTag();
         ClipboardHistory.SetLibraryCommand.Execute(library);
+    }
+
+    [RelayCommand]
+    private void FilterByTag(TagViewModel? tag)
+    {
+        Navigate("SmartClipboard");
+        ClipboardHistory.SetTag(tag?.Name);
+    }
+
+    public async Task RefreshTagsAsync()
+    {
+        var tags = await _clipboardStorage.GetTagsAsync();
+        Tags.Clear();
+        foreach (var t in tags.Where(t => t.Count > 0))
+        {
+            Tags.Add(new TagViewModel(t));
+        }
     }
 
     public event Action? FocusSearchRequested;

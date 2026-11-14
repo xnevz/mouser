@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using Avalonia.Media.Imaging;
@@ -186,7 +187,21 @@ public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
         _thumbnail = null;
         _previewImage?.Dispose();
         _previewImage = null;
+        Tags.Clear();
         GC.SuppressFinalize(this);
+    }
+
+    public ObservableCollection<TagViewModel> Tags { get; } = new();
+    public bool HasTags => Tags.Count > 0;
+
+    public void SetTags(IEnumerable<TagViewModel> tags)
+    {
+        Tags.Clear();
+        foreach (var tag in tags)
+        {
+            Tags.Add(tag);
+        }
+        OnPropertyChanged(nameof(HasTags));
     }
 
     [ObservableProperty]
