@@ -25,7 +25,7 @@ export const ArchitecturePresentation = () => {
       badge: 'C# / Avalonia',
       points: [
         'View models hold all logic and are covered by unit tests; views only bind.',
-        'Settings are saved as JSON in the user data folder; clipboard history lives in SQLite with full-text search.',
+        'Settings are saved as JSON in the user data folder; clipboard history lives in SQLCipher-encrypted SQLite with full-text search.',
         'The live monitor layout comes straight from the operating system, including scaling.',
       ],
       codeSnippet: `// ClipboardHistoryViewModel.cs
@@ -67,8 +67,8 @@ foreach (var button in Buttons)
         'A phone pairs by sending the 6-digit PIN; five wrong guesses lock it out for a minute.',
         'Per-sender sequence numbers drop duplicated or reordered packets and survive app restarts.',
         'Pings measure latency and detect a dropped connection; the KVM hands control back if a peer goes quiet.',
-        'Clipboard and files travel over TCP, AES-256-GCM encrypted with a key derived from the pairing PIN.',
-        'Mouse and keyboard packets are not encrypted: use Mouser on networks you trust.',
+        'Clipboard and files travel over TCP, AES-256-GCM encrypted with keys derived from mutual pairing.',
+        'Mouse and keyboard packets are authenticated and encrypted with AES-256-GCM (v2 protocol with anti-replay window).',
       ],
       codeSnippet: `// SequenceTracker.cs
 short diff = unchecked((short)(sequence - last));

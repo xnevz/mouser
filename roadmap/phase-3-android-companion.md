@@ -1,3 +1,5 @@
+> Status: see ../ROADMAP.md. This file is the original design; checkboxes may be out of date.
+
 # Phase 3: Android Companion & Remote Input Hub
 
 > **Status (verified):** see [README](./README.md) for what the Android app does today.

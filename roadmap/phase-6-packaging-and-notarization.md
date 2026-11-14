@@ -1,3 +1,5 @@
+> Status: see ../ROADMAP.md. This file is the original design; checkboxes may be out of date.
+
 # Phase 6: Packaging, macOS Notarization & Release
 
 > **Status (verified):** file transfer to a paired computer and the build scripts work. Notarization, signed installers, MSIX and Flatpak were never produced, and the DMG sizes below were not reproducible. See [README](./README.md).
@@ -111,7 +113,7 @@ Before final release, the system must pass strict performance criteria:
   - Implemented `FileStreamingService.cs` supporting 64KB chunked file streaming over TCP.
   - Implemented SHA-256 integrity verification upon completion, automatically purging corrupted/tampered destination files.
   - Added unit test suite in `tests/Mouser.Tests/FileStreamingTests.cs`.
-- [x] **Step 6.2: macOS Notarization Pipeline**
+- [ ] **Step 6.2: macOS Notarization Pipeline** (Pending macOS certificate & hardware; see backlog-macos.md)
   - Created automated bundling script `scripts/package-macos-app.sh`.
   - Generates `Mouser.app` containing `.NET 8` executable and `Contents/Frameworks/libmouser_native.dylib`.
   - Generates `Info.plist` with `NSAccessibilityUsageDescription` and `NSInputMonitoringUsageDescription`.
@@ -127,7 +129,7 @@ Before final release, the system must pass strict performance criteria:
 
 ## 6. Phase 6 Deliverables & Exit Criteria
 
-- [x] `Mouser-osx-x64.dmg` built and verified (37MB self-contained bundle).
+- [ ] `Mouser-osx-x64.dmg` built and verified (Historical design target; see backlog-macos.md).
 - [x] Hardened Runtime entitlements and TCC permission descriptions generated.
 - [x] Drag-and-drop file chunk streaming and SHA-256 verification tests pass.
 - [x] Cross-platform build scripts for macOS, Windows, and Linux ready in `scripts/`.

@@ -1,3 +1,5 @@
+> Status: see ../ROADMAP.md. This file is the original design; checkboxes may be out of date.
+
 # Phase 0: macOS Development Environment & Prerequisites
 
 > **Objective**: Prepare the macOS workstation for developing a hybrid .NET 8/9 C# application that compiles and loads low-level Objective-C++ dynamic libraries (`.dylib`) with full macOS TCC (Accessibility & Input Monitoring) permissions.

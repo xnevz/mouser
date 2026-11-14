@@ -16,10 +16,11 @@ export const PLATFORMS: Record<PlatformId, PlatformInfo> = {
     requirements: 'Windows 10 or 11, 64-bit',
     works: [
       'Move the mouse and keyboard to another computer by pushing past a screen edge',
-      'Copied text syncs between paired computers (encrypted), and you can send files',
+      'Copied text and images sync between paired computers (AES-256-GCM), and you can send files',
       'Phone remote: pointer, clicks, dragging, scrolling, media and number keys',
-      'PIN pairing and automatic discovery on the local network',
-      'Clipboard history with search, stars, secret filtering and Win+Alt+V quick paste',
+      'Mutual pairing (P-256 ECDH / PIN) and automatic discovery on the local network',
+      'SQLCipher-encrypted clipboard history with FTS5 search, stars, tags, secret filtering and Win+Alt+V quick paste',
+      'App Lock with master passphrase and Base32 recovery key',
     ],
     notYet: [
       'Signed installer (you get a single portable .exe)',

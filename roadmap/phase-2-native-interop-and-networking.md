@@ -1,3 +1,5 @@
+> Status: see ../ROADMAP.md. This file is the original design; checkboxes may be out of date.
+
 # Phase 2: Native Interop & Networking Engine
 
 > **Status (verified):** discovery is UDP broadcast (not mDNS/Zeroconf), packets are not encrypted, and pairing uses a 6-digit PIN. See [README](./README.md).
@@ -189,7 +191,7 @@ public sealed class UdpInputTransmitter : IDisposable
   - Built `UdpInputReceiver` and `UdpInputTransmitter` using connected sockets and `ReadOnlySpan<byte>`.
   - Implemented sequence-number ordering and out-of-order rejection.
   - Benchmark test verifies 0 bytes allocated on the heap across 1,000 transmitted packets.
-- [x] **Step 2.4: Local mDNS Discovery**
+- [ ] **Step 2.4: Local mDNS Discovery** (Replaced by UDP broadcast beacons; see ROADMAP.md)
   - Built `PeerDiscoveryService` broadcasting and listening for beacons over UDP.
   - Implemented dynamic peer registry with automated timeout pruning and `DiscoveredPeer` serialization.
 

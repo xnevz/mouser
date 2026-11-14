@@ -1,3 +1,5 @@
+> Status: see ../ROADMAP.md. This file is the original design; checkboxes may be out of date.
+
 # Phase 5: Universal Multi-Format Smart Clipboard Engine
 
 > **Status (verified):** history, FTS5 search, secret filter, encrypted sync between paired desktops and the quick-paste overlay are implemented. Clipboard change detection polls once a second (no native hooks). Images and HTML clips are not captured. See [README](./README.md).
@@ -103,7 +105,7 @@ To protect confidential information, the clipboard engine filters sensitive clip
 
 ## 5. Phase 5 Implementation Steps
 
-- [x] **Step 5.1: Cross-Platform Native Clipboard Hooks**
+- [ ] **Step 5.1: Cross-Platform Native Clipboard Hooks** (Polling clipboard watcher used instead; see ROADMAP.md)
   - Configured clipboard change listeners and NSPasteboard change detection.
 - [x] **Step 5.2: Multi-Format Serializer & E2EE**
   - Implemented `ClipboardPayload` supporting Text, Code, HTML, and Images.

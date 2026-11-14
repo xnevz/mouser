@@ -1,3 +1,5 @@
+> Status: see ../ROADMAP.md. This file is the original design; checkboxes may be out of date.
+
 # Phase 1: Modern UI & MVVM Presentation Layer
 
 > **Objective**: Build a modern, simplistic, professional UI following the macOS aesthetic (deep dark palette, subtle borders, frosted glass translucency, clean typography) using the **XAML / WPF paradigm with Avalonia UI** and **`CommunityToolkit.Mvvm`**.
