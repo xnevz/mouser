@@ -124,6 +124,31 @@ public sealed class PeerTransferTests : IDisposable
         Assert.Equal(saved, PeerTransferService.SafeFileName(sent));
     }
 
+    [Fact]
+    public async Task PowerEvent_IsDeliveredToThePairedPeer()
+    {
+        var received = new TaskCompletionSource<(string, PowerEventKind)>();
+        _b.PowerReceived += (sender, kind) => received.TrySetResult((sender, kind));
+
+        await _a.SendPowerAsync(B, _pairKey, PowerEventKind.Lock);
+
+        var (from, kind) = await received.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.Equal("device-a", from);
+        Assert.Equal(PowerEventKind.Lock, kind);
+    }
+
+    [Fact]
+    public async Task PowerEvent_WithWrongKey_IsDropped()
+    {
+        bool received = false;
+        _b.PowerReceived += (_, _) => received = true;
+
+        await _a.SendPowerAsync(B, PeerTransferService.DeriveKey(111_111, "device-b"), PowerEventKind.Sleep);
+        await Task.Delay(300);
+
+        Assert.False(received);
+    }
+
     public void Dispose()
     {
         _a.Dispose();

@@ -30,6 +30,10 @@ public partial class DeviceDetailViewModel : ViewModelBase
     [ObservableProperty] private double _scrollSpeed = 1.0;
     [ObservableProperty] private bool _invertScroll;
 
+    [ObservableProperty] private bool _syncLock;
+    [ObservableProperty] private bool _syncSleep;
+    [ObservableProperty] private bool _syncDisplayOff;
+
     public bool IsComputer => Kind == DeviceKind.Computer;
     public bool IsPhone => Kind == DeviceKind.Phone;
 
@@ -47,6 +51,9 @@ public partial class DeviceDetailViewModel : ViewModelBase
             _mouseSpeed = s.MouseSpeed;
             _scrollSpeed = s.ScrollSpeed;
             _invertScroll = s.InvertScroll;
+            _syncLock = s.SyncLock;
+            _syncSleep = s.SyncSleep;
+            _syncDisplayOff = s.SyncDisplayOff;
         }
     }
 
@@ -116,6 +123,39 @@ public partial class DeviceDetailViewModel : ViewModelBase
             peer.InvertScroll = value;
             _settings.Save();
             _host?.SetPeerMotion(Id, peer.MouseSpeed, peer.ScrollSpeed, peer.InvertScroll);
+        }
+    }
+
+    partial void OnSyncLockChanged(bool value)
+    {
+        if (_settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (peer.SyncLock != value)
+        {
+            peer.SyncLock = value;
+            _settings.Save();
+        }
+    }
+
+    partial void OnSyncSleepChanged(bool value)
+    {
+        if (_settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (peer.SyncSleep != value)
+        {
+            peer.SyncSleep = value;
+            _settings.Save();
+        }
+    }
+
+    partial void OnSyncDisplayOffChanged(bool value)
+    {
+        if (_settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (peer.SyncDisplayOff != value)
+        {
+            peer.SyncDisplayOff = value;
+            _settings.Save();
         }
     }
 

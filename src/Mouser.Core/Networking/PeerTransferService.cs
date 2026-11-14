@@ -23,7 +23,7 @@ public sealed class PeerTransferService : IDisposable
     private const int KdfIterations = 200_000;
     private static readonly byte[] Magic = "MCH1"u8.ToArray();
 
-    private enum FrameType : byte { Clip = 1, FileStart = 2, FileChunk = 3, FileEnd = 4, Hello = 5 }
+    private enum FrameType : byte { Clip = 1, FileStart = 2, FileChunk = 3, FileEnd = 4, Hello = 5, PowerEvent = 7 }
 
     private static readonly ConcurrentDictionary<(int, string), byte[]> KeyCache = new();
 
@@ -46,6 +46,9 @@ public sealed class PeerTransferService : IDisposable
 
     /// <summary>A file arrived and passed its SHA-256 check (sender device id, saved path).</summary>
     public event Action<string, string>? FileReceived;
+
+    /// <summary>A power event arrived from a paired computer (sender device id, power event kind).</summary>
+    public event Action<string, PowerEventKind>? PowerReceived;
 
     /// <param name="receiveKeys">Keys that may have encrypted traffic from this sender (empty = not paired, reject).</param>
     public PeerTransferService(string deviceId, Func<string, IPAddress, IReadOnlyList<byte[]>> receiveKeys,
@@ -79,6 +82,14 @@ public sealed class PeerTransferService : IDisposable
         await client.ConnectAsync(target, ct);
         await using var stream = client.GetStream();
         await WriteFrameAsync(stream, FrameType.Hello, key, Array.Empty<byte>(), ct);
+    }
+
+    public async Task SendPowerAsync(IPEndPoint target, byte[] key, PowerEventKind kind, CancellationToken ct = default)
+    {
+        using var client = new TcpClient();
+        await client.ConnectAsync(target, ct);
+        await using var stream = client.GetStream();
+        await WriteFrameAsync(stream, FrameType.PowerEvent, key, new[] { (byte)kind }, ct);
     }
 
     public async Task SendFileAsync(IPEndPoint target, byte[] key, string path, IProgress<FileTransferProgress>? progress = null,
@@ -160,6 +171,13 @@ public sealed class PeerTransferService : IDisposable
                 else if (type == FrameType.Hello)
                 {
                     HelloReceived?.Invoke(sender, key);
+                }
+                else if (type == FrameType.PowerEvent)
+                {
+                    if (body.Length >= 1)
+                    {
+                        PowerReceived?.Invoke(sender, (PowerEventKind)body[0]);
+                    }
                 }
                 else if (type == FrameType.FileStart)
                 {

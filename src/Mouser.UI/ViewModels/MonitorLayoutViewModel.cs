@@ -47,6 +47,10 @@ public partial class PeerViewModel : ViewModelBase
     [ObservableProperty] private double _scrollSpeed = 1.0;
     [ObservableProperty] private bool _invertScroll;
 
+    [ObservableProperty] private bool _syncLock;
+    [ObservableProperty] private bool _syncSleep;
+    [ObservableProperty] private bool _syncDisplayOff;
+
     public bool IsPaired => Status is PeerLinkStatus.Paired;
     public bool NeedsPin => Status is PeerLinkStatus.NotPaired;
 
@@ -98,6 +102,9 @@ public partial class PeerViewModel : ViewModelBase
             MouseSpeed = s.MouseSpeed;
             ScrollSpeed = s.ScrollSpeed;
             InvertScroll = s.InvertScroll;
+            SyncLock = s.SyncLock;
+            SyncSleep = s.SyncSleep;
+            SyncDisplayOff = s.SyncDisplayOff;
         }
     }
 
@@ -118,6 +125,9 @@ public partial class PeerViewModel : ViewModelBase
         OnPropertyChanged(nameof(MouseSpeed));
         OnPropertyChanged(nameof(ScrollSpeed));
         OnPropertyChanged(nameof(InvertScroll));
+        OnPropertyChanged(nameof(SyncLock));
+        OnPropertyChanged(nameof(SyncSleep));
+        OnPropertyChanged(nameof(SyncDisplayOff));
     }
 
     partial void OnPlacementChanged(PeerPlacement value)
@@ -192,6 +202,39 @@ public partial class PeerViewModel : ViewModelBase
             peer.InvertScroll = value;
             _owner.Settings.Save();
             _owner.Host?.SetPeerMotion(Id, peer.MouseSpeed, peer.ScrollSpeed, peer.InvertScroll);
+        }
+    }
+
+    partial void OnSyncLockChanged(bool value)
+    {
+        if (_updating || _owner.Settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (peer.SyncLock != value)
+        {
+            peer.SyncLock = value;
+            _owner.Settings.Save();
+        }
+    }
+
+    partial void OnSyncSleepChanged(bool value)
+    {
+        if (_updating || _owner.Settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (peer.SyncSleep != value)
+        {
+            peer.SyncSleep = value;
+            _owner.Settings.Save();
+        }
+    }
+
+    partial void OnSyncDisplayOffChanged(bool value)
+    {
+        if (_updating || _owner.Settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (peer.SyncDisplayOff != value)
+        {
+            peer.SyncDisplayOff = value;
+            _owner.Settings.Save();
         }
     }
 

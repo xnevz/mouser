@@ -61,6 +61,9 @@ public sealed class MouserHost : IDisposable
     public bool CanShareInput => Kvm != null;
     public bool IsLocked => _locked;
 
+    private DateTime? _lastPowerEventUtc;
+    public DateTime? LastPowerEventUtc => _lastPowerEventUtc;
+
     public string DeviceName => _settings.Current.DeviceName;
 
     public IReadOnlyCollection<DiscoveredPeer> Peers =>
@@ -228,6 +231,37 @@ public sealed class MouserHost : IDisposable
             {
                 if (key.AsSpan().SequenceEqual(OwnKey)) _pairedWithUs[sender] = true;
             };
+            transfer.PowerReceived += (sender, kind) =>
+            {
+                if (_settings.Current.Peers.TryGetValue(sender, out var peerSettings))
+                {
+                    var now = DateTime.UtcNow;
+                    if (PowerSyncPolicy.ShouldApply(
+                        kind,
+                        peerSettings.SyncLock,
+                        peerSettings.SyncSleep,
+                        peerSettings.SyncDisplayOff,
+                        _lastPowerEventUtc,
+                        now))
+                    {
+                        _lastPowerEventUtc = now;
+                        string from = PeerName(sender);
+                        Log.Record(ActivityCategory.Input, $"Received power event {kind} from {from}");
+                        switch (kind)
+                        {
+                            case PowerEventKind.Lock:
+                                WindowsPower.Lock();
+                                break;
+                            case PowerEventKind.Sleep:
+                                WindowsPower.Sleep();
+                                break;
+                            case PowerEventKind.DisplayOff:
+                                WindowsPower.TurnOffDisplay();
+                                break;
+                        }
+                    }
+                }
+            };
             return transfer;
         }
         catch (SocketException) when (port != 0)
@@ -362,6 +396,57 @@ public sealed class MouserHost : IDisposable
         var key = SendKey(peer) ?? throw new InvalidOperationException($"Pair with {peer.Hostname} first.");
         if (Transfer == null || peer.ControlPort <= 0) throw new InvalidOperationException($"{peer.Hostname} can't receive files.");
         return Transfer.SendFileAsync(new IPEndPoint(peer.IpAddress, peer.ControlPort), key, path, progress);
+    }
+
+    public async Task SendPowerEventAsync(DiscoveredPeer peer, PowerEventKind kind)
+    {
+        if (Transfer == null) throw new InvalidOperationException("Transfer service not available");
+        var key = SendKey(peer) ?? throw new InvalidOperationException($"Not paired with {peer.Hostname}");
+        if (peer.ControlPort <= 0) throw new InvalidOperationException($"{peer.Hostname} control port is closed");
+        _lastPowerEventUtc = DateTime.UtcNow;
+        await Transfer.SendPowerAsync(new IPEndPoint(peer.IpAddress, peer.ControlPort), key, kind);
+    }
+
+    public async Task BroadcastPowerEventAsync(PowerEventKind kind)
+    {
+        _lastPowerEventUtc = DateTime.UtcNow;
+        if (Transfer == null) return;
+
+        var tasks = new List<Task>();
+        foreach (var peer in Peers)
+        {
+            if (peer.ControlPort <= 0) continue;
+            var key = SendKey(peer);
+            if (key == null) continue;
+
+            if (_settings.Current.Peers.TryGetValue(peer.DeviceId, out var peerSettings))
+            {
+                bool enabled = kind switch
+                {
+                    PowerEventKind.Lock => peerSettings.SyncLock,
+                    PowerEventKind.Sleep => peerSettings.SyncSleep,
+                    PowerEventKind.DisplayOff => peerSettings.SyncDisplayOff,
+                    _ => false
+                };
+                if (!enabled) continue;
+
+                tasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Transfer.SendPowerAsync(new IPEndPoint(peer.IpAddress, peer.ControlPort), key, kind);
+                    }
+                    catch
+                    {
+                        // Ignore broadcast network failures to unreachable peers
+                    }
+                }));
+            }
+        }
+        if (tasks.Count > 0)
+        {
+            await Task.WhenAll(tasks);
+        }
     }
 
     /// <summary>The bounding box of all local monitors, in physical pixels.</summary>

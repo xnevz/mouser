@@ -290,6 +290,44 @@
 
                                                 <Separator Background="{DynamicResource BorderSubtle}" />
 
+                                                <!-- Lock sync -->
+                                                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock Classes="section-title" FontSize="13" Text="Lock when this computer locks" />
+                                                        <TextBlock Classes="hint" Text="Locks this computer automatically when the other computer is locked." />
+                                                    </StackPanel>
+                                                    <ToggleSwitch Grid.Column="1"
+                                                                  IsChecked="{Binding SyncLock}"
+                                                                  OnContent="" OffContent=""
+                                                                  ToolTip.Tip="Lock when this computer locks" />
+                                                </Grid>
+
+                                                <!-- Sleep sync -->
+                                                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock Classes="section-title" FontSize="13" Text="Sleep when this computer sleeps" />
+                                                        <TextBlock Classes="hint" Text="Puts this computer to sleep when the other computer sleeps." />
+                                                    </StackPanel>
+                                                    <ToggleSwitch Grid.Column="1"
+                                                                  IsChecked="{Binding SyncSleep}"
+                                                                  OnContent="" OffContent=""
+                                                                  ToolTip.Tip="Sleep when this computer sleeps" />
+                                                </Grid>
+
+                                                <!-- Display off sync -->
+                                                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock Classes="section-title" FontSize="13" Text="Turn off display when this computer turns off display" />
+                                                        <TextBlock Classes="hint" Text="Turns off this computer's display when the other computer turns off its display." />
+                                                    </StackPanel>
+                                                    <ToggleSwitch Grid.Column="1"
+                                                                  IsChecked="{Binding SyncDisplayOff}"
+                                                                  OnContent="" OffContent=""
+                                                                  ToolTip.Tip="Turn off display when this computer turns off display" />
+                                                </Grid>
+
+                                                <Separator Background="{DynamicResource BorderSubtle}" />
+
                                                 <StackPanel Spacing="2">
                                                     <TextBlock Classes="label" Text="SCREEN RESOLUTION" />
                                                     <TextBlock Text="{Binding ScreenText}" Foreground="{DynamicResource TextPrimary}" />

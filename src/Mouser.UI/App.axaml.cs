@@ -8,6 +8,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Mouser.Core.Clipboard;
 using Mouser.Core.Input;
+using Mouser.Core.Networking;
 using Mouser.Core.Security;
 using Mouser.UI.Services;
 using Mouser.UI.ViewModels;
@@ -33,6 +34,7 @@ public partial class App : Application
     private MainViewModel? _mainViewModel;
     private SettingsStore? _settings;
     private AppLockService? _appLock;
+    private bool _wasWorkstationLocked;
     private ClipboardWatcher? _clipboardWatcher;
     private IClipboardAccess? _clipboardAccess;
     private DimOverlayService? _dimOverlayService;
@@ -312,10 +314,18 @@ public partial class App : Application
                 }
             }
 
+            _wasWorkstationLocked = WindowsSession.IsWorkstationLocked();
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _refreshTimer.Tick += async (_, _) =>
             {
-                if (ShouldAutoLock(_appLock, settings.Current, WindowsSession.IsWorkstationLocked(), WindowsSession.IdleTime()))
+                bool isWorkstationLocked = WindowsSession.IsWorkstationLocked();
+                if (isWorkstationLocked && !_wasWorkstationLocked)
+                {
+                    _ = _host?.BroadcastPowerEventAsync(PowerEventKind.Lock);
+                }
+                _wasWorkstationLocked = isWorkstationLocked;
+
+                if (ShouldAutoLock(_appLock, settings.Current, isWorkstationLocked, WindowsSession.IdleTime()))
                 {
                     _appLock?.Lock();
                 }

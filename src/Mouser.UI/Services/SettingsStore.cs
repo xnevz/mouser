@@ -113,6 +113,9 @@ public sealed class PeerSettings
     public double MouseSpeed { get; set; } = 1.0;
     public double ScrollSpeed { get; set; } = 1.0;
     public bool InvertScroll { get; set; }
+    public bool SyncLock { get; set; } = false;
+    public bool SyncSleep { get; set; } = false;
+    public bool SyncDisplayOff { get; set; } = false;
 }
 
 /// <summary>Loads and saves <see cref="AppSettings"/> as JSON in the per-user data folder.</summary>
