@@ -117,7 +117,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | C3 | Lock screen and setup UI | C2, B11 | L |
 | ✅ | C4 | Ctrl+L, tray Lock, idle lock, Windows-lock, quit blocked | C3 | M |
 | ✅ | C5 | Encrypt `clipboard.db` (SQLCipher spike first) | C3 | L |
-| ⬜ | C6 | Android app lock (biometric) | A13 | M |
+| ✅ | C6 | Android app lock (biometric) | A13 | M |
 | ✅ | C7 | Lock all paired devices | C4 | M |
 | 🅿️ | C8 | Windows Hello (spike) | C4 | M |
 
@@ -332,3 +332,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - E11: Implemented VirtualPlane for multi-computer chains (A-B-C) with non-overlapping bounding validation, gap edge-stopping, and direct peer-to-peer active link switching; added AnchorId to PeerSettings, DeviceDetailViewModel, and MonitorLayoutViewModel; wired SwitchPeerLocked and ReleasePeerInput in KvmController; added 4 unit tests in VirtualPlaneTests and all 47 KvmControllerTests green (3 s).
 - H2/H8: Blocked waiting for user Authenticode code-signing certificate; marked as ⛔ per card instructions ('Do not start without the user's certificate').
 - A13: Added Slate light palette to Color.kt and lightColorScheme + System mode to Theme.kt; converted all backgrounds, text, and borders across MainActivity, ConnectionBar, TrackpadSurface, AirMouseSurface, and MediaMacrosView to dynamic MaterialTheme.colorScheme tokens; added theme mode persistence in MouserViewModel and FilterChips chooser in ConnectionBar; verified 0 remaining Zinc/raw hex occurrences outside theme.
+- C6: Added androidx.biometric:biometric:1.1.0 dependency, LockState pure timeout state machine, LockScreen composable, and FLAG_SECURE window masking; migrated MainActivity to FragmentActivity with BiometricPrompt; added App Lock toggle in ConnectionBar and input suppression in MouserViewModel while locked; added 5 unit tests in LockStateTest.
