@@ -653,4 +653,25 @@ public class KvmControllerTests
             if (File.Exists(tmp)) File.Delete(tmp);
         }
     }
+
+    [Fact]
+    public async Task RapidMoves_AreCoalesced_AndFlushedByTimer()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        rig.CrossRight();
+
+        // Entered at -1280, 720
+        Assert.Equal(new[] { "at -1280,720" }, await rig.PeerEventsAsync(1));
+
+        // First move sends immediately
+        rig.Capture.Move(960, 540, 10, 10);
+        // Second move immediately after (within <2ms) is coalesced into pending
+        rig.Capture.Move(960, 540, 20, 20);
+
+        // Within a short delay, the 4ms coalesce timer flushes the pending move
+        var events = await rig.PeerEventsAsync(3);
+        Assert.Equal("at -1280,720", events[0]);
+        Assert.Equal("at -1270,730", events[1]);
+        Assert.Equal("at -1250,750", events[2]);
+    }
 }

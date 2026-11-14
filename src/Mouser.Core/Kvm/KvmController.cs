@@ -42,6 +42,8 @@ public sealed class KvmController : IDisposable
     private int _virtualX, _virtualY;
     private int _parkX, _parkY;
     private ScreenBounds? _local;
+    private MoveCoalescer? _coalescer;
+    private Timer? _coalesceTimer;
     private Timer? _watchdog;
     private bool _stateDirty;
     private SwitchPolicy _switchPolicy;
@@ -199,6 +201,9 @@ public sealed class KvmController : IDisposable
             peer.MouseYScaler.Reset();
             peer.VScrollScaler.Reset();
             peer.HScrollScaler.Reset();
+            _coalesceTimer?.Dispose();
+            _coalescer = new MoveCoalescer((x, y) => _active?.Link.Send(InputMotionPacket.TypeMoveAbsolute, x, y), minIntervalMs: 2);
+            _coalesceTimer = new Timer(_ => { lock (_lock) { _coalescer?.Flush(); } }, null, 4, 4);
             _virtualX = (int)(peer.Remote.X + peer.Remote.Width / 2);
             _virtualY = (int)(peer.Remote.Y + peer.Remote.Height / 2);
             peer.Link.Send(InputMotionPacket.TypeMoveAbsolute, ClampShort(_virtualX), ClampShort(_virtualY));
@@ -435,11 +440,12 @@ public sealed class KvmController : IDisposable
                 var r = _active.Remote;
                 _virtualX = Math.Clamp(_virtualX, (int)r.X, (int)r.Right - 1);
                 _virtualY = Math.Clamp(_virtualY, (int)r.Y, (int)r.Bottom - 1);
-                link.Send(InputMotionPacket.TypeMoveAbsolute, ClampShort(_virtualX), ClampShort(_virtualY));
+                _coalescer?.Post(ClampShort(_virtualX), ClampShort(_virtualY));
                 return true;
 
             case CaptureKind.Button:
             {
+                _coalescer?.Flush();
                 byte bit = (byte)e.Button;
                 // A release for a press that happened locally belongs to the local OS, or that button stays stuck here.
                 if (!e.IsDown && (_remoteButtons & bit) == 0) return false;
@@ -449,12 +455,14 @@ public sealed class KvmController : IDisposable
             }
 
             case CaptureKind.Wheel:
+                _coalescer?.Flush();
                 int dy = _active.VScrollScaler.Apply(e.Dy);
                 int dx = _active.HScrollScaler.Apply(e.Dx);
                 link.Send(InputMotionPacket.TypeScroll, ClampShort(dx), ClampShort(dy));
                 return true;
 
             case CaptureKind.Key:
+                _coalescer?.Flush();
                 if (e.IsDown) _remoteKeys.Add(e.Key);
                 else if (!_remoteKeys.Remove(e.Key)) return false; // same rule as buttons
                 link.Send(InputMotionPacket.TypeKey, (short)e.Key, (short)(e.IsDown ? 1 : 0));
@@ -497,6 +505,9 @@ public sealed class KvmController : IDisposable
         peer.MouseYScaler.Reset();
         peer.VScrollScaler.Reset();
         peer.HScrollScaler.Reset();
+        _coalesceTimer?.Dispose();
+        _coalescer = new MoveCoalescer((x, y) => _active?.Link.Send(InputMotionPacket.TypeMoveAbsolute, x, y), minIntervalMs: 2);
+        _coalesceTimer = new Timer(_ => { lock (_lock) { _coalescer?.Flush(); } }, null, 4, 4);
         _virtualX = (int)Math.Clamp(e.EntryX - peer.Placed.X + peer.Remote.X, peer.Remote.X, peer.Remote.Right - 1);
         _virtualY = (int)Math.Clamp(e.EntryY - peer.Placed.Y + peer.Remote.Y, peer.Remote.Y, peer.Remote.Bottom - 1);
         peer.Link.Send(InputMotionPacket.TypeMoveAbsolute, ClampShort(_virtualX), ClampShort(_virtualY));
@@ -509,6 +520,11 @@ public sealed class KvmController : IDisposable
     {
         var peer = _active;
         if (peer == null) return;
+
+        _coalesceTimer?.Dispose();
+        _coalesceTimer = null;
+        _coalescer?.Flush();
+        _coalescer = null;
 
         if (_remoteButtons != 0) peer.Link.Send(InputMotionPacket.TypeButton, buttons: 0);
         foreach (var key in _remoteKeys) peer.Link.Send(InputMotionPacket.TypeKey, (short)key, 0);
@@ -570,6 +586,7 @@ public sealed class KvmController : IDisposable
     public void Dispose()
     {
         Stop();
+        _coalesceTimer?.Dispose();
         _capture.Handler = null;
         _capture.Dispose();
     }

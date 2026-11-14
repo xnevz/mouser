@@ -150,7 +150,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | E3 | Hotkeys page, configurable hotkeys, panic double-press | D15 parser | L |
 | ✅ | E4 | Jump hotkeys and "next computer" | E3 | M |
 | ✅ | E5 | Mouse speed, scroll speed, reverse scroll per device | B9 | M |
-| ⬜ | E6 | Coalesce moves for 1000 Hz mice | – | M |
+| ✅ | E6 | Coalesce moves for 1000 Hz mice | – | M |
 | ⬜ | E7 | Dim inactive displays (control indicator) | A12 | M |
 | ⬜ | E8 | Wrap-around and pixel-aligned entry | E1 | S |
 | ⬜ | E9a | Pure `EdgeMap` (per-monitor crossing) | E1 | M |
