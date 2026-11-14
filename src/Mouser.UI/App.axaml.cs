@@ -235,12 +235,13 @@ public partial class App : Application
 
             if (OperatingSystem.IsWindows())
             {
-                var hotkey = new QuickPasteHotkey();
+                var hotkeyString = settings.Current.QuickPasteHotkey;
+                var hotkey = new QuickPasteHotkey(hotkeyString);
                 hotkey.Pressed += previous => Dispatcher.UIThread.Post(() => ShowQuickPaste(previous, vm));
                 _hotkey = hotkey;
                 vm.ClipboardHistory.QuickPasteHint = hotkey.IsRegistered
-                    ? $"Press {QuickPasteHotkey.Description} in any app to search this history and paste."
-                    : $"{QuickPasteHotkey.Description} is taken by another app, so quick paste is unavailable.";
+                    ? $"Press {hotkey.HotkeyText} in any app to search this history and paste."
+                    : $"{hotkey.HotkeyText} is taken by another app, so quick paste is unavailable.";
             }
 
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -282,7 +283,7 @@ public partial class App : Application
             return true;
         }
 
-        var model = new QuickPasteViewModel(_clipboardStorage);
+        var model = new QuickPasteViewModel(_clipboardStorage, _clipboardAccess);
         var window = new QuickPasteWindow { DataContext = model };
         _quickPaste = window;
         bool closed = false;
@@ -299,9 +300,14 @@ public partial class App : Application
         {
             if (closed) return;
             Close();
-            if (_clipboardAccess != null)
+            var targetItem = model.LastPastedItem ?? model.Selected;
+            if (targetItem?.IsImage == true)
             {
-                if (rich && model.Selected?.HtmlContent is { Length: > 0 } html)
+                await vm.ClipboardHistory.CopyClipCommand.ExecuteAsync(targetItem);
+            }
+            else if (_clipboardAccess != null)
+            {
+                if (rich && targetItem?.HtmlContent is { Length: > 0 } html)
                 {
                     await _clipboardAccess.SetSnapshotAsync(new(text, html, null, null));
                 }

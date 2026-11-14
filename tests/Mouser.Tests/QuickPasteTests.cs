@@ -183,4 +183,188 @@ public class QuickPasteTests
         using var third = new QuickPasteHotkey();
         Assert.True(third.IsRegistered);
     }
+
+    [Fact]
+    public async Task QuickPaste_DigitShortcuts_AssignedToFirstNineItems()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        var history = app.Main.ClipboardHistory;
+        await history.InitializeAsync();
+
+        for (int i = 0; i < 11; i++)
+        {
+            await history.CaptureAsync($"Item {i}");
+            await Task.Delay(10);
+        }
+
+        var paste = new QuickPasteViewModel(app.Storage);
+        await paste.LoadAsync();
+
+        Assert.Equal(11, paste.Items.Count);
+        for (int i = 0; i < 9; i++)
+        {
+            Assert.Equal((i + 1).ToString(), paste.Items[i].ShortcutDigit);
+            Assert.True(paste.Items[i].HasShortcutDigit);
+        }
+        Assert.Null(paste.Items[9].ShortcutDigit);
+        Assert.False(paste.Items[9].HasShortcutDigit);
+        Assert.Null(paste.Items[10].ShortcutDigit);
+        Assert.False(paste.Items[10].HasShortcutDigit);
+    }
+
+    [Fact]
+    public async Task QuickPaste_PasteDigit_PastesItem_WhenQueryEmpty()
+    {
+        var (app, paste) = await SetupAsync();
+        await using var _ = app;
+
+        string? pasted = null;
+        paste.PasteRequested += (t, _) => pasted = t;
+
+        // Digit 2 should paste the 2nd item (index 1)
+        var expected = paste.Items[1].Content;
+        bool result = paste.PasteDigit(2);
+
+        Assert.True(result);
+        Assert.Equal(expected, pasted);
+        Assert.Same(paste.Items[1], paste.LastPastedItem);
+    }
+
+    [Fact]
+    public async Task QuickPaste_PasteDigit_Ignored_WhenQueryNotEmpty()
+    {
+        var (app, paste) = await SetupAsync();
+        await using var _ = app;
+
+        string? pasted = null;
+        paste.PasteRequested += (t, _) => pasted = t;
+
+        paste.Query = "something";
+        bool result = paste.PasteDigit(1);
+
+        Assert.False(result);
+        Assert.Null(pasted);
+    }
+
+    [Fact]
+    public async Task QuickPaste_Tabs_LoadedWithAllAndPinned()
+    {
+        var (app, paste) = await SetupAsync();
+        await using var _ = app;
+
+        Assert.Contains(paste.Tabs, t => t.Name == "All");
+        Assert.Contains(paste.Tabs, t => t.Name == "Pinned");
+    }
+
+    [Fact]
+    public async Task QuickPaste_Tabs_FilterPinned_ShowsOnlyFavorites()
+    {
+        var (app, paste) = await SetupAsync();
+        await using var _ = app;
+
+        var ssh = app.Main.ClipboardHistory.FilteredClips.Single(c => c.Content.StartsWith("ssh"));
+        await app.Main.ClipboardHistory.ToggleStarCommand.ExecuteAsync(ssh);
+
+        paste.SelectTab("Pinned");
+        await paste.LoadAsync();
+
+        Assert.Single(paste.Items);
+        Assert.Equal("ssh deploy@build-server", paste.Items[0].Content);
+        Assert.True(paste.Items[0].IsPinned);
+    }
+
+    [Fact]
+    public async Task QuickPaste_Tabs_FilterByTag_ShowsOnlyClipsWithTag()
+    {
+        var (app, paste) = await SetupAsync();
+        await using var _ = app;
+
+        var clip = paste.Items[0];
+        await app.Storage.AddTagAsync(clip.Id, "Work");
+
+        await paste.LoadTabsAsync();
+        Assert.Contains(paste.Tabs, t => t.Name == "Work");
+
+        paste.SelectTab("Work");
+        await paste.LoadAsync();
+
+        Assert.Single(paste.Items);
+        Assert.Equal(clip.Id, paste.Items[0].Id);
+    }
+
+    [Fact]
+    public async Task QuickPaste_ImageClip_PastesImage()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        var history = app.Main.ClipboardHistory;
+        await history.InitializeAsync();
+
+        // Create an image clip
+        var mediaDir = Path.Combine(app.Settings.DataDirectory, "media");
+        Directory.CreateDirectory(mediaDir);
+        var mediaPath = Path.Combine(mediaDir, "test.png");
+        await File.WriteAllBytesAsync(mediaPath, new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A });
+
+        var imagePayload = new ClipboardPayload
+        {
+            ContentType = ClipboardContentType.Image,
+            TextContent = "Image 100×100",
+            MediaPath = mediaPath,
+            MediaHash = "dummyhash123",
+            Width = 100,
+            Height = 100,
+            MediaBytes = 8
+        };
+        await app.Storage.SaveClipAsync(imagePayload);
+
+        var paste = new QuickPasteViewModel(app.Storage);
+        await paste.LoadAsync();
+
+        var imageItem = paste.Items.FirstOrDefault(i => i.IsImage);
+        Assert.NotNull(imageItem);
+
+        paste.Selected = imageItem;
+        paste.PasteSelected();
+
+        Assert.NotNull(paste.LastPastedItem);
+        Assert.True(paste.LastPastedItem.IsImage);
+        Assert.Equal("Image 100×100", paste.LastPastedItem.Content);
+    }
+
+    [Fact]
+    public void SettingsStore_QuickPasteHotkey_DefaultsAndPersists()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"settings_{Guid.NewGuid():N}.json");
+        try
+        {
+            var store = new SettingsStore(tempFile);
+            Assert.Equal("Win+Alt+V", store.Current.QuickPasteHotkey);
+
+            store.Current.QuickPasteHotkey = "Ctrl+Shift+V";
+            store.Save();
+
+            var store2 = new SettingsStore(tempFile);
+            Assert.Equal("Ctrl+Shift+V", store2.Current.QuickPasteHotkey);
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
+
+    [WindowsFact]
+    [SupportedOSPlatform("windows")]
+    public void QuickPasteHotkey_ParsedProperties_AndInvalidHotkey()
+    {
+        using var hotkey = new QuickPasteHotkey("Ctrl+Shift+F9");
+        Assert.Equal("Ctrl+Shift+F9", hotkey.HotkeyText);
+        Assert.Equal(HotkeyParser.MOD_CONTROL | HotkeyParser.MOD_SHIFT, hotkey.Modifiers);
+        Assert.Equal(0x78u, hotkey.VirtualKey); // VK_F9 is 0x78
+
+        using var invalid = new QuickPasteHotkey("NotAValidHotkey");
+        Assert.False(invalid.IsRegistered);
+        Assert.Equal("NotAValidHotkey", invalid.HotkeyText);
+    }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,12 +21,15 @@ public partial class QuickPasteViewModel : ViewModelBase
     [ObservableProperty] private string _query = string.Empty;
     [ObservableProperty] private ClipboardItemViewModel? _selected;
     [ObservableProperty] private string? _activeTransformName;
+    [ObservableProperty] private string _selectedTab = "All";
 
+    public ObservableCollection<QuickPasteTabViewModel> Tabs { get; } = new();
     public ObservableCollection<ClipboardItemViewModel> Items { get; } = new();
     public bool IsEmpty => Items.Count == 0;
 
     public string CurrentClipboard { get; set; } = string.Empty;
     public int? LastCursorOffset { get; private set; }
+    public ClipboardItemViewModel? LastPastedItem { get; private set; }
 
     /// <summary>The user picked a clip; the host puts it on the clipboard and pastes it.</summary>
     public event Action<string, bool>? PasteRequested;
@@ -39,8 +43,57 @@ public partial class QuickPasteViewModel : ViewModelBase
 
     partial void OnQueryChanged(string value) => _ = LoadAsync();
 
+    partial void OnSelectedTabChanged(string value)
+    {
+        foreach (var tab in Tabs)
+        {
+            tab.IsSelected = string.Equals(tab.Name, value, StringComparison.OrdinalIgnoreCase);
+        }
+        _ = LoadAsync();
+    }
+
+    [RelayCommand]
+    public void SelectTab(string? tabName)
+    {
+        if (string.IsNullOrEmpty(tabName)) tabName = "All";
+        SelectedTab = tabName;
+    }
+
+    public async Task LoadTabsAsync()
+    {
+        var current = SelectedTab;
+        var tags = await _storage.GetTagsAsync();
+        var list = new List<QuickPasteTabViewModel>
+        {
+            new("All", string.Equals(current, "All", StringComparison.OrdinalIgnoreCase)),
+            new("Pinned", string.Equals(current, "Pinned", StringComparison.OrdinalIgnoreCase))
+        };
+
+        foreach (var tag in tags.Where(t => t.Count > 0))
+        {
+            list.Add(new(tag.Name, string.Equals(current, tag.Name, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        Tabs.Clear();
+        foreach (var tab in list)
+        {
+            Tabs.Add(tab);
+        }
+
+        if (!Tabs.Any(t => string.Equals(t.Name, SelectedTab, StringComparison.OrdinalIgnoreCase)))
+        {
+            SelectedTab = "All";
+            if (Tabs.Count > 0) Tabs[0].IsSelected = true;
+        }
+    }
+
     public async Task LoadAsync()
     {
+        if (Tabs.Count == 0)
+        {
+            await LoadTabsAsync();
+        }
+
         if (string.IsNullOrEmpty(CurrentClipboard))
         {
             if (_clipboard != null)
@@ -74,19 +127,62 @@ public partial class QuickPasteViewModel : ViewModelBase
             {
                 Items.Add(new SnippetQuickPasteItemViewModel(snippet));
             }
+            for (int i = 0; i < Items.Count; i++)
+            {
+                Items[i].ShortcutDigit = i < 9 ? (i + 1).ToString() : null;
+            }
             Selected = Items.FirstOrDefault();
             OnPropertyChanged(nameof(IsEmpty));
             return;
         }
 
-        // Starred clips first when not searching: they're the ones people paste over and over.
-        var clips = string.IsNullOrWhiteSpace(Query)
-            ? (await _storage.GetRecentClipsAsync(MaxItems, favoritesOnly: true))
-                .Concat(await _storage.GetRecentClipsAsync(MaxItems)).DistinctBy(c => c.Id).Take(MaxItems).ToList()
-            : await _storage.SearchClipsAsync(Query, MaxItems);
+        List<ClipboardPayload> clips;
+
+        if (string.Equals(SelectedTab, "Pinned", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(Query))
+            {
+                clips = (await _storage.GetRecentClipsAsync(MaxItems, favoritesOnly: true)).ToList();
+            }
+            else
+            {
+                var hits = await _storage.SearchClipsAsync(Query, 50);
+                clips = hits.Where(c => c.IsFavorite).Take(MaxItems).ToList();
+            }
+        }
+        else if (!string.Equals(SelectedTab, "All", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(SelectedTab))
+        {
+            var tagClips = await _storage.GetClipsByTagAsync(SelectedTab, 50);
+            if (string.IsNullOrWhiteSpace(Query))
+            {
+                clips = tagClips.Take(MaxItems).ToList();
+            }
+            else
+            {
+                clips = tagClips.Where(c =>
+                    (c.TextContent != null && c.TextContent.Contains(Query, StringComparison.OrdinalIgnoreCase)) ||
+                    (c.SourceApp != null && c.SourceApp.Contains(Query, StringComparison.OrdinalIgnoreCase))
+                ).Take(MaxItems).ToList();
+            }
+        }
+        else
+        {
+            // Starred clips first when not searching: they're the ones people paste over and over.
+            clips = string.IsNullOrWhiteSpace(Query)
+                ? (await _storage.GetRecentClipsAsync(MaxItems, favoritesOnly: true))
+                    .Concat(await _storage.GetRecentClipsAsync(MaxItems)).DistinctBy(c => c.Id).Take(MaxItems).ToList()
+                : (await _storage.SearchClipsAsync(Query, MaxItems)).ToList();
+        }
 
         Items.Clear();
-        foreach (var clip in clips) Items.Add(new ClipboardItemViewModel(clip));
+        foreach (var clip in clips)
+        {
+            Items.Add(new ClipboardItemViewModel(clip));
+        }
+        for (int i = 0; i < Items.Count; i++)
+        {
+            Items[i].ShortcutDigit = i < 9 ? (i + 1).ToString() : null;
+        }
         Selected = Items.FirstOrDefault();
         OnPropertyChanged(nameof(IsEmpty));
     }
@@ -118,6 +214,18 @@ public partial class QuickPasteViewModel : ViewModelBase
         if (Selected is { } clip) DoPaste(clip, rich);
     }
 
+    public bool PasteDigit(int digit, bool rich = false)
+    {
+        if (!string.IsNullOrEmpty(Query)) return false;
+        int index = digit - 1;
+        if (index >= 0 && index < Items.Count)
+        {
+            DoPaste(Items[index], rich);
+            return true;
+        }
+        return false;
+    }
+
     [RelayCommand]
     private void Paste(ClipboardItemViewModel? item)
     {
@@ -126,6 +234,8 @@ public partial class QuickPasteViewModel : ViewModelBase
 
     private void DoPaste(ClipboardItemViewModel clip, bool rich)
     {
+        Selected = clip;
+        LastPastedItem = clip;
         if (clip is SnippetQuickPasteItemViewModel snippetVm)
         {
             var (expanded, cursorOffset) = SnippetExpander.Expand(snippetVm.Snippet.Body, CurrentClipboard);
@@ -155,6 +265,19 @@ public partial class QuickPasteViewModel : ViewModelBase
 
     [RelayCommand]
     private void Cancel() => Cancelled?.Invoke();
+}
+
+public partial class QuickPasteTabViewModel : ObservableObject
+{
+    public string Name { get; }
+    public string DisplayName => Name.StartsWith('#') || Name == "All" || Name == "Pinned" ? Name : $"#{Name}";
+    [ObservableProperty] private bool _isSelected;
+
+    public QuickPasteTabViewModel(string name, bool isSelected = false)
+    {
+        Name = name;
+        _isSelected = isSelected;
+    }
 }
 
 public sealed class SnippetQuickPasteItemViewModel : ClipboardItemViewModel

@@ -2,39 +2,80 @@ using System;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Threading;
+using Mouser.Core.Clipboard;
 using Mouser.Core.Input;
 
 namespace Mouser.UI.Services;
 
 /// <summary>
-/// System-wide Win+Alt+V hotkey for the quick-paste overlay, plus the focus and Ctrl+V plumbing needed to
+/// System-wide hotkey for the quick-paste overlay, plus the focus and Ctrl+V plumbing needed to
 /// paste into the app that was in front. Windows only.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class QuickPasteHotkey : IDisposable
 {
+    public const string DefaultHotkey = "Win+Alt+V";
     public const string Description = "Win+Alt+V";
 
-    private const uint MOD_ALT = 0x1, MOD_WIN = 0x8, MOD_NOREPEAT = 0x4000;
-    private const uint VK_V = 0x56;
+    private const uint MOD_NOREPEAT = 0x4000;
     private const uint WM_HOTKEY = 0x0312, WM_QUIT = 0x0012;
 
-    private readonly Thread _thread;
+    private readonly Thread? _thread;
     private uint _threadId;
 
-    /// <summary>False when another app already owns the hotkey.</summary>
+    /// <summary>False when another app already owns the hotkey or the hotkey was invalid.</summary>
     public bool IsRegistered { get; private set; }
+
+    public string HotkeyText { get; }
+    public uint Modifiers { get; }
+    public uint VirtualKey { get; }
 
     /// <summary>Raised on the hotkey thread with the window that was in front when the hotkey was pressed.</summary>
     public event Action<nint>? Pressed;
 
-    public QuickPasteHotkey()
+    public QuickPasteHotkey(string? hotkey = null)
     {
+        hotkey = string.IsNullOrWhiteSpace(hotkey) ? DefaultHotkey : hotkey;
+        HotkeyText = hotkey;
+
+        if (HotkeyParser.TryParse(hotkey, out uint mods, out uint vk))
+        {
+            Modifiers = mods;
+            VirtualKey = vk;
+
+            using var ready = new ManualResetEventSlim();
+            _thread = new Thread(() =>
+            {
+                _threadId = GetCurrentThreadId();
+                IsRegistered = RegisterHotKey(0, 1, Modifiers | MOD_NOREPEAT, VirtualKey);
+                ready.Set();
+                while (GetMessageW(out var msg, 0, 0, 0) > 0)
+                {
+                    if (msg.message == WM_HOTKEY) Pressed?.Invoke(GetForegroundWindow());
+                }
+                if (IsRegistered) UnregisterHotKey(0, 1);
+            })
+            { IsBackground = true, Name = "Mouser quick-paste hotkey" };
+            _thread.Start();
+            ready.Wait();
+        }
+        else
+        {
+            IsRegistered = false;
+        }
+    }
+
+    public QuickPasteHotkey(uint modifiers, uint virtualKey, string? hotkeyText = null)
+    {
+        Modifiers = modifiers;
+        VirtualKey = virtualKey;
+        HotkeyText = hotkeyText ?? $"{modifiers}+{virtualKey}";
+
         using var ready = new ManualResetEventSlim();
         _thread = new Thread(() =>
         {
             _threadId = GetCurrentThreadId();
-            IsRegistered = RegisterHotKey(0, 1, MOD_WIN | MOD_ALT | MOD_NOREPEAT, VK_V);
+            IsRegistered = RegisterHotKey(0, 1, Modifiers | MOD_NOREPEAT, VirtualKey);
             ready.Set();
             while (GetMessageW(out var msg, 0, 0, 0) > 0)
             {
@@ -60,8 +101,11 @@ public sealed class QuickPasteHotkey : IDisposable
 
     public void Dispose()
     {
-        PostThreadMessageW(_threadId, WM_QUIT, 0, 0);
-        _thread.Join(TimeSpan.FromSeconds(2));
+        if (_thread != null && _threadId != 0)
+        {
+            PostThreadMessageW(_threadId, WM_QUIT, 0, 0);
+            _thread.Join(TimeSpan.FromSeconds(2));
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]

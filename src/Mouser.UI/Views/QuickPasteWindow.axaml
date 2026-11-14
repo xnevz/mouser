@@ -6,24 +6,108 @@
         Title="Quick paste"
         Width="560" SizeToContent="Height" MaxHeight="520"
         WindowDecorations="None" CanResize="False" ShowInTaskbar="False" Topmost="True"
-        WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="Manual"
         Background="{DynamicResource BgSurface}">
+
+    <Window.Styles>
+        <Style Selector="Button.tab-chip">
+            <Setter Property="Background" Value="{DynamicResource BgRaised}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.tab-chip:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BgHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        </Style>
+        <Style Selector="Button.tab-chip.active /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Accent}" />
+            <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+        </Style>
+    </Window.Styles>
 
     <Border BorderBrush="{DynamicResource Accent}" BorderThickness="1" CornerRadius="10" Padding="12">
         <StackPanel Spacing="10">
             <TextBox x:Name="SearchBox" Text="{Binding Query}" PlaceholderText="Search clipboard history… (Enter to paste, Shift+Enter for rich, Esc to close)" />
 
+            <!-- Tabs: All / Pinned / each tag -->
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding Tabs}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="6" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:QuickPasteTabViewModel">
+                            <Button Classes="tab-chip"
+                                    Classes.active="{Binding IsSelected}"
+                                    Content="{Binding DisplayName}"
+                                    Command="{Binding $parent[Window].((vm:QuickPasteViewModel)DataContext).SelectTabCommand}"
+                                    CommandParameter="{Binding Name}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
             <TextBlock Classes="hint" IsVisible="{Binding IsEmpty}" Margin="4"
                        Text="No clips yet. Copy some text and it shows up here." />
 
             <ListBox x:Name="ClipList" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
-                     Background="Transparent" MaxHeight="400" IsVisible="{Binding !IsEmpty}">
+                     Background="Transparent" MaxHeight="380" IsVisible="{Binding !IsEmpty}">
                 <ListBox.ItemTemplate>
                     <DataTemplate DataType="vm:ClipboardItemViewModel">
-                        <Grid ColumnDefinitions="Auto,*,Auto" Margin="2,4">
-                            <TextBlock Text="{Binding StarIcon}" Foreground="{Binding StarColor}" Margin="0,0,8,0" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="{Binding PreviewTitle}" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="2" Text="{Binding FormattedTime}" Foreground="{DynamicResource TextFaint}" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" Margin="2,3" VerticalAlignment="Center">
+                            <!-- Digit 1-9 shortcut for first nine items -->
+                            <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Margin="0,0,8,0"
+                                    Background="{DynamicResource BgRaised}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
+                                    IsVisible="{Binding HasShortcutDigit}" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding ShortcutDigit}" FontSize="10" FontWeight="Bold"
+                                           Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+
+                            <!-- Thumbnail (if image) or Type Badge -->
+                            <Panel Grid.Column="1" Width="26" Height="26" Margin="0,0,8,0" VerticalAlignment="Center">
+                                <!-- Thumbnail for image clips -->
+                                <Border CornerRadius="4" ClipToBounds="True" Width="26" Height="26"
+                                        IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" Width="26" Height="26" />
+                                </Border>
+                                <!-- Badge for non-image clips -->
+                                <Border Background="{DynamicResource BgRaised}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
+                                        CornerRadius="4" Width="26" Height="26"
+                                        IsVisible="{Binding !IsImage}">
+                                    <TextBlock Text="{Binding BadgeText}" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <!-- Fallback placeholder for image without loaded thumbnail -->
+                                <Border Background="{DynamicResource BgRaised}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
+                                        CornerRadius="4" Width="26" Height="26"
+                                        IsVisible="{Binding IsImagePlaceholder}">
+                                    <TextBlock Text="🖼️" FontSize="11"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </Panel>
+
+                            <!-- Title -->
+                            <TextBlock Grid.Column="2" Text="{Binding PreviewTitle}"
+                                       Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"
+                                       FontSize="13" VerticalAlignment="Center" />
+
+                            <!-- Device -->
+                            <TextBlock Grid.Column="3" Text="{Binding SourceDevice}"
+                                       Foreground="{DynamicResource TextFaint}" FontSize="11" Margin="8,0,0,0"
+                                       VerticalAlignment="Center" />
+
+                            <!-- Star / Pinned indicator -->
+                            <TextBlock Grid.Column="4" Text="{Binding StarIcon}" Foreground="{Binding StarColor}"
+                                       Margin="8,0,0,0" VerticalAlignment="Center" IsVisible="{Binding IsPinned}" />
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

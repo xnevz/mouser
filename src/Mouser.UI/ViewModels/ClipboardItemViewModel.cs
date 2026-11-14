@@ -208,6 +208,12 @@ public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(StarIcon), nameof(StarColor))]
     private bool _isPinned;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasShortcutDigit))]
+    private string? _shortcutDigit;
+
+    public bool HasShortcutDigit => !string.IsNullOrEmpty(ShortcutDigit);
+
     [ObservableProperty] private bool _showDayHeader;
     [ObservableProperty] private int _dayCount;
 
