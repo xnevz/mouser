@@ -124,6 +124,11 @@ public partial class App : Application
             _mainViewModel = vm;
             _window = window;
 
+            if (settings.Current.RunAsAdministrator && !ElevationInfo.IsCurrentProcessElevated())
+            {
+                ToastService.Show("Mouser", "Mouser couldn't start as administrator.");
+            }
+
             _dimOverlayService = new DimOverlayService(settings, () =>
             {
                 if (window.Screens != null)
@@ -192,7 +197,14 @@ public partial class App : Application
             };
 
             var trayIcons = TrayIcon.GetIcons(this);
-            if (trayIcons != null && trayIcons.Count > 0 && trayIcons[0].Menu is { } menu)
+            if (trayIcons != null && trayIcons.Count > 0)
+            {
+                if (ElevationInfo.IsCurrentProcessElevated())
+                {
+                    trayIcons[0].ToolTipText = "Mouser (administrator)";
+                }
+
+                if (trayIcons[0].Menu is { } menu)
             {
                 foreach (var item in menu.Items.OfType<NativeMenuItem>())
                 {
@@ -219,6 +231,7 @@ public partial class App : Application
                     }
                 }
             }
+        }
 
             window.Opened += async (_, _) =>
             {

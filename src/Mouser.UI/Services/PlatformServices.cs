@@ -208,6 +208,13 @@ public sealed class AvaloniaClipboardAccess : IClipboardAccess
     }
 }
 
+public enum StartupMethod
+{
+    None,
+    RunKey,
+    Task
+}
+
 public static class StartupRegistration
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
@@ -215,19 +222,46 @@ public static class StartupRegistration
 
     public static bool IsSupported => OperatingSystem.IsWindows();
 
-    // shortcut: Windows only; macOS (LaunchAgent) and Linux (XDG autostart) need their own entries.
-    public static void Apply(bool enabled)
+    public static StartupMethod ChooseMethod(bool runAsAdmin, bool enabled)
     {
-        if (OperatingSystem.IsWindows()) ApplyWindows(enabled);
+        if (!enabled) return StartupMethod.None;
+        return runAsAdmin ? StartupMethod.Task : StartupMethod.RunKey;
+    }
+
+    // shortcut: Windows only; macOS (LaunchAgent) and Linux (XDG autostart) need their own entries.
+    public static void Apply(bool enabled, bool runAsAdmin = false)
+    {
+        if (OperatingSystem.IsWindows()) ApplyWindows(enabled, runAsAdmin);
     }
 
     [SupportedOSPlatform("windows")]
-    private static void ApplyWindows(bool enabled)
+    private static void ApplyWindows(bool enabled, bool runAsAdmin)
     {
-        using var key = Registry.CurrentUser.CreateSubKey(RunKey);
-        if (enabled && Environment.ProcessPath is { } exe)
-            key.SetValue(ValueName, $"\"{exe}\" --minimized");
+        if (runAsAdmin)
+        {
+            using (var key = Registry.CurrentUser.CreateSubKey(RunKey))
+            {
+                key.DeleteValue(ValueName, throwOnMissingValue: false);
+            }
+
+            if (enabled)
+            {
+                ElevatedLaunch.CreateScheduledTask();
+            }
+            else
+            {
+                ElevatedLaunch.DeleteScheduledTask();
+            }
+        }
         else
-            key.DeleteValue(ValueName, throwOnMissingValue: false);
+        {
+            ElevatedLaunch.DeleteScheduledTask();
+
+            using var key = Registry.CurrentUser.CreateSubKey(RunKey);
+            if (enabled && Environment.ProcessPath is { } exe)
+                key.SetValue(ValueName, $"\"{exe}\" --minimized");
+            else
+                key.DeleteValue(ValueName, throwOnMissingValue: false);
+        }
     }
 }

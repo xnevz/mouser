@@ -65,6 +65,38 @@
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1" IsChecked="{Binding WarnElevatedWindows}" OnContent="" OffContent="" />
                     </Grid>
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Classes="section-title" FontSize="13" Text="Run as administrator" VerticalAlignment="Center" />
+                                <Border Classes="status-pill" IsVisible="{Binding IsElevated}" VerticalAlignment="Center">
+                                    <TextBlock Text="Currently running as administrator" FontSize="11" Foreground="{DynamicResource Success}" />
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Classes="hint" Text="Allows typing and clicking into administrator windows, Task Manager and installers." />
+                            <TextBlock Classes="hint" Text="If Windows asks for a different administrator's password, Mouser uses that account's settings." />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding RunAsAdministrator}" OnContent="" OffContent="" />
+                    </Grid>
+                    <Border Background="{DynamicResource BgHover}" CornerRadius="8" Padding="12" Margin="0,4"
+                            IsVisible="{Binding ShowRestartElevatedPrompt}">
+                        <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding RestartElevatedMessage}" FontSize="12" Foreground="{DynamicResource TextPrimary}"
+                                       VerticalAlignment="Center" TextWrapping="Wrap" />
+                            <Button Grid.Column="1" Classes="primary-btn" Content="Restart now"
+                                    Command="{Binding RestartElevatedCommand}" Margin="12,0,4,0" />
+                            <Button Grid.Column="2" Classes="secondary-btn" Content="Later"
+                                    Command="{Binding DismissRestartPromptCommand}" Margin="4,0,0,0" />
+                        </Grid>
+                    </Border>
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                        <Button Classes="secondary-btn" Content="Restart as administrator"
+                                Command="{Binding RequestRestartElevatedCommand}"
+                                IsVisible="{Binding CanRestartElevated}" />
+                        <Button Classes="secondary-btn" Content="Restart normally"
+                                Command="{Binding RestartNormalCommand}"
+                                IsVisible="{Binding CanRestartNormal}" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
 

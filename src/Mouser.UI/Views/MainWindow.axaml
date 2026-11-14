@@ -7,7 +7,7 @@
         x:Class="Mouser.UI.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Mouser"
+        Title="{Binding WindowTitle}"
         Width="1140" Height="740"
         MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen"
@@ -33,7 +33,12 @@
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Text="Mouser" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="Mouser" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                            <Border Classes="status-pill" IsVisible="{Binding IsElevated}" VerticalAlignment="Center" Padding="6,2">
+                                <TextBlock Text="Admin" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Success}" />
+                            </Border>
+                        </StackPanel>
                         <TextBlock Text="Phone remote &amp; clipboard" FontSize="11" Foreground="{DynamicResource TextMuted}" />
                     </StackPanel>
                 </Grid>

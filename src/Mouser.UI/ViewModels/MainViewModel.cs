@@ -56,6 +56,10 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _statusColor = "#64748b";
     [ObservableProperty] private bool _foregroundIsElevated;
 
+    public bool IsElevated => ElevationInfo.IsCurrentProcessElevated();
+    public string Title => IsElevated ? "Mouser (Administrator)" : "Mouser";
+    public string WindowTitle => Title;
+
     public Func<bool> ElevatedProbe { get; set; } = ForegroundWindowInfo.IsElevated;
     public Func<bool>? RemoteInputActiveProbe { get; set; }
 

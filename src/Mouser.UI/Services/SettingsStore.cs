@@ -36,6 +36,7 @@ public sealed class AppSettings
         }
     }
     public bool StartAtLogin { get; set; }
+    public bool RunAsAdministrator { get; set; } = false;
     public string Theme { get; set; } = "System";
 
     public bool CloseToTray { get; set; } = true;

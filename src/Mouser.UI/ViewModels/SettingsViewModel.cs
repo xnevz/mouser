@@ -42,6 +42,14 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private string _panicWipeHotkey = string.Empty;
     [ObservableProperty] private string _historySizeText = "History uses 0 B";
     [ObservableProperty] private bool _startAtLogin;
+    [ObservableProperty] private bool _runAsAdministrator;
+    [ObservableProperty] private bool _showRestartElevatedPrompt;
+    [ObservableProperty] private string? _restartElevatedMessage;
+
+    public Func<bool> ElevatedProbe { get; set; } = ElevationInfo.IsCurrentProcessElevated;
+    public bool IsElevated => ElevatedProbe();
+    public bool CanRestartElevated => !IsElevated;
+    public bool CanRestartNormal => IsElevated;
     [ObservableProperty] private bool _closeToTray;
     [ObservableProperty] private bool _minimizeToTray;
     [ObservableProperty] private bool _notifications;
@@ -114,6 +122,7 @@ public partial class SettingsViewModel : ViewModelBase
             ?? RetentionOptions.FirstOrDefault(r => r.Hours == 720)
             ?? RetentionOptions[3];
         _startAtLogin = s.StartAtLogin;
+        _runAsAdministrator = s.RunAsAdministrator;
         _closeToTray = s.CloseToTray;
         _minimizeToTray = s.MinimizeToTray;
         _notifications = s.Notifications;
@@ -320,13 +329,68 @@ public partial class SettingsViewModel : ViewModelBase
     {
         try
         {
-            StartupRegistration.Apply(value);
+            StartupRegistration.Apply(value, RunAsAdministrator);
             Save(s => s.StartAtLogin = value);
         }
         catch (Exception e) when (e is UnauthorizedAccessException or System.Security.SecurityException)
         {
             StatusMessage = $"Couldn't change startup setting: {e.Message}";
         }
+    }
+
+    partial void OnRunAsAdministratorChanged(bool value)
+    {
+        Save(s => s.RunAsAdministrator = value);
+        try
+        {
+            StartupRegistration.Apply(StartAtLogin, value);
+        }
+        catch (Exception e) when (e is UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            StatusMessage = $"Couldn't change startup setting: {e.Message}";
+        }
+
+        if (value && !IsElevated)
+        {
+            ShowRestartElevatedPrompt = true;
+            RestartElevatedMessage = "Mouser needs to restart as administrator to apply this change.";
+        }
+        else if (!value)
+        {
+            ShowRestartElevatedPrompt = false;
+        }
+    }
+
+    [RelayCommand]
+    private void RequestRestartElevated()
+    {
+        if (IsElevated) return;
+        ShowRestartElevatedPrompt = true;
+        RestartElevatedMessage = "Mouser needs to restart as administrator to apply this change.";
+    }
+
+    [RelayCommand]
+    private void RestartElevated()
+    {
+        bool restarted = ElevatedLaunch.RestartElevated();
+        if (!restarted)
+        {
+            StatusMessage = "Windows permission was declined. Nothing changed.";
+            RunAsAdministrator = false;
+            ShowRestartElevatedPrompt = false;
+        }
+    }
+
+    [RelayCommand]
+    private void RestartNormal()
+    {
+        ElevatedLaunch.RestartNormal();
+    }
+
+    [RelayCommand]
+    private void DismissRestartPrompt()
+    {
+        ShowRestartElevatedPrompt = false;
     }
 
     [RelayCommand]
