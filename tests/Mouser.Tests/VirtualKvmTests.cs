@@ -246,4 +246,54 @@ public sealed class VirtualKvmTests
         Assert.False(kvm.IsRedirected);
         Assert.Equal("local", kvm.CurrentFocusedHostId);
     }
+
+    [Fact]
+    public void VirtualKvmManager_StackedLocalMonitors_CrossingOnlyAllowedWherePeerExists()
+    {
+        var top = new Mouser.Core.Geometry.Monitor(0, 0, 1920, 1080);
+        var bottom = new Mouser.Core.Geometry.Monitor(0, 1080, 1920, 1080);
+        var kvm = new VirtualKvmManager();
+        kvm.SetLocalMonitors(new[] { top, bottom });
+
+        var peerBounds = new ScreenBounds { HostId = "peer", Hostname = "PeerPC", X = 1920, Y = 0, Width = 1920, Height = 1080 };
+        var peerMonitors = new[] { new Mouser.Core.Geometry.Monitor(1920, 0, 1920, 1080) };
+        kvm.AddRemoteScreen(peerBounds, peerMonitors);
+
+        // y = 500 is in the top monitor, beside the peer -> crosses
+        bool crossedTop = kvm.ProcessLocalMotion(1920, 500, 30, 0);
+        Assert.True(crossedTop);
+        Assert.True(kvm.IsRedirected);
+        Assert.Equal("peer", kvm.CurrentFocusedHostId);
+
+        kvm.SwitchBackToLocal();
+        Assert.False(kvm.IsRedirected);
+
+        // y = 1500 is in the bottom monitor, where no peer exists -> does not cross
+        bool crossedBottom = kvm.ProcessLocalMotion(1920, 1500, 30, 0);
+        Assert.False(crossedBottom);
+        Assert.False(kvm.IsRedirected);
+        Assert.Equal("local", kvm.CurrentFocusedHostId);
+    }
+
+    [Fact]
+    public void VirtualKvmManager_StackedLocalMonitors_InnerEdgeDoesNotCross()
+    {
+        var top = new Mouser.Core.Geometry.Monitor(0, 0, 1920, 1080);
+        var bottom = new Mouser.Core.Geometry.Monitor(0, 1080, 1920, 1080);
+        var kvm = new VirtualKvmManager();
+        kvm.SetLocalMonitors(new[] { top, bottom });
+
+        var peerBounds = new ScreenBounds { HostId = "peer", Hostname = "PeerPC", X = 1920, Y = 0, Width = 1920, Height = 1080 };
+        kvm.AddRemoteScreen(peerBounds);
+
+        // Pushing down across bottom edge of top monitor (inner edge) -> does not cross
+        bool crossedDown = kvm.ProcessLocalMotion(960, 1080, 0, 30);
+        Assert.False(crossedDown);
+        Assert.False(kvm.IsRedirected);
+
+        // Pushing up across top edge of bottom monitor (inner edge) -> does not cross
+        bool crossedUp = kvm.ProcessLocalMotion(960, 1080, 0, -30);
+        Assert.False(crossedUp);
+        Assert.False(kvm.IsRedirected);
+    }
 }

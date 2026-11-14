@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Mouser.Core.Geometry;
+using Monitor = Mouser.Core.Geometry.Monitor;
 
 namespace Mouser.Core.Kvm;
 
@@ -32,7 +33,9 @@ public sealed class VirtualKvmManager
     private readonly object _lock = new();
 
     public ScreenBounds? LocalScreen { get; private set; }
+    public IReadOnlyList<Monitor> LocalMonitors { get; private set; } = Array.Empty<Monitor>();
     public List<ScreenBounds> RemoteScreens { get; } = new();
+    private readonly Dictionary<string, IReadOnlyList<Monitor>> _remotePlacedMonitors = new();
     public KeyTranslationService KeyTranslator { get; } = new();
 
     public bool IsScreenLocked { get; set; }
@@ -70,12 +73,56 @@ public sealed class VirtualKvmManager
         }
     }
 
-    public void AddRemoteScreen(ScreenBounds screen)
+    public void SetLocalMonitors(IReadOnlyList<Monitor> monitors)
+    {
+        lock (_lock)
+        {
+            LocalMonitors = monitors ?? Array.Empty<Monitor>();
+            if (LocalMonitors.Count > 0)
+            {
+                double minX = LocalMonitors.Min(m => m.X);
+                double minY = LocalMonitors.Min(m => m.Y);
+                double maxX = LocalMonitors.Max(m => m.Right);
+                double maxY = LocalMonitors.Max(m => m.Bottom);
+                LocalScreen = new ScreenBounds
+                {
+                    HostId = LocalScreen?.HostId ?? "local",
+                    Hostname = LocalScreen?.Hostname ?? Environment.MachineName,
+                    X = minX,
+                    Y = minY,
+                    Width = maxX - minX,
+                    Height = maxY - minY
+                };
+                if (!IsRedirected)
+                {
+                    CurrentFocusedHostId = LocalScreen.HostId;
+                }
+            }
+        }
+    }
+
+    public void AddRemoteScreen(ScreenBounds screen, IReadOnlyList<Monitor>? monitors = null)
     {
         lock (_lock)
         {
             RemoteScreens.RemoveAll(s => s.HostId == screen.HostId);
             RemoteScreens.Add(screen);
+            if (monitors != null && monitors.Count > 0)
+            {
+                _remotePlacedMonitors[screen.HostId] = monitors;
+            }
+            else
+            {
+                _remotePlacedMonitors[screen.HostId] = new[] { new Monitor(screen.X, screen.Y, screen.Width, screen.Height) };
+            }
+        }
+    }
+
+    public IReadOnlyList<Monitor> GetPlacedMonitors(string hostId)
+    {
+        lock (_lock)
+        {
+            return _remotePlacedMonitors.TryGetValue(hostId, out var monitors) ? monitors : Array.Empty<Monitor>();
         }
     }
 
@@ -84,6 +131,7 @@ public sealed class VirtualKvmManager
         lock (_lock)
         {
             RemoteScreens.RemoveAll(s => s.HostId == hostId);
+            _remotePlacedMonitors.Remove(hostId);
             if (CurrentFocusedHostId == hostId)
             {
                 SwitchBackToLocal();
@@ -131,21 +179,78 @@ public sealed class VirtualKvmManager
                 return false;
             }
 
-            // Find an adjacent remote screen matching this edge
-            var targetScreen = FindAdjacentScreen(hitEdge);
-            if (targetScreen == null)
+            if (LocalMonitors.Count > 0)
             {
+                double checkX = Math.Clamp(cursorX, LocalScreen.X, LocalScreen.Right);
+                double checkY = Math.Clamp(cursorY, LocalScreen.Y, LocalScreen.Bottom);
+
+                if (!EdgeMap.IsOuterEdge(LocalMonitors, checkX, checkY, hitEdge))
+                {
+                    _activeCollisionEdge = ScreenEdge.None;
+                    _accumulatedEdgePush = 0;
+                    return false;
+                }
+
+                // Find candidate remote screens on this edge
+                var candidates = RemoteScreens.Where(s => hitEdge switch
+                {
+                    ScreenEdge.Right => s.X >= LocalScreen.Right - 50,
+                    ScreenEdge.Left => s.Right <= LocalScreen.X + 50,
+                    ScreenEdge.Bottom => s.Y >= LocalScreen.Bottom - 50,
+                    ScreenEdge.Top => s.Bottom <= LocalScreen.Y + 50,
+                    _ => false
+                }).ToList();
+
+                ScreenBounds? targetScreen = null;
+                (int PeerMonitorIndex, double EntryX, double EntryY)? crossing = null;
+
+                foreach (var screen in candidates)
+                {
+                    var placed = _remotePlacedMonitors.TryGetValue(screen.HostId, out var pm) && pm.Count > 0
+                        ? pm
+                        : new[] { new Monitor(screen.X, screen.Y, screen.Width, screen.Height) };
+
+                    var c = EdgeMap.FindCrossing(LocalMonitors, placed, checkX, checkY, hitEdge);
+                    if (c != null)
+                    {
+                        targetScreen = screen;
+                        crossing = c;
+                        break;
+                    }
+                }
+
+                if (targetScreen == null || crossing == null)
+                {
+                    _activeCollisionEdge = ScreenEdge.None;
+                    _accumulatedEdgePush = 0;
+                    return false;
+                }
+
+                if (CheckEdgeResistanceExceeded(hitEdge, deltaX, deltaY))
+                {
+                    ExecuteTransitionToRemote(targetScreen, cursorX, cursorY, hitEdge, crossing.Value.EntryX, crossing.Value.EntryY);
+                    return true;
+                }
+
                 return false;
             }
-
-            if (CheckEdgeResistanceExceeded(hitEdge, deltaX, deltaY))
+            else
             {
-                // Transition to remote screen!
-                ExecuteTransitionToRemote(targetScreen, cursorX, cursorY, hitEdge);
-                return true;
-            }
+                // Single-monitor / legacy fallback
+                var targetScreen = FindAdjacentScreen(hitEdge);
+                if (targetScreen == null)
+                {
+                    return false;
+                }
 
-            return false;
+                if (CheckEdgeResistanceExceeded(hitEdge, deltaX, deltaY))
+                {
+                    ExecuteTransitionToRemote(targetScreen, cursorX, cursorY, hitEdge);
+                    return true;
+                }
+
+                return false;
+            }
         }
     }
 
@@ -201,17 +306,38 @@ public sealed class VirtualKvmManager
 
     public ScreenEdge DetectScreenEdgeCollision(double x, double y, short dx, short dy)
     {
+        if (LocalMonitors.Count > 0)
+        {
+            const double boundaryMargin = 3.0;
+            double cx = LocalScreen != null ? Math.Clamp(x, LocalScreen.X, LocalScreen.Right) : x;
+            double cy = LocalScreen != null ? Math.Clamp(y, LocalScreen.Y, LocalScreen.Bottom) : y;
+
+            foreach (var m in LocalMonitors)
+            {
+                if (Math.Abs(cx - m.Right) <= boundaryMargin && dx > 0 && cy >= m.Y - boundaryMargin && cy <= m.Bottom + boundaryMargin)
+                    return ScreenEdge.Right;
+                if (Math.Abs(cx - m.X) <= boundaryMargin && dx < 0 && cy >= m.Y - boundaryMargin && cy <= m.Bottom + boundaryMargin)
+                    return ScreenEdge.Left;
+                if (Math.Abs(cy - m.Bottom) <= boundaryMargin && dy > 0 && cx >= m.X - boundaryMargin && cx <= m.Right + boundaryMargin)
+                    return ScreenEdge.Bottom;
+                if (Math.Abs(cy - m.Y) <= boundaryMargin && dy < 0 && cx >= m.X - boundaryMargin && cx <= m.Right + boundaryMargin)
+                    return ScreenEdge.Top;
+            }
+
+            return ScreenEdge.None;
+        }
+
         if (LocalScreen == null) return ScreenEdge.None;
 
-        const double boundaryMargin = 3.0;
+        const double margin = 3.0;
 
-        if (x >= LocalScreen.Right - boundaryMargin && dx > 0)
+        if (x >= LocalScreen.Right - margin && dx > 0)
             return ScreenEdge.Right;
-        if (x <= LocalScreen.X + boundaryMargin && dx < 0)
+        if (x <= LocalScreen.X + margin && dx < 0)
             return ScreenEdge.Left;
-        if (y >= LocalScreen.Bottom - boundaryMargin && dy > 0)
+        if (y >= LocalScreen.Bottom - margin && dy > 0)
             return ScreenEdge.Bottom;
-        if (y <= LocalScreen.Y + boundaryMargin && dy < 0)
+        if (y <= LocalScreen.Y + margin && dy < 0)
             return ScreenEdge.Top;
 
         return ScreenEdge.None;
@@ -231,16 +357,27 @@ public sealed class VirtualKvmManager
         };
     }
 
-    private void ExecuteTransitionToRemote(ScreenBounds target, double exitX, double exitY, ScreenEdge edge)
+    private void ExecuteTransitionToRemote(ScreenBounds target, double exitX, double exitY, ScreenEdge edge,
+        double? overrideEntryX = null, double? overrideEntryY = null)
     {
         IsRedirected = true;
         CurrentFocusedHostId = target.HostId;
         _activeCollisionEdge = ScreenEdge.None;
         _accumulatedEdgePush = 0;
 
-        // Calculate entry position on target screen
-        var (entryX, entryY) = CoordinateTransformationEngine.CalculateEntryPosition(
-            exitX, exitY, LocalScreen!, target, edge, ProportionalEntry);
+        double entryX, entryY;
+        if (!ProportionalEntry && overrideEntryX.HasValue && overrideEntryY.HasValue)
+        {
+            entryX = overrideEntryX.Value;
+            entryY = overrideEntryY.Value;
+        }
+        else
+        {
+            var (cx, cy) = CoordinateTransformationEngine.CalculateEntryPosition(
+                exitX, exitY, LocalScreen!, target, edge, ProportionalEntry);
+            entryX = cx;
+            entryY = cy;
+        }
 
         CursorTransitionedToRemote?.Invoke(this, new CursorTransitionEventArgs(
             target.HostId, target.Hostname, entryX, entryY, edge));

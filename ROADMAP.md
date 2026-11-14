@@ -155,7 +155,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | E8 | Wrap-around and pixel-aligned entry | E1 | S |
 | ✅ | E9a | Pure `EdgeMap` (per-monitor crossing) | E1 | M |
 | ✅ | E9b | Send all monitors in the beacon | E9a | M |
-| ⬜ | E9c | Use per-monitor crossing in the KVM | E9b | L |
+| ✅ | E9c | Use per-monitor crossing in the KVM | E9b | L |
 | ⬜ | E9d | Layout view draws every monitor | E9c | S |
 | ⬜ | E10 | Draggable layout with offsets | E9d | L |
 | ⬜ | E11 | Several computers per side and chains (design review first) | E10 | XL |

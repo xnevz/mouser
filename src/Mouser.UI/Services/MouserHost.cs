@@ -375,6 +375,7 @@ public sealed class MouserHost : IDisposable
     public void SetLocalMonitors(IReadOnlyList<Mouser.Core.Geometry.Monitor> monitors)
     {
         _monitors = monitors;
+        Kvm?.SetLocalMonitors(monitors);
         Discovery?.UpdateLocalMonitors(monitors);
     }
 
@@ -542,7 +543,8 @@ public sealed class MouserHost : IDisposable
 
             var bounds = new ScreenBounds { X = peer.ScreenX, Y = peer.ScreenY, Width = peer.ScreenWidth, Height = peer.ScreenHeight };
             Kvm?.SetPeer(id, peer.Hostname, link, bounds, link.IsPaired ? saved.Placement : PeerPlacement.None,
-                saved.MouseSpeed, saved.ScrollSpeed, saved.InvertScroll);
+                saved.MouseSpeed, saved.ScrollSpeed, saved.InvertScroll,
+                peer.Monitors);
         }
 
         UpdateKvmRunning();

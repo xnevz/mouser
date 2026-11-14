@@ -730,4 +730,55 @@ public class KvmControllerTests
         Assert.Null(rig.Kvm.ActivePeerId);
         Assert.Equal((1915, 540), rig.Capture.Cursor);
     }
+
+    [Fact]
+    public async Task StackedLocalMonitors_CrossingToPeer_OnlyBesideMatchingMonitor()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+
+        var top = new Mouser.Core.Geometry.Monitor(0, 0, 1920, 1080);
+        var bottom = new Mouser.Core.Geometry.Monitor(0, 1080, 1920, 1080);
+        rig.Kvm.SetLocalMonitors(new[] { top, bottom });
+
+        // Peer is to the right, placed only beside top monitor (y=0..1080)
+        var peerRemote = new ScreenBounds { X = 0, Y = 0, Width = 1920, Height = 1080 };
+        var peerMonitors = new[] { new Mouser.Core.Geometry.Monitor(0, 0, 1920, 1080) };
+        rig.Kvm.SetPeer("peer", "Studio PC", rig.Link, peerRemote, PeerPlacement.Right, monitors: peerMonitors);
+
+        // 1. Move across inner edge between top and bottom: should stay local
+        Assert.False(rig.Capture.Move(960, 1080, 0, 30));
+        Assert.Null(rig.Kvm.ActivePeerId);
+
+        // 2. Push right at y = 1500 (in bottom monitor where no peer exists): should stay local
+        Assert.False(rig.Capture.Move(1925, 1500, 30, 0));
+        Assert.Null(rig.Kvm.ActivePeerId);
+
+        // 3. Push right at y = 500 (in top monitor beside peer): crosses to peer
+        Assert.True(rig.Capture.Move(1925, 500, 30, 0));
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+    }
+
+    [Fact]
+    public async Task PeerWithMultipleMonitors_ClampsVirtualCursorToMonitors()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+
+        // Remote peer has 2 monitors:
+        // Mon 1: (0, 0, 1920, 1080)
+        // Mon 2: (1920, 1080, 1920, 1080) -- diagonal layout
+        var peerMon1 = new Mouser.Core.Geometry.Monitor(0, 0, 1920, 1080);
+        var peerMon2 = new Mouser.Core.Geometry.Monitor(1920, 1080, 1920, 1080);
+        var peerRemote = new ScreenBounds { X = 0, Y = 0, Width = 3840, Height = 2160 };
+
+        rig.Kvm.SetPeer("peer", "Studio PC", rig.Link, peerRemote, PeerPlacement.Right, monitors: new[] { peerMon1, peerMon2 });
+
+        // Enter peer at y = 500
+        Assert.True(rig.Capture.Move(1925, 500, 30, 0));
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+
+        // Move into empty notch at (2500, 500) where peer has no monitor:
+        // Input should be swallowed and virtual cursor clamped to nearest monitor
+        Assert.True(rig.Capture.Move(960, 540, 2500, 0));
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+    }
 }

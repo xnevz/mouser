@@ -1,6 +1,7 @@
 using Mouser.Core.Geometry;
 using Mouser.Core.Input;
 using Mouser.Core.Networking;
+using Monitor = Mouser.Core.Geometry.Monitor;
 
 namespace Mouser.Core.Kvm;
 
@@ -28,7 +29,8 @@ public sealed class KvmController : IDisposable
         MotionScaler MouseXScaler,
         MotionScaler MouseYScaler,
         MotionScaler VScrollScaler,
-        MotionScaler HScrollScaler);
+        MotionScaler HScrollScaler,
+        IReadOnlyList<Monitor> RemoteMonitors);
 
     private readonly IInputCapture _capture;
     private readonly VirtualKvmManager _edges = new();
@@ -42,6 +44,7 @@ public sealed class KvmController : IDisposable
     private int _virtualX, _virtualY;
     private int _parkX, _parkY;
     private ScreenBounds? _local;
+    private IReadOnlyList<Monitor> _localMonitors = Array.Empty<Monitor>();
     private MoveCoalescer? _coalescer;
     private Timer? _coalesceTimer;
     private Timer? _watchdog;
@@ -57,6 +60,7 @@ public sealed class KvmController : IDisposable
     public bool IsScreenLocked => _edges.IsScreenLocked;
     public string? ActivePeerId { get { lock (_lock) return _active?.Id; } }
     public string? ActivePeerName { get { lock (_lock) return _active?.Name; } }
+    public IReadOnlyList<Monitor> LocalMonitors { get { lock (_lock) return _localMonitors; } }
     public KvmOptions Options { get; private set; } = new();
 
     public Func<(bool Fullscreen, bool Maximized)>? ForegroundProbe
@@ -129,24 +133,64 @@ public sealed class KvmController : IDisposable
             foreach (var peer in peers)
             {
                 _edges.RemoveRemoteScreen(peer.Id);
-                SetPeerLocked(peer.Id, peer.Name, peer.Link, peer.Remote, peer.Placement);
+                SetPeerLocked(peer.Id, peer.Name, peer.Link, peer.Remote, peer.Placement, peer.RemoteMonitors);
+            }
+        }
+    }
+
+    public void SetLocalMonitors(IReadOnlyList<Monitor> monitors)
+    {
+        lock (_lock)
+        {
+            _localMonitors = monitors ?? Array.Empty<Monitor>();
+            _edges.SetLocalMonitors(_localMonitors);
+            if (_localMonitors.Count > 0)
+            {
+                double minX = _localMonitors.Min(m => m.X);
+                double minY = _localMonitors.Min(m => m.Y);
+                double maxX = _localMonitors.Max(m => m.Right);
+                double maxY = _localMonitors.Max(m => m.Bottom);
+                var bounds = new ScreenBounds
+                {
+                    HostId = _local?.HostId ?? "local",
+                    Hostname = _local?.Hostname ?? Environment.MachineName,
+                    X = minX,
+                    Y = minY,
+                    Width = maxX - minX,
+                    Height = maxY - minY
+                };
+                _local = bounds;
+                _parkX = (int)(bounds.X + bounds.Width / 2);
+                _parkY = (int)(bounds.Y + bounds.Height / 2);
+
+                // Peers are placed relative to our desktop, so re-place them all.
+                var peers = _peers.Values.ToList();
+                _peers.Clear();
+                foreach (var peer in peers)
+                {
+                    _edges.RemoveRemoteScreen(peer.Id);
+                    SetPeerLocked(peer.Id, peer.Name, peer.Link, peer.Remote, peer.Placement, peer.RemoteMonitors);
+                }
             }
         }
     }
 
     /// <param name="remoteDesktop">The peer's desktop bounds in the peer's own coordinates (from its beacon).</param>
-    public void SetPeer(string id, string name, PeerLink link, ScreenBounds remoteDesktop, PeerPlacement placement)
+    public void SetPeer(string id, string name, PeerLink link, ScreenBounds remoteDesktop, PeerPlacement placement,
+        IReadOnlyList<Monitor>? monitors = null)
     {
-        lock (_lock) SetPeerLocked(id, name, link, remoteDesktop, placement);
+        lock (_lock) SetPeerLocked(id, name, link, remoteDesktop, placement, monitors);
         RaiseIfDirty();
     }
 
-    public void SetPeer(string id, string name, PeerLink link, ScreenBounds remoteDesktop, PeerPlacement placement, double mouseSpeed, double scrollSpeed, bool invertScroll)
+    public void SetPeer(string id, string name, PeerLink link, ScreenBounds remoteDesktop, PeerPlacement placement,
+        double mouseSpeed, double scrollSpeed, bool invertScroll,
+        IReadOnlyList<Monitor>? monitors = null)
     {
         lock (_lock)
         {
             _peerMotions[id] = (mouseSpeed, scrollSpeed, invertScroll);
-            SetPeerLocked(id, name, link, remoteDesktop, placement);
+            SetPeerLocked(id, name, link, remoteDesktop, placement, monitors);
         }
         RaiseIfDirty();
     }
@@ -252,10 +296,16 @@ public sealed class KvmController : IDisposable
         return JumpToLocked(orderedPeers[index + 1].Id);
     }
 
-    private void SetPeerLocked(string id, string name, PeerLink link, ScreenBounds remote, PeerPlacement placement)
+    private void SetPeerLocked(string id, string name, PeerLink link, ScreenBounds remote, PeerPlacement placement,
+        IReadOnlyList<Monitor>? monitors = null)
     {
+        var peerMonitors = (monitors == null || monitors.Count == 0)
+            ? (IReadOnlyList<Monitor>)new[] { new Monitor(remote.X, remote.Y, remote.Width, remote.Height) }
+            : monitors;
+
         if (_peers.TryGetValue(id, out var existing) && existing.Link == link && existing.Remote == remote
-            && existing.Placement == placement && existing.Name == name)
+            && existing.Placement == placement && existing.Name == name
+            && existing.RemoteMonitors.SequenceEqual(peerMonitors))
             return; // called every second by the app; nothing changed
 
         if (placement == PeerPlacement.None && !_peers.ContainsKey(id)) return;
@@ -266,6 +316,10 @@ public sealed class KvmController : IDisposable
         if (placement == PeerPlacement.None || _local == null || remote.Width <= 0 || remote.Height <= 0) return;
 
         var placed = Place(_local, remote, placement) with { HostId = id, Hostname = name };
+        double offsetX = placed.X - remote.X;
+        double offsetY = placed.Y - remote.Y;
+        var placedMonitors = peerMonitors.Select(m => new Monitor(m.X + offsetX, m.Y + offsetY, m.Width, m.Height)).ToList();
+
         var mouseX = existing?.MouseXScaler ?? new MotionScaler();
         var mouseY = existing?.MouseYScaler ?? new MotionScaler();
         var vscroll = existing?.VScrollScaler ?? new MotionScaler();
@@ -279,9 +333,9 @@ public sealed class KvmController : IDisposable
             hscroll.Speed = motion.ScrollSpeed;
             hscroll.Invert = motion.InvertScroll;
         }
-        var updated = new Peer(id, name, link, remote, placement, placed, mouseX, mouseY, vscroll, hscroll);
+        var updated = new Peer(id, name, link, remote, placement, placed, mouseX, mouseY, vscroll, hscroll, peerMonitors);
         _peers[id] = updated;
-        _edges.AddRemoteScreen(placed);
+        _edges.AddRemoteScreen(placed, placedMonitors);
         if (_active?.Id == id) _active = updated;
     }
 
@@ -398,6 +452,18 @@ public sealed class KvmController : IDisposable
                     return false;
                 }
 
+                if (_localMonitors.Count > 0)
+                {
+                    double checkX = Math.Clamp(e.X, _local.X, _local.Right);
+                    double checkY = Math.Clamp(e.Y, _local.Y, _local.Bottom);
+                    if (!EdgeMap.IsOuterEdge(_localMonitors, checkX, checkY, hitEdge))
+                    {
+                        _switchPolicy.ResetEdgeZone();
+                        _edges.ResetEdgeResistance();
+                        return false;
+                    }
+                }
+
                 if (HasPeer(hitEdge))
                 {
                     if (IsNearEdge(e.X, e.Y, _local))
@@ -480,9 +546,7 @@ public sealed class KvmController : IDisposable
                     ReturnToLocal((localX, localY));
                     return true;
                 }
-                var r = _active.Remote;
-                _virtualX = Math.Clamp(_virtualX, (int)r.X, (int)r.Right - 1);
-                _virtualY = Math.Clamp(_virtualY, (int)r.Y, (int)r.Bottom - 1);
+                (_virtualX, _virtualY) = ClampToMonitors(_virtualX, _virtualY, _active.RemoteMonitors, _active.Remote);
                 _coalescer?.Post(ClampShort(_virtualX), ClampShort(_virtualY));
                 return true;
 
@@ -563,6 +627,7 @@ public sealed class KvmController : IDisposable
         _coalesceTimer = new Timer(_ => { lock (_lock) { _coalescer?.Flush(); } }, null, 4, 4);
         _virtualX = (int)Math.Clamp(e.EntryX - peer.Placed.X + peer.Remote.X, peer.Remote.X, peer.Remote.Right - 1);
         _virtualY = (int)Math.Clamp(e.EntryY - peer.Placed.Y + peer.Remote.Y, peer.Remote.Y, peer.Remote.Bottom - 1);
+        (_virtualX, _virtualY) = ClampToMonitors(_virtualX, _virtualY, peer.RemoteMonitors, peer.Remote);
         peer.Link.Send(InputMotionPacket.TypeMoveAbsolute, ClampShort(_virtualX), ClampShort(_virtualY));
         // Park the real cursor mid-screen so local edges never clamp the deltas we forward.
         _capture.WarpCursor(_parkX, _parkY);
@@ -632,6 +697,45 @@ public sealed class KvmController : IDisposable
             || x >= local.Right - margin
             || y <= local.Y + margin
             || y >= local.Bottom - margin;
+    }
+
+    private static (int X, int Y) ClampToMonitors(int x, int y, IReadOnlyList<Monitor>? monitors, ScreenBounds fallbackBounds)
+    {
+        if (monitors == null || monitors.Count <= 1)
+        {
+            return (
+                (int)Math.Clamp(x, fallbackBounds.X, fallbackBounds.Right - 1),
+                (int)Math.Clamp(y, fallbackBounds.Y, fallbackBounds.Bottom - 1));
+        }
+
+        foreach (var m in monitors)
+        {
+            if (x >= m.X && x <= m.Right - 1 && y >= m.Y && y <= m.Bottom - 1)
+            {
+                return (x, y);
+            }
+        }
+
+        double bestDistSq = double.MaxValue;
+        int bestX = x;
+        int bestY = y;
+
+        foreach (var m in monitors)
+        {
+            int cx = (int)Math.Clamp(x, m.X, m.Right - 1);
+            int cy = (int)Math.Clamp(y, m.Y, m.Bottom - 1);
+            double dx = x - cx;
+            double dy = y - cy;
+            double distSq = dx * dx + dy * dy;
+            if (distSq < bestDistSq)
+            {
+                bestDistSq = distSq;
+                bestX = cx;
+                bestY = cy;
+            }
+        }
+
+        return (bestX, bestY);
     }
 
     private static short ClampShort(int v) => (short)Math.Clamp(v, short.MinValue, short.MaxValue);
