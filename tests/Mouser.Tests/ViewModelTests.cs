@@ -476,6 +476,19 @@ public class ViewModelTests
     }
 
     [Fact]
+    public async Task Settings_AcceptRemoteInput_TogglesAndPersists()
+    {
+        var app = new AppFixture();
+        await using var _ = app;
+        Assert.True(app.Settings.Current.AcceptRemoteInput);
+
+        app.Main.Settings.AcceptRemoteInput = false;
+
+        var reloaded = new SettingsStore(app.Settings.FilePath).Current;
+        Assert.False(reloaded.AcceptRemoteInput);
+    }
+
+    [Fact]
     public void DeviceName_SettingPersistsAndFallbackToMachineName()
     {
         var app = new AppFixture();

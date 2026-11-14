@@ -11,90 +11,148 @@
         <StackPanel Margin="24" Spacing="16" MaxWidth="720" HorizontalAlignment="Left">
             <TextBlock Classes="page-title" Text="Settings" />
 
+            <!-- Card 1: Appearance -->
             <Border Classes="glass-card" Padding="20">
-                <StackPanel Spacing="10">
+                <StackPanel Spacing="12">
                     <TextBlock Classes="section-title" Text="Appearance" />
-                    <TextBlock Classes="hint" Text="System follows your Windows setting." />
-                    <ComboBox ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" Width="160" />
                     <Grid ColumnDefinitions="*,Auto" Margin="0,4">
                         <StackPanel Spacing="2">
-                            <TextBlock Classes="section-title" FontSize="13" Text="Device name" />
-                            <TextBlock Classes="hint" Text="Name other Mouser devices see on the local network." />
+                            <TextBlock Classes="section-title" FontSize="13" Text="Theme" />
+                            <TextBlock Classes="hint" Text="System follows your Windows setting." />
                         </StackPanel>
-                        <TextBox Grid.Column="1" Text="{Binding DeviceName}" Width="200" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" Width="160" />
                     </Grid>
                 </StackPanel>
             </Border>
 
+            <!-- Card 2: General -->
             <Border Classes="glass-card" Padding="20">
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="section-title" Text="Phone connection" />
-                    <TextBlock Classes="hint"
-                               Text="UDP port phones send input to. Change it only if another app already uses it; phones find the new port automatically." />
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <NumericUpDown Value="{Binding InputPort}" Minimum="1024" Maximum="65535" Increment="1"
-                                       FormatString="0" Width="160" />
-                        <Button Classes="secondary-btn" Content="Apply" Command="{Binding ApplyPortCommand}" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <Border Classes="glass-card" Padding="20">
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="section-title" Text="Clipboard history" />
-                    <CheckBox Content="Save text I copy to the clipboard history" IsChecked="{Binding ClipboardHistoryEnabled}" />
-                    <CheckBox Content="Don't save things that look like passwords, API keys, private keys or card numbers"
-                              IsChecked="{Binding SkipSensitiveClips}" />
-                    <CheckBox Content="Share copied text with paired computers (encrypted, local network only)"
-                              IsChecked="{Binding ClipboardSyncEnabled}" />
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBlock Text="Delete unstarred clips after" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" FontSize="12" />
-                        <NumericUpDown Value="{Binding ClipboardRetentionDays}" Minimum="1" Maximum="3650" Increment="1"
-                                       FormatString="0" Width="120" />
-                        <TextBlock Text="days" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" FontSize="12" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <Border Classes="glass-card" Padding="20">
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="section-title" Text="Window &amp; Tray" />
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="section-title" Text="General" />
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4" IsVisible="{Binding IsStartAtLoginSupported}">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Start Mouser when I sign in" />
+                            <TextBlock Classes="hint" Text="Automatically start Mouser in the background upon login." />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding StartAtLogin}" OnContent="" OffContent="" />
+                    </Grid>
                     <Grid ColumnDefinitions="*,Auto" Margin="0,4">
                         <StackPanel Spacing="2">
                             <TextBlock Classes="section-title" FontSize="13" Text="Keep running in the tray when I close the window" />
-                            <TextBlock Classes="hint" Text="Closing the window keeps sharing, clipboard and remote input active in the background." />
+                            <TextBlock Classes="hint" Text="Closing the window leaves Mouser active in the notification area." />
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1" IsChecked="{Binding CloseToTray}" OnContent="" OffContent="" />
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto" Margin="0,4">
                         <StackPanel Spacing="2">
                             <TextBlock Classes="section-title" FontSize="13" Text="Hide to the tray when I minimize the window" />
-                            <TextBlock Classes="hint" Text="Minimizing hides Mouser to the tray without leaving a taskbar button." />
+                            <TextBlock Classes="hint" Text="Minimizing hides the taskbar button and keeps the tray icon." />
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1" IsChecked="{Binding MinimizeToTray}" OnContent="" OffContent="" />
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto" Margin="0,4">
                         <StackPanel Spacing="2">
                             <TextBlock Classes="section-title" FontSize="13" Text="Show notifications" />
-                            <TextBlock Classes="hint" Text="Show in-app toasts when clips or files arrive or when switching screens." />
+                            <TextBlock Classes="hint" Text="Show toasts when clips, files or connections update." />
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1" IsChecked="{Binding Notifications}" OnContent="" OffContent="" />
                     </Grid>
                 </StackPanel>
             </Border>
 
-            <Border Classes="glass-card" Padding="20" IsVisible="{Binding IsStartAtLoginSupported}">
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="section-title" Text="Startup" />
-                    <CheckBox Content="Start Mouser when I sign in" IsChecked="{Binding StartAtLogin}" />
+            <!-- Card 3: Clipboard -->
+            <Border Classes="glass-card" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="section-title" Text="Clipboard" />
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Save text I copy" />
+                            <TextBlock Classes="hint" Text="Store copied text locally for search and quick-paste." />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding ClipboardHistoryEnabled}" OnContent="" OffContent="" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Share with other computers" />
+                            <TextBlock Classes="hint" Text="Send and receive copied clips with paired computers." />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding ClipboardSyncEnabled}" OnContent="" OffContent="" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Skip passwords and secrets" />
+                            <TextBlock Classes="hint" Text="Ignore API keys, credit cards, and private keys." />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding SkipSensitiveClips}" OnContent="" OffContent="" />
+                    </Grid>
+                    <Expander Header="Advanced" IsExpanded="False">
+                        <StackPanel Spacing="12" Margin="0,8,0,0">
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Delete unstarred clips after" />
+                                    <TextBlock Classes="hint" Text="Automatically remove unstarred history older than this." />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <NumericUpDown Value="{Binding ClipboardRetentionDays}" Minimum="1" Maximum="3650" Increment="1"
+                                                   FormatString="0" Width="120" />
+                                    <TextBlock Text="days" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" FontSize="12" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Expander>
                 </StackPanel>
             </Border>
 
+            <!-- Card 4: Sharing -->
             <Border Classes="glass-card" Padding="20">
-                <StackPanel Spacing="6">
-                    <TextBlock Classes="section-title" Text="Data" />
-                    <TextBlock Classes="hint" Text="Settings and clipboard history are stored only on this computer, in:" />
-                    <SelectableTextBlock Text="{Binding DataDirectory}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="section-title" Text="Sharing" />
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Accept remote input from phones" />
+                            <TextBlock Classes="hint" Text="Allow paired phones to control the mouse and keyboard." />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding AcceptRemoteInput}" OnContent="" OffContent="" />
+                    </Grid>
+                    <Expander Header="Advanced" IsExpanded="False">
+                        <StackPanel Spacing="12" Margin="0,8,0,0">
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Connection port" />
+                                    <TextBlock Classes="hint" Text="UDP port phones send input to. Default is 58491." />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <NumericUpDown Value="{Binding InputPort}" Minimum="1024" Maximum="65535" Increment="1"
+                                                   FormatString="0" Width="140" />
+                                    <Button Classes="secondary-btn" Content="Apply" Command="{Binding ApplyPortCommand}"
+                                            ToolTip.Tip="Apply connection port" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Expander>
+                </StackPanel>
+            </Border>
+
+            <!-- Card 5: This device -->
+            <Border Classes="glass-card" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="section-title" Text="This device" />
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Device name" />
+                            <TextBlock Classes="hint" Text="How this computer appears to other devices on the network." />
+                        </StackPanel>
+                        <TextBox Grid.Column="1" Text="{Binding DeviceName}" Width="200" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Data folder" />
+                            <TextBlock Classes="hint" Text="Local storage for history and configuration." />
+                        </StackPanel>
+                        <SelectableTextBlock Grid.Column="1" Text="{Binding DataDirectory}"
+                                             Foreground="{DynamicResource TextPrimary}" FontSize="12"
+                                             VerticalAlignment="Center" TextWrapping="Wrap" />
+                    </Grid>
                 </StackPanel>
             </Border>
 

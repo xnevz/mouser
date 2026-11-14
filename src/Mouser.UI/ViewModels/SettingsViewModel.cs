@@ -11,6 +11,7 @@ public partial class SettingsViewModel : ViewModelBase
     private readonly MouserHost _host;
 
     [ObservableProperty] private int _inputPort;
+    [ObservableProperty] private bool _acceptRemoteInput;
     [ObservableProperty] private bool _clipboardHistoryEnabled;
     [ObservableProperty] private bool _skipSensitiveClips;
     [ObservableProperty] private bool _clipboardSyncEnabled;
@@ -33,6 +34,7 @@ public partial class SettingsViewModel : ViewModelBase
         _host = host;
         var s = store.Current;
         _inputPort = s.InputPort;
+        _acceptRemoteInput = s.AcceptRemoteInput;
         _clipboardHistoryEnabled = s.ClipboardHistoryEnabled;
         _skipSensitiveClips = s.SkipSensitiveClips;
         _clipboardSyncEnabled = s.ClipboardSyncEnabled;
@@ -69,6 +71,11 @@ public partial class SettingsViewModel : ViewModelBase
     partial void OnClipboardHistoryEnabledChanged(bool value) => Save(s => s.ClipboardHistoryEnabled = value);
     partial void OnSkipSensitiveClipsChanged(bool value) => Save(s => s.SkipSensitiveClips = value);
     partial void OnClipboardSyncEnabledChanged(bool value) => Save(s => s.ClipboardSyncEnabled = value);
+    partial void OnAcceptRemoteInputChanged(bool value)
+    {
+        Save(s => s.AcceptRemoteInput = value);
+        _host.Restart();
+    }
     partial void OnCloseToTrayChanged(bool value) => Save(s => s.CloseToTray = value);
     partial void OnMinimizeToTrayChanged(bool value) => Save(s => s.MinimizeToTray = value);
     partial void OnNotificationsChanged(bool value) => Save(s => s.Notifications = value);
