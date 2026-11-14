@@ -118,7 +118,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | C4 | Ctrl+L, tray Lock, idle lock, Windows-lock, quit blocked | C3 | M |
 | ⬜ | C5 | Encrypt `clipboard.db` (SQLCipher spike first) | C3 | L |
 | ⬜ | C6 | Android app lock (biometric) | A13 | M |
-| ⬜ | C7 | Lock all paired devices | C4 | M |
+| ✅ | C7 | Lock all paired devices | C4 | M |
 | ⬜ | C8 | Windows Hello (spike) | C4 | M |
 
 ### Track D: Clipboard parity ([D-clipboard.md](roadmap/tasks/D-clipboard.md))
@@ -303,3 +303,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - E13: Implemented PowerEventKind (Lock=1, Sleep=2, DisplayOff=3), pure PowerSyncPolicy with 5-second ping-pong guard, FrameType.PowerEvent=7 in PeerTransferService with SendPowerAsync and PowerReceived event; added WindowsPower service for LockWorkStation, SendMessage SC_MONITORPOWER, and SetSuspendState with test hooks; added SyncLock, SyncSleep, SyncDisplayOff to PeerSettings, DeviceDetailViewModel, and PeerViewModel; wired BroadcastPowerEventAsync and PowerReceived handling in MouserHost; wired local workstation lock detection in App.axaml.cs 1-second tick; added Setting-row toggles in DevicesView Advanced expander using dynamic theme tokens; added 11 unit tests across PowerSyncPolicyTests and PeerTransferTests (609 passing).
 - E14: Implemented WakeOnLan with BuildMagicPacket, TryParseMac, FormatMac, SendAsync via UDP broadcast, and Windows SendARP resolution; added PeerSettings.Mac; wired periodic ARP resolution and WakePeerAsync in MouserHost; updated MonitorLayoutViewModel.SetPeers to retain offline saved peers as Unreachable; added CanWake and WakeCommand to PeerViewModel and DeviceDetailViewModel; added Wake button in DevicesView; added 36 unit tests across WakeOnLanTests (645 passing).
 - E15: Implemented LastPeerName tracking in KvmController; added PasteFromPeer hotkey (default Ctrl+Shift+V) to HotkeySettings and HotkeysViewModel/HotkeysView; added DeviceFilter, HasDeviceFilter, DeviceFilterText, and ClearDeviceFilter to QuickPasteViewModel with active tab-chip in QuickPasteWindow; wired hotkey listener in App.axaml.cs to open quick-paste pre-filtered to LastPeerName; added 5 unit tests across QuickPasteTests and KvmControllerTests (650 passing).
+- C7: Added FrameType.LockRequest=6, SendLockAsync, and LockRequested event to PeerTransferService; wired LockPeersAsync and LockRequestedByPeer in MouserHost; added AllowRemoteLock to AppSettings and SettingsViewModel/SettingsView; wired remote lock handler and Lock all devices tray item in App.axaml/App.axaml.cs; added Lock all button to DevicesView and LockAllDevicesCommand in DevicesViewModel; added 2 unit tests in PeerTransferTests (652 passing).
