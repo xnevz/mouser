@@ -3,9 +3,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Mouser.UI.ViewModels"
+             xmlns:net="using:Mouser.Core.Networking"
              mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="640"
              x:Class="Mouser.UI.Views.ClipboardHistoryView"
-             x:DataType="vm:ClipboardHistoryViewModel">
+             x:DataType="vm:ClipboardHistoryViewModel"
+             x:Name="Root">
 
     <UserControl.Styles>
         <Style Selector="ListBox.clips ListBoxItem">
@@ -158,6 +160,19 @@
                         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"
                                     IsVisible="{Binding SelectedClip.IsTextClip}">
                             <Button Classes="primary-btn" Content="Copy" Command="{Binding CopyClipCommand}" CommandParameter="{Binding SelectedClip}" />
+                            <Button Classes="secondary-btn" Content="Send to ▾">
+                                <Button.Flyout>
+                                    <MenuFlyout ItemsSource="{Binding SendablePeers}">
+                                        <MenuFlyout.ItemTemplate>
+                                            <DataTemplate x:DataType="net:DiscoveredPeer">
+                                                <MenuItem Header="{Binding DeviceName}"
+                                                          Command="{Binding #Root.((vm:ClipboardHistoryViewModel)DataContext).SendClipToPeerCommand}"
+                                                          CommandParameter="{Binding}" />
+                                            </DataTemplate>
+                                        </MenuFlyout.ItemTemplate>
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                            </Button>
                             <Button Classes="secondary-btn" Command="{Binding ToggleStarCommand}" CommandParameter="{Binding SelectedClip}"
                                     Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}" />
                             <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}" />

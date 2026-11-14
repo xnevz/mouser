@@ -39,6 +39,10 @@ public partial class PeerViewModel : ViewModelBase
     [ObservableProperty] private string _pinText = string.Empty;
     [ObservableProperty] private string? _error;
 
+    [ObservableProperty] private bool _sendClipboard = true;
+    [ObservableProperty] private bool _receiveClipboard = true;
+    [ObservableProperty] private bool _sendFiles = true;
+
     public bool IsPaired => Status is PeerLinkStatus.Paired;
     public bool NeedsPin => Status is PeerLinkStatus.NotPaired;
 
@@ -75,6 +79,19 @@ public partial class PeerViewModel : ViewModelBase
         Peer = peer;
         _status = status;
         _placement = placement;
+        _updating = true;
+        LoadSettings();
+        _updating = false;
+    }
+
+    private void LoadSettings()
+    {
+        if (_owner.Settings?.Current.Peers.TryGetValue(Id, out var s) == true)
+        {
+            SendClipboard = s.SendClipboard;
+            ReceiveClipboard = s.ReceiveClipboard;
+            SendFiles = s.SendFiles;
+        }
     }
 
     internal void Update(DiscoveredPeer peer, PeerLinkStatus status, PeerPlacement placement)
@@ -83,16 +100,64 @@ public partial class PeerViewModel : ViewModelBase
         _updating = true;
         Status = status;
         Placement = placement;
+        LoadSettings();
         _updating = false;
         OnPropertyChanged(nameof(Address));
         OnPropertyChanged(nameof(ScreenText));
         OnPropertyChanged(nameof(ShareMouseAndKeyboard));
+        OnPropertyChanged(nameof(SendClipboard));
+        OnPropertyChanged(nameof(ReceiveClipboard));
+        OnPropertyChanged(nameof(SendFiles));
     }
 
     partial void OnPlacementChanged(PeerPlacement value)
     {
         OnPropertyChanged(nameof(ShareMouseAndKeyboard));
         if (!_updating) _owner.ChangePlacement(this, value);
+    }
+
+    partial void OnSendClipboardChanged(bool value)
+    {
+        if (_updating || _owner.Settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (peer.SendClipboard != value)
+        {
+            peer.SendClipboard = value;
+            _owner.Settings.Save();
+        }
+    }
+
+    partial void OnReceiveClipboardChanged(bool value)
+    {
+        if (_updating || _owner.Settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (peer.ReceiveClipboard != value)
+        {
+            peer.ReceiveClipboard = value;
+            _owner.Settings.Save();
+        }
+    }
+
+    partial void OnSendFilesChanged(bool value)
+    {
+        if (_updating || _owner.Settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (peer.SendFiles != value)
+        {
+            peer.SendFiles = value;
+            _owner.Settings.Save();
+        }
+    }
+
+    private PeerSettings GetOrCreatePeerSettings()
+    {
+        var settings = _owner.Settings!;
+        if (!settings.Current.Peers.TryGetValue(Id, out var s))
+        {
+            s = new PeerSettings { Name = Hostname };
+            settings.Current.Peers[Id] = s;
+        }
+        return s;
     }
 
     [RelayCommand]
@@ -141,7 +206,7 @@ public partial class MonitorLayoutViewModel : ViewModelBase
         Settings = settings;
     }
 
-    private SettingsStore? Settings { get; }
+    internal SettingsStore? Settings { get; }
 
     /// <summary>The bounding box of all local monitors, or null before the window knows them.</summary>
     public ScreenBounds? LocalDesktop => _displays.Count == 0 ? null : new ScreenBounds

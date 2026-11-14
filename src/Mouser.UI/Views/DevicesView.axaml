@@ -208,6 +208,30 @@
                                                       ToolTip.Tip="Position of this computer relative to your display" />
                                         </Grid>
 
+                                        <!-- Send clipboard toggle -->
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Classes="section-title" FontSize="13" Text="Send my clipboard to this device" />
+                                                <TextBlock Classes="hint" Text="Automatically sync text copied on this computer." />
+                                            </StackPanel>
+                                            <ToggleSwitch Grid.Column="1"
+                                                          IsChecked="{Binding SendClipboard}"
+                                                          OnContent="" OffContent=""
+                                                          ToolTip.Tip="Toggle sending clipboard to this device" />
+                                        </Grid>
+
+                                        <!-- Accept clipboard toggle -->
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Classes="section-title" FontSize="13" Text="Accept clipboard from this device" />
+                                                <TextBlock Classes="hint" Text="Automatically receive text copied on this device." />
+                                            </StackPanel>
+                                            <ToggleSwitch Grid.Column="1"
+                                                          IsChecked="{Binding ReceiveClipboard}"
+                                                          OnContent="" OffContent=""
+                                                          ToolTip.Tip="Toggle receiving clipboard from this device" />
+                                        </Grid>
+
                                         <!-- Actions -->
                                         <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
                                             <Button Classes="secondary-btn" Content="Send file…"

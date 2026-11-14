@@ -79,6 +79,7 @@ public partial class MainViewModel : ViewModelBase
         DevicesPage = new DevicesViewModel(host, MonitorLayout, AndroidRemote, settings);
         Activity = new ActivityViewModel(host.Log, host, clipboardAccess);
         ClipboardHistory.ShareCapturedText = host.ShareClipboardAsync;
+        ClipboardHistory.SendClipToPeerHandler = (peer, text) => host.SendClipToAsync(peer, text);
         ClipboardHistory.SendFileToPeerAction = async filePath =>
         {
             var peer = host.Peers.FirstOrDefault(p => host.CanSendFileTo(p));
@@ -136,6 +137,7 @@ public partial class MainViewModel : ViewModelBase
         AndroidRemote.Refresh();
         RefreshDevices();
         MonitorLayout.SetPeers(_host.Peers);
+        ClipboardHistory.UpdateSendablePeers(_host.Peers);
         DevicesPage.Refresh();
 
         if (_host.Kvm?.ActivePeerName is { } controlled)

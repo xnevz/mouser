@@ -83,7 +83,7 @@ public partial class DevicesViewModel : ViewModelBase
             var placement = saved?.Placement ?? PeerPlacement.None;
             if (existing == null)
             {
-                existing = new DeviceDetailViewModel(peer.DeviceId, DeviceKind.Computer)
+                existing = new DeviceDetailViewModel(peer.DeviceId, DeviceKind.Computer, _settings)
                 {
                     Name = peer.Hostname,
                     IpAddress = peer.IpAddress.ToString(),
@@ -104,6 +104,12 @@ public partial class DevicesViewModel : ViewModelBase
                 existing.IsPaired = isPaired;
                 existing.Placement = placement;
                 existing.StatusText = isPaired ? "Connected" : "Not paired";
+                if (saved != null)
+                {
+                    existing.SendClipboard = saved.SendClipboard;
+                    existing.ReceiveClipboard = saved.ReceiveClipboard;
+                    existing.SendFiles = saved.SendFiles;
+                }
             }
         }
 
@@ -117,13 +123,16 @@ public partial class DevicesViewModel : ViewModelBase
                 string name = string.IsNullOrEmpty(peerSettings.Name) ? id : peerSettings.Name;
                 if (existing == null)
                 {
-                    existing = new DeviceDetailViewModel(id, DeviceKind.Computer)
+                    existing = new DeviceDetailViewModel(id, DeviceKind.Computer, _settings)
                     {
                         Name = name,
                         IsOnline = false,
                         IsPaired = peerSettings.Pin != null,
                         Placement = peerSettings.Placement,
-                        StatusText = "Offline"
+                        StatusText = "Offline",
+                        SendClipboard = peerSettings.SendClipboard,
+                        ReceiveClipboard = peerSettings.ReceiveClipboard,
+                        SendFiles = peerSettings.SendFiles
                     };
                     Devices.Add(existing);
                 }
@@ -134,6 +143,9 @@ public partial class DevicesViewModel : ViewModelBase
                     existing.IsPaired = peerSettings.Pin != null;
                     existing.Placement = peerSettings.Placement;
                     existing.StatusText = "Offline";
+                    existing.SendClipboard = peerSettings.SendClipboard;
+                    existing.ReceiveClipboard = peerSettings.ReceiveClipboard;
+                    existing.SendFiles = peerSettings.SendFiles;
                 }
             }
         }

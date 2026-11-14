@@ -10,6 +10,7 @@ using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Mouser.Core.Clipboard;
+using Mouser.Core.Networking;
 using Mouser.UI.Services;
 
 namespace Mouser.UI.ViewModels;
@@ -221,6 +222,35 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
 
     /// <summary>Set by the app to send newly copied text to paired computers.</summary>
     public Func<string, Task<IReadOnlyList<ClipDelivery>>>? ShareCapturedText { get; set; }
+
+    public ObservableCollection<DiscoveredPeer> SendablePeers { get; } = new();
+
+    /// <summary>Delegate for manually sending a clip directly to a peer.</summary>
+    public Func<DiscoveredPeer, string, Task<ClipDelivery>>? SendClipToPeerHandler { get; set; }
+
+    public void UpdateSendablePeers(IEnumerable<DiscoveredPeer> peers)
+    {
+        var list = peers.ToList();
+        if (SendablePeers.SequenceEqual(list)) return;
+        SendablePeers.Clear();
+        foreach (var p in list)
+        {
+            SendablePeers.Add(p);
+        }
+    }
+
+    [RelayCommand]
+    private async Task SendClipToPeerAsync(DiscoveredPeer peer)
+    {
+        if (SelectedClip == null || peer == null || SendClipToPeerHandler == null) return;
+        var delivery = await SendClipToPeerHandler(peer, SelectedClip.Content);
+        if (delivery != null)
+        {
+            await _storage.SaveDeliveriesAsync(SelectedClip.Id, new[] { delivery });
+            await LoadDeliveriesForSelectedClipAsync();
+            StatusMessage = $"Sent clip to {peer.DeviceName}.";
+        }
+    }
 
     private bool IsShareable(string text) =>
         !string.IsNullOrWhiteSpace(text) && text.Length <= MaxClipLength &&

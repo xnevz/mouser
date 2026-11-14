@@ -200,6 +200,9 @@ public sealed class MouserHost : IDisposable
             {
                 if (_settings.Current.ClipboardSyncEnabled)
                 {
+                    if (_settings.Current.Peers.TryGetValue(sender, out var peerSettings) && !peerSettings.ReceiveClipboard)
+                        return;
+
                     string from = PeerName(sender);
                     Log.Record(ActivityCategory.Clipboard, $"Received clip from {from}");
                     ClipReceived?.Invoke(from, clip);
@@ -260,6 +263,21 @@ public sealed class MouserHost : IDisposable
         await Transfer.SendClipAsync(new IPEndPoint(peer.IpAddress, peer.ControlPort), key, clip);
     }
 
+    /// <summary>Sends copied text directly to a specific peer, ignoring the SendClipboard sync rule.</summary>
+    public async Task<ClipDelivery> SendClipToAsync(DiscoveredPeer peer, string text)
+    {
+        string resolvedName = !string.IsNullOrWhiteSpace(peer.Hostname) ? peer.Hostname : peer.DeviceId;
+        try
+        {
+            await SendClipAsync(peer, text);
+            return new ClipDelivery(peer.DeviceId, resolvedName, "Sent", null);
+        }
+        catch (Exception e)
+        {
+            return new ClipDelivery(peer.DeviceId, resolvedName, "Failed", e.Message);
+        }
+    }
+
     /// <summary>Sends copied text to every reachable paired computer.</summary>
     public async Task<IReadOnlyList<ClipDelivery>> ShareClipboardAsync(string text)
     {
@@ -299,13 +317,18 @@ public sealed class MouserHost : IDisposable
         {
             var (peerId, peerName) = (kvp.Key, kvp.Value);
             var peer = Peers.FirstOrDefault(p => p.DeviceId == peerId);
+            string resolvedName = peer != null && !string.IsNullOrWhiteSpace(peer.Hostname) ? peer.Hostname : peerName;
+
+            if (_settings.Current.Peers.TryGetValue(peerId, out var peerSettings) && !peerSettings.SendClipboard)
+            {
+                return new ClipDelivery(peerId, resolvedName, "Skipped", "Clipboard sending disabled for this device");
+            }
 
             if (peer == null || peer.ControlPort <= 0)
             {
-                return new ClipDelivery(peerId, peerName, "Skipped", "Not on the network");
+                return new ClipDelivery(peerId, resolvedName, "Skipped", "Not on the network");
             }
 
-            string resolvedName = !string.IsNullOrWhiteSpace(peer.Hostname) ? peer.Hostname : peerName;
             try
             {
                 await SendClipAsync(peer, text);

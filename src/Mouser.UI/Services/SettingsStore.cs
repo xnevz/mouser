@@ -58,6 +58,9 @@ public sealed class PeerSettings
     public PeerPlacement Placement { get; set; }
     /// <summary>The peer's PIN, kept so pairing survives restarts (like the phone app does).</summary>
     public int? Pin { get; set; }
+    public bool SendClipboard { get; set; } = true;
+    public bool ReceiveClipboard { get; set; } = true;
+    public bool SendFiles { get; set; } = true;
 }
 
 /// <summary>Loads and saves <see cref="AppSettings"/> as JSON in the per-user data folder.</summary>
