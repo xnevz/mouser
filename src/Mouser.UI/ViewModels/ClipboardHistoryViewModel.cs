@@ -44,6 +44,8 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     partial void OnSelectedTimeChanged(string value) => _ = ReloadAsync();
 
     public ObservableCollection<ClipboardItemViewModel> FilteredClips { get; } = new();
+    public ObservableCollection<ClipboardItemViewModel> History => FilteredClips;
+    public bool IsLocked { get; set; }
 
     public bool IsCaptureEnabled => _settings.Current.ClipboardHistoryEnabled;
     public bool IsEmpty => FilteredClips.Count == 0;
@@ -67,7 +69,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     /// <summary>Reads the system clipboard and records new text. Returns true when a clip was added.</summary>
     public async Task<bool> PollClipboardAsync()
     {
-        if (IsPaused || _clipboard == null || _isPolling) return false;
+        if (IsLocked || IsPaused || _clipboard == null || _isPolling) return false;
         _isPolling = true;
         try
         {
@@ -94,6 +96,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     /// <summary>Puts text copied on a paired computer on this clipboard (and in history) without echoing it back.</summary>
     public async Task ApplyRemoteClipAsync(string fromComputer, ClipboardPayload clip)
     {
+        if (IsLocked) return;
         string text = clip.TextContent;
         if (_clipboard == null || !IsShareable(text) || text == _lastSeenText) return;
 

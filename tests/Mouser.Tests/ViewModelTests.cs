@@ -789,4 +789,41 @@ public class ViewModelTests
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    [Fact]
+    public async Task Host_SetLocked_StopsAndRestartsServices()
+    {
+        await using var app = new AppFixture();
+        var host = app.Host;
+        Assert.NotNull(host.Input);
+        Assert.NotNull(host.Discovery);
+
+        host.SetLocked(true);
+        Assert.True(host.IsLocked);
+        Assert.Null(host.Input);
+        Assert.Null(host.Discovery);
+
+        host.Restart();
+        Assert.Null(host.Input);
+        Assert.Null(host.Discovery);
+
+        host.SetLocked(false);
+        Assert.False(host.IsLocked);
+        Assert.NotNull(host.Input);
+        Assert.NotNull(host.Discovery);
+    }
+
+    [Fact]
+    public async Task ClipboardHistory_WhenLocked_PollClipboardDoesNothing()
+    {
+        await using var app = new AppFixture();
+        await app.Main.ClipboardHistory.InitializeAsync();
+        app.Main.ClipboardHistory.IsLocked = true;
+        app.Clipboard.Text = "secret";
+
+        bool captured = await app.Main.ClipboardHistory.PollClipboardAsync();
+        Assert.False(captured);
+        Assert.Empty(app.Main.ClipboardHistory.History);
+        Assert.True(app.Main.ClipboardHistory.History.Count == 0);
+    }
 }

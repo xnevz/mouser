@@ -34,6 +34,7 @@ public sealed class MouserHost : IDisposable
     // Computers that proved (via a hello frame) they paired with us; lets us sync to them by device id.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _pairedWithUs = new();
     private ScreenBounds? _desktop;
+    private bool _locked;
 
     public PairingGate Pairing { get; }
     public InputInjectionService? Input { get; private set; }
@@ -56,6 +57,7 @@ public sealed class MouserHost : IDisposable
     public string? KvmError { get; private set; }
     public bool CanInject => _sink.IsSupported;
     public bool CanShareInput => Kvm != null;
+    public bool IsLocked => _locked;
 
     public string DeviceName => _settings.Current.DeviceName;
 
@@ -78,6 +80,7 @@ public sealed class MouserHost : IDisposable
     /// <summary>(Re)starts or stops networking to match the current settings.</summary>
     public void Restart()
     {
+        if (_locked) return;
         StopServices();
         if (!_settings.Current.AcceptRemoteInput) return;
 
@@ -131,6 +134,22 @@ public sealed class MouserHost : IDisposable
     }
 
     public void RestartDiscovery() => Discovery?.UpdateHostname(_settings.Current.DeviceName);
+
+    public void SetLocked(bool locked)
+    {
+        if (_locked == locked) return;
+        _locked = locked;
+        if (locked)
+        {
+            Kvm?.Stop();
+            StopServices();
+        }
+        else
+        {
+            Restart();
+            SyncPeers();
+        }
+    }
 
     public async Task<bool> AddManualPeerAsync(string text)
     {
@@ -335,6 +354,7 @@ public sealed class MouserHost : IDisposable
     /// </summary>
     public void SyncPeers()
     {
+        if (_locked) return;
         var visible = Peers.ToDictionary(p => p.DeviceId);
 
         foreach (var (id, saved) in _settings.Current.Peers)
