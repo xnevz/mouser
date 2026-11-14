@@ -18,6 +18,9 @@ public sealed class KvmOptions
     public HotkeyBinding LockCursorHotkey { get; init; } = default;
     public bool PanicDoublePressCtrl { get; init; } = true;
 
+    public IReadOnlyList<HotkeyBinding> JumpHotkeys { get; init; } = Array.Empty<HotkeyBinding>();
+    public HotkeyBinding NextComputerHotkey { get; init; } = HotkeyBinding.TryParse("Ctrl+Alt+Right", out var b) ? b : default;
+
     public static KvmOptions FromFeel(string? feel) => feel switch
     {
         "Relaxed" => new() { EdgeResistanceMs = 0, EdgePushPixels = 1 },

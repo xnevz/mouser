@@ -4,6 +4,7 @@ using Mouser.Core.Input;
 using Mouser.Core.Kvm;
 using Mouser.Core.Networking;
 using Mouser.Core.Services;
+using Mouser.UI.Services;
 
 namespace Mouser.Tests;
 
@@ -400,5 +401,164 @@ public class KvmControllerTests
         // Toggle again
         rig.Capture.Key((ushort)'L', true);
         Assert.False(rig.Kvm.IsScreenLocked);
+    }
+
+    private sealed class TwoPeerRig : IAsyncDisposable
+    {
+        public KvmRig Rig { get; }
+        public RecordingSink AlphaSink => Rig.PeerSink;
+        public RecordingSink BetaSink { get; }
+        public InputInjectionService HostBeta { get; }
+        public PeerLink LinkBeta { get; }
+
+        public TwoPeerRig(KvmRig rig, RecordingSink betaSink, InputInjectionService hostBeta, PeerLink linkBeta)
+        {
+            Rig = rig;
+            BetaSink = betaSink;
+            HostBeta = hostBeta;
+            LinkBeta = linkBeta;
+        }
+
+        public static async Task<TwoPeerRig> CreateAsync()
+        {
+            var rig = await KvmRig.CreateAsync();
+            rig.Kvm.RemovePeer("peer");
+            rig.Kvm.SetPeer("alpha", "Alpha PC", rig.Link, KvmRig.Remote, PeerPlacement.Left);
+
+            var betaSink = new RecordingSink();
+            var hostBeta = new InputInjectionService(betaSink, new PairingGate(KvmRig.Pin), 0);
+            hostBeta.Start();
+            var linkBeta = new PeerLink(new IPEndPoint(IPAddress.Loopback, hostBeta.BoundPort));
+            Assert.True(await linkBeta.PairAsync(KvmRig.Pin));
+            rig.Kvm.SetPeer("beta", "Beta PC", linkBeta, KvmRig.Remote, PeerPlacement.Right);
+
+            return new TwoPeerRig(rig, betaSink, hostBeta, linkBeta);
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await Rig.DisposeAsync();
+            LinkBeta.Dispose();
+            HostBeta.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task JumpTo_ActivatesPeer_AndSendsMoveAbsoluteToCenter()
+    {
+        await using var rig = await TwoPeerRig.CreateAsync();
+
+        bool jumped = rig.Rig.Kvm.JumpTo("alpha");
+        Assert.True(jumped);
+        Assert.Equal("alpha", rig.Rig.Kvm.ActivePeerId);
+
+        // Center of Remote (X=-1280, Y=0, W=2560, H=1440) is (0, 720)
+        await Wait.UntilAsync(() => rig.AlphaSink.Snapshot().Length >= 1);
+        Assert.Contains("at 0,720", rig.AlphaSink.Snapshot());
+    }
+
+    [Fact]
+    public async Task JumpTo_CallingBeta_ReturnsToLocalFirstThenActivatesBeta()
+    {
+        await using var rig = await TwoPeerRig.CreateAsync();
+
+        Assert.True(rig.Rig.Kvm.JumpTo("alpha"));
+        Assert.Equal("alpha", rig.Rig.Kvm.ActivePeerId);
+
+        // Press a key while on alpha so we can check it gets released when leaving
+        rig.Rig.Capture.Key(0x41, true); // 'A' down
+        await Wait.UntilAsync(() => rig.AlphaSink.Snapshot().Contains("key 0x41 down"));
+
+        // Now JumpTo beta
+        Assert.True(rig.Rig.Kvm.JumpTo("beta"));
+        Assert.Equal("beta", rig.Rig.Kvm.ActivePeerId);
+
+        // Alpha should have seen key release
+        await Wait.UntilAsync(() => rig.AlphaSink.Snapshot().Contains("key 0x41 up"));
+        // Beta should have received MoveAbsolute at center (0, 720)
+        await Wait.UntilAsync(() => rig.BetaSink.Snapshot().Contains("at 0,720"));
+    }
+
+    [Fact]
+    public async Task JumpNext_CyclesFromLocalToAlphaToBetaToLocal()
+    {
+        await using var rig = await TwoPeerRig.CreateAsync();
+
+        // Start local
+        Assert.Null(rig.Rig.Kvm.ActivePeerId);
+
+        // Next -> alpha
+        Assert.True(rig.Rig.Kvm.JumpNext());
+        Assert.Equal("alpha", rig.Rig.Kvm.ActivePeerId);
+
+        // Next -> beta
+        Assert.True(rig.Rig.Kvm.JumpNext());
+        Assert.Equal("beta", rig.Rig.Kvm.ActivePeerId);
+
+        // Next -> returns to local
+        Assert.True(rig.Rig.Kvm.JumpNext());
+        Assert.Null(rig.Rig.Kvm.ActivePeerId);
+
+        // Next -> cycles back to alpha
+        Assert.True(rig.Rig.Kvm.JumpNext());
+        Assert.Equal("alpha", rig.Rig.Kvm.ActivePeerId);
+    }
+
+    [Fact]
+    public async Task NextComputerHotkey_InvokesJumpNext_AndSwallowsKey()
+    {
+        await using var rig = await TwoPeerRig.CreateAsync();
+
+        // Default NextComputer is Ctrl+Alt+Right (VK 0x27)
+        rig.Rig.Capture.Key(0xA2, true); // Ctrl
+        rig.Rig.Capture.Key(0xA4, true); // Alt
+
+        // Press Right -> jumps to alpha, swallowed
+        bool swallowed = rig.Rig.Capture.Key(0x27, true);
+        Assert.True(swallowed);
+        Assert.Equal("alpha", rig.Rig.Kvm.ActivePeerId);
+
+        // Press Right again -> jumps to beta, swallowed
+        swallowed = rig.Rig.Capture.Key(0x27, true);
+        Assert.True(swallowed);
+        Assert.Equal("beta", rig.Rig.Kvm.ActivePeerId);
+
+        // Press Right again -> returns to local, swallowed
+        swallowed = rig.Rig.Capture.Key(0x27, true);
+        Assert.True(swallowed);
+        Assert.Null(rig.Rig.Kvm.ActivePeerId);
+    }
+
+    [Fact]
+    public async Task Jump1Hotkey_JumpsDirectlyToFirstAlphabeticalPeer()
+    {
+        await using var rig = await TwoPeerRig.CreateAsync();
+        Assert.True(HotkeyBinding.TryParse("Ctrl+Alt+1", out var j1));
+        Assert.True(HotkeyBinding.TryParse("Ctrl+Alt+2", out var j2));
+        rig.Rig.Kvm.ApplyOptions(new KvmOptions
+        {
+            JumpHotkeys = new[] { j1, j2 }
+        });
+
+        // Press Ctrl+Alt+2 while local -> jumps to beta ("Beta PC" is second)
+        rig.Rig.Capture.Key(0xA2, true); // Ctrl
+        rig.Rig.Capture.Key(0xA4, true); // Alt
+        bool swallowed = rig.Rig.Capture.Key((ushort)'2', true);
+        Assert.True(swallowed);
+        Assert.Equal("beta", rig.Rig.Kvm.ActivePeerId);
+
+        // Press Ctrl+Alt+1 while on beta -> jumps to alpha ("Alpha PC" is first)
+        swallowed = rig.Rig.Capture.Key((ushort)'1', true);
+        Assert.True(swallowed);
+        Assert.Equal("alpha", rig.Rig.Kvm.ActivePeerId);
+    }
+
+    [Fact]
+    public void MouserHost_ExposesJumpToAndJumpNext()
+    {
+        using var capture = new FakeCapture();
+        using var host = new MouserHost(new SettingsStore(), new RecordingSink(), capture);
+        Assert.False(host.JumpTo("nonexistent"));
+        Assert.False(host.JumpNext());
     }
 }

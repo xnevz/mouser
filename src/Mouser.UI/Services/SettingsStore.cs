@@ -81,6 +81,16 @@ public sealed class HotkeySettings
     public string LockCursor { get; set; } = "";
     public string QuickPaste { get; set; } = "Win+Alt+V";
     public bool PanicDoublePressCtrl { get; set; } = true;
+    public string Jump1 { get; set; } = "Ctrl+Alt+1";
+    public string Jump2 { get; set; } = "Ctrl+Alt+2";
+    public string Jump3 { get; set; } = "Ctrl+Alt+3";
+    public string Jump4 { get; set; } = "";
+    public string Jump5 { get; set; } = "";
+    public string Jump6 { get; set; } = "";
+    public string Jump7 { get; set; } = "";
+    public string Jump8 { get; set; } = "";
+    public string Jump9 { get; set; } = "";
+    public string NextComputer { get; set; } = "Ctrl+Alt+Right";
 }
 
 public sealed class PeerSettings
@@ -151,6 +161,20 @@ public sealed class SettingsStore
                 settings.Hotkeys.ReturnControl = "Ctrl+Alt+Esc";
             if (settings.Hotkeys.LockCursor == null)
                 settings.Hotkeys.LockCursor = "";
+            if (string.IsNullOrWhiteSpace(settings.Hotkeys.NextComputer))
+                settings.Hotkeys.NextComputer = "Ctrl+Alt+Right";
+            if (string.IsNullOrWhiteSpace(settings.Hotkeys.Jump1))
+                settings.Hotkeys.Jump1 = "Ctrl+Alt+1";
+            if (string.IsNullOrWhiteSpace(settings.Hotkeys.Jump2))
+                settings.Hotkeys.Jump2 = "Ctrl+Alt+2";
+            if (string.IsNullOrWhiteSpace(settings.Hotkeys.Jump3))
+                settings.Hotkeys.Jump3 = "Ctrl+Alt+3";
+            settings.Hotkeys.Jump4 ??= "";
+            settings.Hotkeys.Jump5 ??= "";
+            settings.Hotkeys.Jump6 ??= "";
+            settings.Hotkeys.Jump7 ??= "";
+            settings.Hotkeys.Jump8 ??= "";
+            settings.Hotkeys.Jump9 ??= "";
 
             if (!rawJson.Contains(nameof(AppSettings.Hotkeys)))
             {

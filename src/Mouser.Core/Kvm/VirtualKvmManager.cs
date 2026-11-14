@@ -96,6 +96,17 @@ public sealed class VirtualKvmManager
         ScreenLockChanged?.Invoke(this, IsScreenLocked);
     }
 
+    public void ForceRedirect(string hostId)
+    {
+        lock (_lock)
+        {
+            IsRedirected = true;
+            CurrentFocusedHostId = hostId;
+            _activeCollisionEdge = ScreenEdge.None;
+            _accumulatedEdgePush = 0;
+        }
+    }
+
     /// <summary>
     /// Processes local mouse movement and checks if cursor crossed an active boundary.
     /// Returns true if a boundary transition occurred.

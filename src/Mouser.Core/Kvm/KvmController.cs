@@ -138,6 +138,71 @@ public sealed class KvmController : IDisposable
         RaiseIfDirty();
     }
 
+    public bool JumpTo(string peerId)
+    {
+        bool result;
+        lock (_lock)
+        {
+            result = JumpToLocked(peerId);
+        }
+        RaiseIfDirty();
+        return result;
+    }
+
+    private bool JumpToLocked(string peerId)
+    {
+        if (_peers.TryGetValue(peerId, out var peer) && peer.Link.IsAlive)
+        {
+            if (_active?.Id == peerId) return true;
+            if (_active != null) ReturnToLocal(null);
+            _active = peer;
+            _virtualX = (int)(peer.Remote.X + peer.Remote.Width / 2);
+            _virtualY = (int)(peer.Remote.Y + peer.Remote.Height / 2);
+            peer.Link.Send(InputMotionPacket.TypeMoveAbsolute, ClampShort(_virtualX), ClampShort(_virtualY));
+            _capture.WarpCursor(_parkX, _parkY);
+            _edges.ForceRedirect(peer.Id);
+            _stateDirty = true;
+            return true;
+        }
+        return false;
+    }
+
+    public bool JumpNext()
+    {
+        bool result;
+        lock (_lock)
+        {
+            result = JumpNextLocked();
+        }
+        RaiseIfDirty();
+        return result;
+    }
+
+    private bool JumpNextLocked()
+    {
+        var orderedPeers = _peers.Values
+            .Where(p => p.Placement != PeerPlacement.None && p.Link.IsAlive)
+            .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (orderedPeers.Count == 0) return false;
+
+        if (_active == null)
+        {
+            return JumpToLocked(orderedPeers[0].Id);
+        }
+
+        int index = orderedPeers.FindIndex(p => p.Id == _active.Id);
+        if (index < 0 || index == orderedPeers.Count - 1)
+        {
+            ReturnToLocal(null);
+            _stateDirty = true;
+            return true;
+        }
+
+        return JumpToLocked(orderedPeers[index + 1].Id);
+    }
+
     private void SetPeerLocked(string id, string name, PeerLink link, ScreenBounds remote, PeerPlacement placement)
     {
         if (_peers.TryGetValue(id, out var existing) && existing.Link == link && existing.Remote == remote
@@ -209,6 +274,34 @@ public sealed class KvmController : IDisposable
                 else if (e.Key is not (0x11 or 0xA2 or 0xA3))
                 {
                     _lastCtrlPress = DateTime.MinValue;
+                }
+
+                if (!Options.NextComputerHotkey.IsEmpty && Options.NextComputerHotkey.Matches(e.Key, _physicalKeys))
+                {
+                    JumpNextLocked();
+                    _stateDirty = true;
+                    return true;
+                }
+
+                if (Options.JumpHotkeys != null && Options.JumpHotkeys.Count > 0)
+                {
+                    for (int i = 0; i < Options.JumpHotkeys.Count && i < 9; i++)
+                    {
+                        var binding = Options.JumpHotkeys[i];
+                        if (!binding.IsEmpty && binding.Matches(e.Key, _physicalKeys))
+                        {
+                            var orderedPeers = _peers.Values
+                                .Where(p => p.Placement != PeerPlacement.None && p.Link.IsAlive)
+                                .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+                                .ToList();
+                            if (i < orderedPeers.Count)
+                            {
+                                JumpToLocked(orderedPeers[i].Id);
+                            }
+                            _stateDirty = true;
+                            return true;
+                        }
+                    }
                 }
 
                 bool isReturnHotkey = Options.ReturnControlHotkey.Matches(e.Key, _physicalKeys) ||

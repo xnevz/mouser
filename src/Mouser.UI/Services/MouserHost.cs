@@ -440,11 +440,25 @@ public sealed class MouserHost : IDisposable
         SyncPeers();
     }
 
+    public bool JumpTo(string peerId) => Kvm?.JumpTo(peerId) ?? false;
+    public bool JumpNext() => Kvm?.JumpNext() ?? false;
+
     public void ApplyKvmOptions()
     {
         if (Kvm == null) return;
         var feel = KvmOptions.FromFeel(_settings.Current.SwitchFeel);
         var hotkeys = _settings.Current.Hotkeys;
+        var jumpList = new List<HotkeyBinding>();
+        string[] jumpStrings =
+        [
+            hotkeys.Jump1, hotkeys.Jump2, hotkeys.Jump3, hotkeys.Jump4, hotkeys.Jump5,
+            hotkeys.Jump6, hotkeys.Jump7, hotkeys.Jump8, hotkeys.Jump9
+        ];
+        foreach (var s in jumpStrings)
+        {
+            jumpList.Add(HotkeyBinding.TryParse(s, out var b) ? b : default);
+        }
+
         Kvm.ApplyOptions(new KvmOptions
         {
             EdgeResistanceMs = feel.EdgeResistanceMs,
@@ -457,7 +471,9 @@ public sealed class MouserHost : IDisposable
             ReturnControlHotkey = HotkeyBinding.TryParse(hotkeys.ReturnControl, out var ret) ? ret : (HotkeyBinding.TryParse("Ctrl+Alt+Esc", out var defRet) ? defRet : default),
             SecondaryReturnControlHotkey = HotkeyBinding.TryParse("Scroll Lock", out var sec) ? sec : default,
             LockCursorHotkey = HotkeyBinding.TryParse(hotkeys.LockCursor, out var lockHk) ? lockHk : default,
-            PanicDoublePressCtrl = hotkeys.PanicDoublePressCtrl
+            PanicDoublePressCtrl = hotkeys.PanicDoublePressCtrl,
+            JumpHotkeys = jumpList,
+            NextComputerHotkey = HotkeyBinding.TryParse(hotkeys.NextComputer, out var nextHk) ? nextHk : (HotkeyBinding.TryParse("Ctrl+Alt+Right", out var defNext) ? defNext : default)
         });
     }
 

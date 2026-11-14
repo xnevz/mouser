@@ -38,6 +38,14 @@ public class HotkeysViewModelTests : IDisposable
         Assert.Equal("None", _vm.LockCursorDisplay);
         Assert.Equal("Win+Alt+V", _vm.QuickPaste);
         Assert.Equal("Win+Alt+V", _vm.QuickPasteDisplay);
+        Assert.Equal("Ctrl+Alt+Right", _vm.NextComputer);
+        Assert.Equal("Ctrl+Alt+Right", _vm.NextComputerDisplay);
+        Assert.Equal("Ctrl+Alt+1", _vm.Jump1);
+        Assert.Equal("Ctrl+Alt+1", _vm.Jump1Display);
+        Assert.Equal("Ctrl+Alt+2", _vm.Jump2);
+        Assert.Equal("Ctrl+Alt+3", _vm.Jump3);
+        Assert.Equal("", _vm.Jump4);
+        Assert.Equal("None", _vm.Jump4Display);
         Assert.True(_vm.PanicDoublePressCtrl);
         Assert.False(_vm.IsListening);
     }
@@ -140,5 +148,39 @@ public class HotkeysViewModelTests : IDisposable
         _vm.PanicDoublePressCtrl = true;
         Assert.True(_store.Current.Hotkeys.PanicDoublePressCtrl);
         Assert.True(_host.Kvm!.Options.PanicDoublePressCtrl);
+    }
+
+    [Fact]
+    public void NextComputerAndJump_ListeningAndResetAndConflict()
+    {
+        // Toggle listening next computer
+        _vm.ToggleListeningNextComputerCommand.Execute(null);
+        Assert.True(_vm.IsListening);
+        Assert.True(_vm.IsListeningNextComputer);
+
+        // Conflict check: trying to set NextComputer to "Ctrl+Alt+1" (which Jump1 uses)
+        bool handled = _vm.HandleKey(Key.D1, KeyModifiers.Control | KeyModifiers.Alt);
+        Assert.True(handled);
+        Assert.NotNull(_vm.ConflictMessage);
+        Assert.Contains("Already used by Jump to computer 1", _vm.ConflictMessage);
+
+        // Cancel
+        _vm.CancelListeningCommand.Execute(null);
+        Assert.False(_vm.IsListening);
+
+        // Clear command
+        _vm.ClearNextComputerCommand.Execute(null);
+        Assert.Equal("", _vm.NextComputer);
+        Assert.Equal("None", _vm.NextComputerDisplay);
+
+        // Reset command
+        _vm.ResetNextComputerCommand.Execute(null);
+        Assert.Equal("Ctrl+Alt+Right", _vm.NextComputer);
+
+        // Jump1 reset and clear
+        _vm.ClearJump1Command.Execute(null);
+        Assert.Equal("", _vm.Jump1);
+        _vm.ResetJump1Command.Execute(null);
+        Assert.Equal("Ctrl+Alt+1", _vm.Jump1);
     }
 }
