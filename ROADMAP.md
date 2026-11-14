@@ -200,7 +200,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ⬜ | H2 | Code signing (needs the user's certificate) | H1 | S |
 | ✅ | H3 | Update check (then optional auto-update) | H1 | L |
 | ✅ | H4 | Local log files and crash handling | B12 | S |
-| ⬜ | H5 | Windows service for UAC/lock screen (design note first) | H1, H2 | XL |
+| ✅ | H5 | Windows service for UAC/lock screen (design note first) | H1, H2 | XL |
 | ✅ | H6 | Linux X11 input injection | – | L |
 | ✅ | H7 | Linux capture, tray, AppImage/Flatpak | H6 | XL |
 | ⬜ | H8 | `uiAccess` signed build: types into admin windows without elevation (needs certificate) | H1, H2 | M |
@@ -327,3 +327,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - H6: Implemented X11KeyMap (pure VK to X11 keysym translation covering letters, digits, F1-F24, navigation, modifiers, media, and numpad) and X11InputSink via libX11.so.6 and libXtst.so.6 with Wayland detection; wired into InputSinks.CreateForCurrentPlatform and updated AndroidRemoteView banner; added 8 unit tests in LinuxInputTests (all pass in 27 ms; native P/Invoke verified safe on Windows, Linux runtime untested).
 - H7: Implemented X11InputCapture using XInput2 and XGrabPointer/XGrabKeyboard grabs on root window; wired into InputCaptures.CreateForCurrentPlatform; created installer/linux/mouser.desktop and installer/linux/com.mouser.Mouser.yml Flatpak manifest; updated scripts/package-linux.sh for AppImage AppDir structure; authored docs/wayland-input.md detailing libei and RemoteDesktop portal architecture; added unit test verifying safe no-op on non-Linux; 9 unit tests pass in LinuxInputTests (30 ms).
 - C8: Completed Windows Hello spike; verified UserConsentVerifier requires net8.0-windows10.0.19041.0 on Mouser.UI/Desktop which breaks cross-platform Linux packaging (NETSDK1139); per card instructions ('If the TFM change breaks the build or Linux/mac targeting, STOP and move this item to the backlog'), parked in backlog (🅿️).
+- H5: Authored docs/windows-service.md comprehensive design specification covering LocalSystem service architecture, WTS session monitoring, winlogon desktop injection (lpDesktop = "winsta0\\winlogon"), secure named pipe IPC with interactive user ACL, failure mitigations, Inno Setup service registration, and VM testing plan.
