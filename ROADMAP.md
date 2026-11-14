@@ -184,7 +184,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 ### Track G: Phone companion v2 ([F-security-and-phone.md](roadmap/tasks/F-security-and-phone.md))
 | Status | ID | Task | Needs | Size |
 | :-: | :-: | :--- | :--- | :-: |
-| ⬜ | G1 | Typing and dictation | E12 | M |
+| ✅ | G1 | Typing and dictation | E12 | M |
 | ⬜ | G2 | Clipboard bridge (foreground) | F5, D4 | L |
 | ⬜ | G3 | Share-sheet target | G2 | M |
 | ⬜ | G4 | Macro pad with custom buttons | – | M |
@@ -335,3 +335,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - C6: Added androidx.biometric:biometric:1.1.0 dependency, LockState pure timeout state machine, LockScreen composable, and FLAG_SECURE window masking; migrated MainActivity to FragmentActivity with BiometricPrompt; added App Lock toggle in ConnectionBar and input suppression in MouserViewModel while locked; added 5 unit tests in LockStateTest.
 - F5: Implemented Android PairingCrypto (P-256 ECDH, uncompressed ANSI X9.62 export, HKDF-SHA256, 6-digit confirmation code), SessionCrypto (directional keys, AES-256-GCM, 64-bit sliding replay window), and 51-byte SecureInputPacket; wired into MouserConnection and ConfirmCodeDialog in ConnectionBar; generated KnownAnswer test vectors in C# PairingCryptoTests and verified byte-for-byte interop in Kotlin PairingCryptoTest.
 - F8: Removed v1 PIN trust and cleartext pairing: deleted PairingGate.cs, removed TypePair/TypePairAck from InputMotionPacket wire protocol, removed PBKDF2-from-PIN key derivation (PeerTransferService.DeriveKey), removed AppSettings.PairingPin and PeerSettings.Pin; updated UI (Onboarding, Devices, AndroidRemote, MonitorLayout) to remove PIN boxes and 'New PIN' buttons; updated Android companion app (MouserConnection, InputMotionPacket, HostConnectionState, ConnectionBar, MainActivity, MouserViewModel); removed legacy PIN tests; verified grep check for TryPair|PairingPin|DeriveKey( returned 0 matches; all targeted tests pass.
+- G1: Implemented Android typing and dictation with TypeSurface composable, AppNavigationTab.TYPE in MainActivity, MouserConnection.sendChar/typeChar/typeText, MouserViewModel.typeText and applyTypeDiff, and pure diffToKeys function in TypeDiff.kt handling common prefix, backspaces, and UTF-16 surrogate pairs; added unit tests in TypeDiffTest and InputMotionPacketTest.
