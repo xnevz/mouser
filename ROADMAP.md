@@ -124,7 +124,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 ### Track D: Clipboard parity ([D-clipboard.md](roadmap/tasks/D-clipboard.md))
 | Status | ID | Task | Needs | Size |
 | :-: | :-: | :--- | :--- | :-: |
-| ⬜ | D1 | Event-driven capture (clipboard sequence number) | A9 | S |
+| ✅ | D1 | Event-driven capture (clipboard sequence number) | A9 | S |
 | ⬜ | D2 | Source app + window title | D1 | M |
 | ⬜ | D3 | Password-manager exclusion + ignore list | D2 | M |
 | ⬜ | D4 | Spike: read/write images, HTML, files | D1 | S |
@@ -285,3 +285,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - C2: Added IsLocked state and SetLocked to MouserHost stopping Kvm and services, guarded Restart and SyncPeers while locked, added IsLocked guard to ClipboardHistoryViewModel Poll/ApplyRemoteClip; 166 tests pass.
 - C3: Implemented LockViewModel and LockView with password box, backoff alert, and recovery key unlock; added full-window lock overlay and background interaction disable in MainWindow; integrated AppLockService into MainViewModel, SettingsViewModel, and App startup (stopping sockets when starting locked); added Security settings card with setup wizard, recovery key prompt, lock/change/remove commands, and Windows/idle lock options; added 7 unit tests in ViewModelTests (173 passing).
 - C4: Implemented WindowsSession (IsWorkstationLocked, IdleTime via user32.dll); added Ctrl+L shortcut and LockNowCommand on MainViewModel; added Lock item to tray menu (visible when configured); added auto-lock check on 1s refresh timer for Windows lock and idle timeout; blocked Quit and close button while locked until passphrase entered; blocked QuickPaste while locked; added 5 unit tests in ViewModelTests (178 passing).
+- D1: Implemented ClipboardWatcher using GetClipboardSequenceNumber background poller (150ms interval); wired into App.axaml.cs with UIThread dispatch, AppLock check, and 1s timer fallback; added 4 unit tests in ClipboardWatcherTests (182 passing).
