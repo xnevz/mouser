@@ -171,7 +171,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | Status | ID | Task | Needs | Size |
 | :-: | :-: | :--- | :--- | :-: |
 | ✅ | F1 | Protocol v2 design note (needs user approval) | – | S |
-| ⬜ | F2 | Pairing + session crypto in Core | F1 | M |
+| ✅ | F2 | Pairing + session crypto in Core | F1 | M |
 | ⬜ | F3 | Pairing over TCP + "Allow this device?" | F2, B9 | L |
 | ⬜ | F4 | Encrypted, authenticated input channel | F3 | XL |
 | ⬜ | F5 | Android crypto and pairing | F2, F3 | XL |
@@ -305,3 +305,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - E15: Implemented LastPeerName tracking in KvmController; added PasteFromPeer hotkey (default Ctrl+Shift+V) to HotkeySettings and HotkeysViewModel/HotkeysView; added DeviceFilter, HasDeviceFilter, DeviceFilterText, and ClearDeviceFilter to QuickPasteViewModel with active tab-chip in QuickPasteWindow; wired hotkey listener in App.axaml.cs to open quick-paste pre-filtered to LastPeerName; added 5 unit tests across QuickPasteTests and KvmControllerTests (650 passing).
 - C7: Added FrameType.LockRequest=6, SendLockAsync, and LockRequested event to PeerTransferService; wired LockPeersAsync and LockRequestedByPeer in MouserHost; added AllowRemoteLock to AppSettings and SettingsViewModel/SettingsView; wired remote lock handler and Lock all devices tray item in App.axaml/App.axaml.cs; added Lock all button to DevicesView and LockAllDevicesCommand in DevicesViewModel; added 2 unit tests in PeerTransferTests (652 passing).
 - F1: Created comprehensive docs/protocol-v2.md design specification covering all 9 sections (goals, P-256 ECDH + SAS confirmation code, directional session keys, 51-byte AES-256-GCM UDP datagrams, MCH2 TCP framing, Android integration, 3-phase migration, threat model table, and architectural decisions); pre-approved by user on 2026-11-14.
+- F2: Implemented PairingCrypto with P-256 ECDH, 65-byte uncompressed ANSI X9.62 public keys, HKDF-SHA256 PairKey (32 bytes) and 6-digit confirmation code (ddd ddd), and SessionCrypto with directional session keys (kA2B, kB2A), 12-byte nonces, AES-256-GCM Seal/TryOpen, and 64-bit sliding window replay protection; added 15 unit tests in PairingCryptoTests (667 passing).
