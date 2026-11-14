@@ -101,6 +101,8 @@ public sealed class PeerSettings
 {
     public string Name { get; set; } = string.Empty;
     public PeerPlacement Placement { get; set; }
+    public int OffsetX { get; set; }
+    public int OffsetY { get; set; }
     /// <summary>The peer's PIN, kept so pairing survives restarts (like the phone app does).</summary>
     public int? Pin { get; set; }
     public bool SendClipboard { get; set; } = true;

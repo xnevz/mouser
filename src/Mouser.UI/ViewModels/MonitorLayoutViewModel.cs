@@ -195,12 +195,15 @@ public partial class PeerViewModel : ViewModelBase
         }
     }
 
+    public PeerSettings Settings => GetOrCreatePeerSettings();
+
     private PeerSettings GetOrCreatePeerSettings()
     {
-        var settings = _owner.Settings!;
+        var settings = _owner.Settings;
+        if (settings == null) return new PeerSettings { Name = Hostname, Placement = Placement };
         if (!settings.Current.Peers.TryGetValue(Id, out var s))
         {
-            s = new PeerSettings { Name = Hostname };
+            s = new PeerSettings { Name = Hostname, Placement = Placement };
             settings.Current.Peers[Id] = s;
         }
         return s;
@@ -225,6 +228,12 @@ public partial class MonitorLayoutViewModel : ViewModelBase
     public const double CanvasWidth = 640;
     public const double CanvasHeight = 300;
     private const double CanvasPadding = 16;
+
+    public double CanvasScale { get; private set; } = 1.0;
+    public double CanvasOriginX { get; private set; }
+    public double CanvasOriginY { get; private set; }
+    public double CanvasMinX { get; private set; }
+    public double CanvasMinY { get; private set; }
 
     private readonly MouserHost? _host;
     private IReadOnlyList<DisplayInfo> _displays = Array.Empty<DisplayInfo>();
@@ -383,11 +392,44 @@ public partial class MonitorLayoutViewModel : ViewModelBase
         SelectedScreen = screen;
     }
 
+    public void SetPeerPlacementAndOffset(string peerId, PeerPlacement placement, int offsetX, int offsetY)
+    {
+        if (Settings != null)
+        {
+            if (!Settings.Current.Peers.TryGetValue(peerId, out var s))
+            {
+                var p = Peers.FirstOrDefault(x => x.Id == peerId);
+                s = new PeerSettings { Name = p?.Hostname ?? peerId };
+                Settings.Current.Peers[peerId] = s;
+            }
+            s.Placement = placement;
+            s.OffsetX = offsetX;
+            s.OffsetY = offsetY;
+            Settings.Save();
+        }
+
+        var peerVm = Peers.FirstOrDefault(p => p.Id == peerId);
+        if (peerVm != null)
+        {
+            peerVm.Update(peerVm.Peer, peerVm.Status, placement);
+        }
+
+        if (_host != null)
+        {
+            _host.SetPeerPlacement(peerId, placement);
+            _host.SetPeerOffset(peerId, offsetX, offsetY);
+        }
+
+        _layoutKey = null;
+        Relayout();
+        UpdateKvmStatus();
+    }
+
     /// <summary>Draws local monitors and placed peers to scale, as the KVM sees them.</summary>
-    private void Relayout()
+    internal void Relayout()
     {
         string key = string.Join(";", _displays) + "|" + string.Join(";", Peers.Select(p =>
-            $"{p.Id},{p.IsPaired},{p.Placement},{p.Peer.ScreenWidth}x{p.Peer.ScreenHeight},{p.Hostname},{(p.Peer.Monitors is { } mons ? string.Join(";", mons.Select(m => $"{m.X},{m.Y},{m.Width}x{m.Height}")) : "")}"));
+            $"{p.Id},{p.IsPaired},{p.Placement},{p.Settings.OffsetX},{p.Settings.OffsetY},{p.Peer.ScreenWidth}x{p.Peer.ScreenHeight},{p.Hostname},{(p.Peer.Monitors is { } mons ? string.Join(";", mons.Select(m => $"{m.X},{m.Y},{m.Width}x{m.Height}")) : "")}"));
         if (key == _layoutKey) return; // refreshed every second; only redraw on change
         _layoutKey = key;
 
@@ -403,12 +445,14 @@ public partial class MonitorLayoutViewModel : ViewModelBase
         foreach (var peer in Peers.Where(p => p.IsPaired && p.Placement != PeerPlacement.None && p.Peer.ScreenWidth > 0))
         {
             var r = new ScreenBounds { Width = peer.Peer.ScreenWidth, Height = peer.Peer.ScreenHeight };
+            int offX = peer.Settings.OffsetX;
+            int offY = peer.Settings.OffsetY;
             var placed = peer.Placement switch
             {
-                PeerPlacement.Right => r with { X = local.Right, Y = local.Y },
-                PeerPlacement.Left => r with { X = local.X - r.Width, Y = local.Y },
-                PeerPlacement.Below => r with { X = local.X, Y = local.Bottom },
-                _ => r with { X = local.X, Y = local.Y - r.Height }
+                PeerPlacement.Right => r with { X = local.Right, Y = local.Y + offY },
+                PeerPlacement.Left => r with { X = local.X - r.Width, Y = local.Y + offY },
+                PeerPlacement.Below => r with { X = local.X + offX, Y = local.Bottom },
+                _ => r with { X = local.X + offX, Y = local.Y - r.Height }
             };
 
             if (peer.Peer.Monitors is { Count: > 0 } monitors)
@@ -439,12 +483,19 @@ public partial class MonitorLayoutViewModel : ViewModelBase
         double scale = Math.Min((CanvasWidth - 2 * CanvasPadding) / (maxX - minX), (CanvasHeight - 2 * CanvasPadding) / (maxY - minY));
         double offsetX = (CanvasWidth - (maxX - minX) * scale) / 2, offsetY = (CanvasHeight - (maxY - minY) * scale) / 2;
 
+        CanvasScale = scale;
+        CanvasOriginX = offsetX;
+        CanvasOriginY = offsetY;
+        CanvasMinX = minX;
+        CanvasMinY = minY;
+
         foreach (var (rect, display, peer, number) in rects)
         {
             Screens.Add(new ScreenNodeViewModel
             {
                 Number = number,
                 IsPeer = peer != null,
+                Peer = peer,
                 Name = peer != null
                     ? (number > 0 ? $"{peer.Hostname} ({number})" : peer.Hostname)
                     : (string.IsNullOrWhiteSpace(display.Name) ? $"Display {number}" : display.Name),

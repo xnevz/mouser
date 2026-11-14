@@ -781,4 +781,21 @@ public class KvmControllerTests
         Assert.True(rig.Capture.Move(960, 540, 2500, 0));
         Assert.Equal("peer", rig.Kvm.ActivePeerId);
     }
+
+    [Fact]
+    public async Task PeerWithOffset_OnlyCrossesWithinOffsetBoundary()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+
+        // Remote peer placed to the right with vertical offset of 200px (Y=200..1640)
+        rig.Kvm.SetPeer("peer", "Studio PC", rig.Link, KvmRig.Remote, PeerPlacement.Right, offsetX: 0, offsetY: 200);
+
+        // 1. Cursor at y=50 (above offset peer) does NOT cross
+        Assert.False(rig.Capture.Move(1925, 50, 30, 0));
+        Assert.Null(rig.Kvm.ActivePeerId);
+
+        // 2. Cursor at y=250 (inside offset peer) crosses
+        Assert.True(rig.Capture.Move(1925, 250, 30, 0));
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+    }
 }

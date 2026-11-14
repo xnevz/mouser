@@ -58,6 +58,10 @@ public sealed class VirtualKvmManager
     public VirtualKvmManager(ScreenBounds? localScreen = null)
     {
         LocalScreen = localScreen;
+        if (localScreen != null)
+        {
+            LocalMonitors = new[] { new Monitor(localScreen.X, localScreen.Y, localScreen.Width, localScreen.Height) };
+        }
         CurrentFocusedHostId = localScreen?.HostId ?? "local";
     }
 
@@ -66,6 +70,10 @@ public sealed class VirtualKvmManager
         lock (_lock)
         {
             LocalScreen = screen;
+            if (LocalMonitors.Count == 0)
+            {
+                LocalMonitors = new[] { new Monitor(screen.X, screen.Y, screen.Width, screen.Height) };
+            }
             if (!IsRedirected)
             {
                 CurrentFocusedHostId = screen.HostId;
@@ -179,7 +187,12 @@ public sealed class VirtualKvmManager
                 return false;
             }
 
-            if (LocalMonitors.Count > 0)
+            if (LocalMonitors.Count == 0 && LocalScreen != null)
+            {
+                LocalMonitors = new[] { new Monitor(LocalScreen.X, LocalScreen.Y, LocalScreen.Width, LocalScreen.Height) };
+            }
+
+            if (LocalMonitors.Count > 0 && LocalScreen != null)
             {
                 double checkX = Math.Clamp(cursorX, LocalScreen.X, LocalScreen.Right);
                 double checkY = Math.Clamp(cursorY, LocalScreen.Y, LocalScreen.Bottom);

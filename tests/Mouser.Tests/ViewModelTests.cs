@@ -428,6 +428,113 @@ public class ViewModelTests
     }
 
     [Fact]
+    public void MonitorLayout_SetPeerPlacementAndOffset_PersistsInSettingsAndShiftsNodePosition()
+    {
+        string tmp = Path.Combine(Path.GetTempPath(), $"mouser_layout_offset_{Guid.NewGuid():N}.json");
+        try
+        {
+            var store = new SettingsStore(tmp);
+            var vm = new MonitorLayoutViewModel(settings: store);
+            vm.SetDisplays(new[]
+            {
+                new DisplayInfo("Laptop", 0, 0, 1920, 1080, 1.0, true)
+            });
+
+            var peer = new DiscoveredPeer
+            {
+                DeviceId = "peer1",
+                Hostname = "studio-pc",
+                OperatingSystem = "Windows",
+                ScreenWidth = 1920,
+                ScreenHeight = 1080
+            };
+
+            vm.SetPeers(new[] { peer });
+            var peerVm = Assert.Single(vm.Peers);
+            peerVm.Status = PeerLinkStatus.Paired;
+
+            // 1. Initial placement at Right with 0 offset
+            vm.SetPeerPlacementAndOffset("peer1", PeerPlacement.Right, 0, 0);
+            var node = Assert.Single(vm.Screens.Where(s => s.IsPeer));
+            double initialY = node.PositionY;
+
+            // 2. Set offset Y to 300
+            vm.SetPeerPlacementAndOffset("peer1", PeerPlacement.Right, 0, 300);
+            Assert.Equal(300, store.Current.Peers["peer1"].OffsetY);
+            Assert.Equal(0, store.Current.Peers["peer1"].OffsetX);
+            Assert.Equal(PeerPlacement.Right, store.Current.Peers["peer1"].Placement);
+
+            // Re-fetch node after relayout
+            var shiftedNode = Assert.Single(vm.Screens.Where(s => s.IsPeer));
+            Assert.True(shiftedNode.PositionY > initialY);
+
+            // Verify persisted to file
+            var reloaded = new SettingsStore(tmp);
+            Assert.True(reloaded.Current.Peers.TryGetValue("peer1", out var reloadedPeer));
+            Assert.Equal(300, reloadedPeer.OffsetY);
+            Assert.Equal(PeerPlacement.Right, reloadedPeer.Placement);
+        }
+        finally
+        {
+            if (File.Exists(tmp)) File.Delete(tmp);
+        }
+    }
+
+    [Fact]
+    public void MonitorLayout_SnappingLogic_SnapsToClosestEdgeAndAlignsTopOrCenter()
+    {
+        string tmp = Path.Combine(Path.GetTempPath(), $"mouser_layout_snap_{Guid.NewGuid():N}.json");
+        try
+        {
+            var store = new SettingsStore(tmp);
+            var vm = new MonitorLayoutViewModel(settings: store);
+            vm.SetDisplays(new[]
+            {
+                new DisplayInfo("Laptop", 0, 0, 1920, 1080, 1.0, true)
+            });
+
+            var peer = new DiscoveredPeer
+            {
+                DeviceId = "peer1",
+                Hostname = "studio-pc",
+                OperatingSystem = "Windows",
+                ScreenWidth = 1920,
+                ScreenHeight = 1080
+            };
+
+            vm.SetPeers(new[] { peer });
+            var peerVm = Assert.Single(vm.Peers);
+            peerVm.Status = PeerLinkStatus.Paired;
+            vm.SetPeerPlacementAndOffset("peer1", PeerPlacement.Right, 0, 0);
+
+            var peerNode = Assert.Single(vm.Screens.Where(s => s.IsPeer));
+            var local = vm.LocalDesktop!;
+
+            // Case A: Drag near right edge (within 24px) and top edge difference <= 12px -> snaps offset to 0
+            peerNode.PositionX = peerNode.PositionX + 5; // close to right edge
+            peerNode.PositionY = vm.CanvasOriginY + 6;   // 6px difference from top -> <= 12px
+            MonitorLayoutView.ApplySnappingAndCommit(vm, peerNode, peerVm, local);
+
+            Assert.Equal(PeerPlacement.Right, store.Current.Peers["peer1"].Placement);
+            Assert.Equal(0, store.Current.Peers["peer1"].OffsetY);
+
+            // Case B: Drag below screen with left alignment <= 12px -> snaps placement to Below and offsetX to 0
+            double localCanvasX = vm.CanvasOriginX + (local.X - vm.CanvasMinX) * vm.CanvasScale;
+            double localCanvasBottom = vm.CanvasOriginY + (local.Bottom - vm.CanvasMinY) * vm.CanvasScale;
+            peerNode.PositionX = localCanvasX + 8; // <= 12px from left
+            peerNode.PositionY = localCanvasBottom + 10; // near bottom edge
+            MonitorLayoutView.ApplySnappingAndCommit(vm, peerNode, peerVm, local);
+
+            Assert.Equal(PeerPlacement.Below, store.Current.Peers["peer1"].Placement);
+            Assert.Equal(0, store.Current.Peers["peer1"].OffsetX);
+        }
+        finally
+        {
+            if (File.Exists(tmp)) File.Delete(tmp);
+        }
+    }
+
+    [Fact]
     public async Task Settings_PersistAndValidatePort()
     {
         await using var app = new AppFixture();

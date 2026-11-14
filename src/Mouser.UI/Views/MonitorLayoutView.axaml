@@ -34,7 +34,7 @@
             <Grid ColumnDefinitions="*,16,260">
                 <Border Grid.Column="0" Classes="glass-card" Padding="12" ClipToBounds="True">
                     <Viewbox Stretch="Uniform" MaxHeight="320">
-                        <ItemsControl ItemsSource="{Binding Screens}" Width="640" Height="300">
+                        <ItemsControl x:Name="ScreensItemsControl" ItemsSource="{Binding Screens}" Width="640" Height="300">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <Canvas Background="{DynamicResource BgSunken}" />

@@ -12,10 +12,12 @@ public partial class ScreenNodeViewModel : ViewModelBase
     public bool IsPrimary { get; init; }
     /// <summary>Another computer placed next to this one, not a local monitor.</summary>
     public bool IsPeer { get; init; }
+    public PeerViewModel? Peer { get; init; }
+    public string? PeerId => Peer?.Id;
     public string Label => IsPeer ? Name : Number.ToString();
 
-    public double PositionX { get; init; }
-    public double PositionY { get; init; }
+    [ObservableProperty] private double _positionX;
+    [ObservableProperty] private double _positionY;
     public double DisplayWidth { get; init; }
     public double DisplayHeight { get; init; }
 

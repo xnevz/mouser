@@ -426,9 +426,32 @@ public sealed class MouserHost : IDisposable
         return true;
     }
 
-    public void SetPeerPlacement(DiscoveredPeer peer, PeerPlacement placement)
+    public void SetPeerPlacement(string peerId, PeerPlacement placement)
     {
-        PeerSettingsFor(peer).Placement = placement;
+        if (!_settings.Current.Peers.TryGetValue(peerId, out var saved))
+        {
+            var p = Peers.FirstOrDefault(x => x.DeviceId == peerId);
+            saved = new PeerSettings { Name = p?.Hostname ?? peerId };
+            _settings.Current.Peers[peerId] = saved;
+        }
+        saved.Placement = placement;
+        _settings.Save();
+        SyncPeers();
+    }
+
+    public void SetPeerPlacement(DiscoveredPeer peer, PeerPlacement placement) =>
+        SetPeerPlacement(peer.DeviceId, placement);
+
+    public void SetPeerOffset(string peerId, int offsetX, int offsetY)
+    {
+        if (!_settings.Current.Peers.TryGetValue(peerId, out var saved))
+        {
+            var p = Peers.FirstOrDefault(x => x.DeviceId == peerId);
+            saved = new PeerSettings { Name = p?.Hostname ?? peerId };
+            _settings.Current.Peers[peerId] = saved;
+        }
+        saved.OffsetX = offsetX;
+        saved.OffsetY = offsetY;
         _settings.Save();
         SyncPeers();
     }
@@ -544,6 +567,7 @@ public sealed class MouserHost : IDisposable
             var bounds = new ScreenBounds { X = peer.ScreenX, Y = peer.ScreenY, Width = peer.ScreenWidth, Height = peer.ScreenHeight };
             Kvm?.SetPeer(id, peer.Hostname, link, bounds, link.IsPaired ? saved.Placement : PeerPlacement.None,
                 saved.MouseSpeed, saved.ScrollSpeed, saved.InvertScroll,
+                saved.OffsetX, saved.OffsetY,
                 peer.Monitors);
         }
 
