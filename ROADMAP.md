@@ -188,7 +188,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | G2 | Clipboard bridge (foreground) | F5, D4 | L |
 | ✅ | G3 | Share-sheet target | G2 | M |
 | ✅ | G4 | Macro pad with custom buttons | – | M |
-| ⬜ | G5 | Gestures and phone settings | – | M |
+| ✅ | G5 | Gestures and phone settings | – | M |
 | ⬜ | G6 | Laser pointer and slide remote | E7 | L |
 | ⬜ | G7 | Ping/battery bar, foreground service, auto-reconnect | – | M |
 | ⬜ | G8 | Landscape/tablet, accessibility, localisation, release signing | A13 | M |
@@ -339,3 +339,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - G2: Implemented Android clipboard bridge and desktop ClipRequest handling: added FrameType.ClipRequest=12, GetLatestClip provider in PeerTransferService, RequestClipAsync client, and LatestClipProvider in MouserHost; created Android ClipboardBridge with 7-bit string encoding, AES-256-GCM container matching ClipboardCryptoEngine, sendClip and requestClip over TCP; added Send phone clipboard and Get PC clipboard action buttons in ConnectionBar; added unit tests in ClipboardBridgeTest and PeerTransferTests.
 - G3: Implemented Android share-sheet target: registered ShareReceiverActivity with ACTION_SEND filters for text/plain, image/*, and */*; implemented FileTransferClient with 2 GB size enforcement, SHA-256 computation, and FileStart/FileChunk/FileEnd TCP streaming; wired paired host picker UI in Compose; added unit tests in FileTransferClientTest.
 - G4: Implemented Android macro pad with custom buttons: created Macro and MacroStep models (Key, Combo, Text, Delay); implemented pure MacroRunner with reverse-release combo ordering and default macros (Copy, Paste, Undo, Redo, Screenshot, Task view, Mute); implemented MacroStore with JSON persistence, import, and export; created MacroPadView with grid, long-press editing, and step builder; integrated into MediaMacrosView tab row; added unit tests in MacroTest.
+- G5: Implemented Android gestures and companion settings: created pure GestureClassifier for single-finger move/tap, two-finger tap, two-finger scroll/pinch-to-zoom (Ctrl+wheel), three-finger directional swipes (virtual desktops, Task view, Show desktop), and drag lock; created SettingsSheet with sliders (pointer speed, scroll speed, air-mouse sensitivity) and toggles (reverse scroll, haptics, tap to click, drag lock) with SharedPreferences persistence; added unit tests in GestureClassifierTest.
