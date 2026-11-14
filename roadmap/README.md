@@ -53,6 +53,16 @@ through the same edge. The other computer's cursor is driven with absolute posit
 can send each other files, saved to `Downloads/Mouser`. Traffic is AES-256-GCM encrypted with a key derived
 from the PIN of the computer that was paired to.
 
+## Building the Windows Installer
+
+To build the self-contained portable executable and Inno Setup installer:
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build-installer.ps1 -Version 0.9.0
+```
+This produces:
+- Single-file portable executable: `bin\dist\windows\Mouser.exe`
+- Inno Setup installer: `bin\dist\Mouser-Setup-0.9.0.exe` (requires Inno Setup 6, e.g. `winget install JRSoftware.InnoSetup`).
+
 ## How to test the KVM
 
 **On one Windows PC** (no second computer needed):
