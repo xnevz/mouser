@@ -50,51 +50,70 @@ public sealed class ClipboardPayload
 
     public static ClipboardPayload Deserialize(ReadOnlySpan<byte> bytes)
     {
-        using var ms = new MemoryStream(bytes.ToArray());
-        using var reader = new BinaryReader(ms, Encoding.UTF8, leaveOpen: true);
+        try
+        {
+            using var ms = new MemoryStream(bytes.ToArray());
+            using var reader = new BinaryReader(ms, Encoding.UTF8, leaveOpen: true);
 
-        var payload = new ClipboardPayload
-        {
-            Id = reader.ReadString(),
-            TimestampUtc = reader.ReadInt64(),
-            ContentType = (ClipboardContentType)reader.ReadInt32(),
-            TextContent = reader.ReadString(),
-            HtmlContent = reader.ReadString(),
-            SourceDevice = reader.ReadString(),
-            IsFavorite = reader.ReadBoolean()
-        };
+            var payload = new ClipboardPayload
+            {
+                Id = reader.ReadString(),
+                TimestampUtc = reader.ReadInt64(),
+                ContentType = (ClipboardContentType)reader.ReadInt32(),
+                TextContent = reader.ReadString(),
+                HtmlContent = reader.ReadString(),
+                SourceDevice = reader.ReadString(),
+                IsFavorite = reader.ReadBoolean()
+            };
 
-        if (ms.Position < ms.Length)
-        {
-            payload.SourceApp = reader.ReadString();
-        }
+            if (ms.Position < ms.Length)
+            {
+                payload.SourceApp = reader.ReadString();
+            }
 
-        if (ms.Position < ms.Length)
-        {
-            var mp = reader.ReadString();
-            payload.MediaPath = string.IsNullOrEmpty(mp) ? null : mp;
-        }
-        if (ms.Position < ms.Length)
-        {
-            var mh = reader.ReadString();
-            payload.MediaHash = string.IsNullOrEmpty(mh) ? null : mh;
-        }
-        if (ms.Position < ms.Length)
-        {
-            var w = reader.ReadInt32();
-            payload.Width = w == 0 ? null : w;
-        }
-        if (ms.Position < ms.Length)
-        {
-            var h = reader.ReadInt32();
-            payload.Height = h == 0 ? null : h;
-        }
-        if (ms.Position < ms.Length)
-        {
-            var b = reader.ReadInt64();
-            payload.MediaBytes = b == 0 ? null : b;
-        }
+            if (ms.Position < ms.Length)
+            {
+                var mp = reader.ReadString();
+                payload.MediaPath = string.IsNullOrEmpty(mp) ? null : mp;
+            }
+            if (ms.Position < ms.Length)
+            {
+                var mh = reader.ReadString();
+                payload.MediaHash = string.IsNullOrEmpty(mh) ? null : mh;
+            }
+            if (ms.Position < ms.Length)
+            {
+                var w = reader.ReadInt32();
+                payload.Width = w == 0 ? null : w;
+            }
+            if (ms.Position < ms.Length)
+            {
+                var h = reader.ReadInt32();
+                payload.Height = h == 0 ? null : h;
+            }
+            if (ms.Position < ms.Length)
+            {
+                var b = reader.ReadInt64();
+                payload.MediaBytes = b == 0 ? null : b;
+            }
 
-        return payload;
+            return payload;
+        }
+        catch (EndOfStreamException)
+        {
+            throw;
+        }
+        catch (FormatException)
+        {
+            throw;
+        }
+        catch (InvalidDataException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException("Malformed clipboard payload.", ex);
+        }
     }
 }

@@ -84,6 +84,7 @@ public sealed class InputInjectionService : IDisposable
     public IReadOnlyList<RemoteClient> Clients => _clients.Values.OrderByDescending(c => c.LastSeenUtc).ToList();
 
     public event Action<InputMotionPacket, IPEndPoint>? PacketProcessed;
+    public event Action<string, IPEndPoint>? PeerAuthenticated;
 
     public InputInjectionService(IInputSink sink, PairingGate gate, int listenPort = 0, Func<DateTime>? clock = null, string? ownDeviceId = null)
     {
@@ -191,6 +192,8 @@ public sealed class InputInjectionService : IDisposable
                 return;
             }
         }
+
+        PeerAuthenticated?.Invoke(peerEntry.DeviceId, remoteEndPoint);
 
         if (!InputMotionPacket.TryRead(plaintext, out var packet))
         {

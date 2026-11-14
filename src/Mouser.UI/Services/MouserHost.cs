@@ -35,6 +35,7 @@ public sealed class MouserHost : IDisposable
     // Computers that proved (via a hello frame) they paired with us; lets us sync to them by device id.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _pairedWithUs = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (string Text, DateTime Timestamp)> _failedClips = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, IPEndPoint> _authenticatedEndpoints = new();
     private ScreenBounds? _desktop;
     private IReadOnlyList<Mouser.Core.Geometry.Monitor>? _monitors;
     private bool _locked;
@@ -142,6 +143,7 @@ public sealed class MouserHost : IDisposable
                     }
                 }
             }
+            Input.PeerAuthenticated += (id, ep) => MarkPeerAuthenticated(id, ep);
             Input.Start();
         }
         catch (SocketException e)
@@ -889,16 +891,42 @@ public sealed class MouserHost : IDisposable
         }
     }
 
-    private PeerLink EnsureLink(DiscoveredPeer peer)
+    internal void MarkPeerAuthenticated(string deviceId, IPEndPoint endpoint)
+    {
+        _authenticatedEndpoints[deviceId] = endpoint;
+    }
+
+    internal PeerLink? GetLink(string deviceId) => _links.TryGetValue(deviceId, out var l) ? l : null;
+
+    internal PeerLink EnsureLink(DiscoveredPeer peer)
     {
         var endpoint = new IPEndPoint(peer.IpAddress, peer.MotionPort);
-        if (_links.TryGetValue(peer.DeviceId, out var link) && link.Target.Equals(endpoint))
+        if (_links.TryGetValue(peer.DeviceId, out var link))
         {
-            UpdateLinkSecurity(link, peer.DeviceId);
-            return link;
+            if (link.Target.Equals(endpoint))
+            {
+                UpdateLinkSecurity(link, peer.DeviceId);
+                return link;
+            }
+
+            // Beacon spoofing protection:
+            // A beacon claiming a known deviceId from a different IP/endpoint must not hijack
+            // the saved peer's link until the peer authenticates with a successful secure datagram.
+            bool isSavedSecurePeer = link.IsSecure ||
+                (_settings.Current.Peers.TryGetValue(peer.DeviceId, out var saved) &&
+                 (!string.IsNullOrEmpty(saved.PairKeyProtected) || saved.Pin != null));
+
+            if (isSavedSecurePeer)
+            {
+                if (!_authenticatedEndpoints.TryGetValue(peer.DeviceId, out var authEndpoint) || !authEndpoint.Equals(endpoint))
+                {
+                    // Unauthenticated beacon from different endpoint - keep existing link
+                    return link;
+                }
+            }
         }
 
-        link?.Dispose(); // the peer's address or port changed
+        link?.Dispose(); // the peer's address or port changed and was authenticated (or peer is new/unpaired)
         link = new PeerLink(endpoint, allowOlderDevices: _settings.Current.AllowOlderDevices);
         UpdateLinkSecurity(link, peer.DeviceId);
         _links[peer.DeviceId] = link;

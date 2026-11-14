@@ -371,8 +371,8 @@ public sealed class PeerTransferService : IDisposable
     }
 
     /// <summary>Reads one frame and decrypts it. A known key (mid-transfer) must match; otherwise the sender's keys are tried.</summary>
-    private async Task<(FrameType Type, string Sender, byte[] Key, byte[] Body)?> ReadFrameAsync(
-        NetworkStream stream, IPAddress remote, byte[]? knownKey, CancellationToken ct)
+    internal async Task<(FrameType Type, string Sender, byte[] Key, byte[] Body)?> ReadFrameAsync(
+        Stream stream, IPAddress remote, byte[]? knownKey, CancellationToken ct)
     {
         var head = new byte[6];
         if (!await ReadExactAsync(stream, head, ct)) return null;
