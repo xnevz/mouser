@@ -13,8 +13,11 @@
       <SolidColorBrush x:Key="BgHover">#292930</SolidColorBrush>
       <SolidColorBrush x:Key="BgActive">#31313a</SolidColorBrush>
       <SolidColorBrush x:Key="BgPressed">#151518</SolidColorBrush>
-      <SolidColorBrush x:Key="BorderSubtle">#2e2e36</SolidColorBrush>
-      <SolidColorBrush x:Key="BorderStrong">#454552</SolidColorBrush>
+      <SolidColorBrush x:Key="BorderSubtle">#202024</SolidColorBrush>
+      <SolidColorBrush x:Key="BorderStrong">#2c2c34</SolidColorBrush>
+      <SolidColorBrush x:Key="ControlStrokeColorDefault">#202024</SolidColorBrush>
+      <SolidColorBrush x:Key="CardStrokeColorDefault">#1c1c20</SolidColorBrush>
+      <SolidColorBrush x:Key="ControlElevationBorderBrush">Transparent</SolidColorBrush>
       <SolidColorBrush x:Key="TextPrimary">#fafafa</SolidColorBrush>
       <SolidColorBrush x:Key="TextSecondary">#d4d4d8</SolidColorBrush>
       <SolidColorBrush x:Key="TextMuted">#a1a1aa</SolidColorBrush>
