@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Mouser.Core.Clipboard;
 using Mouser.Core.Security;
+using Mouser.Core.Services;
 using Mouser.UI.Services;
 
 namespace Mouser.UI.ViewModels;
@@ -63,6 +64,14 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _closeToTray;
     [ObservableProperty] private bool _minimizeToTray;
     [ObservableProperty] private bool _notifications;
+    [ObservableProperty] private bool _checkForUpdates;
+    [ObservableProperty] private string? _updateProxy;
+    [ObservableProperty] private string _updateStatusText = "Up to date";
+    [ObservableProperty] private bool _isUpdateAvailable;
+    [ObservableProperty] private string _latestVersionText = string.Empty;
+    [ObservableProperty] private string _releaseNotesText = string.Empty;
+    [ObservableProperty] private string _releaseUrl = string.Empty;
+    [ObservableProperty] private bool _isCheckingForUpdates;
     [ObservableProperty] private bool _warnElevatedWindows;
     [ObservableProperty] private string _theme;
     [ObservableProperty] private string _deviceName;
@@ -165,6 +174,8 @@ public partial class SettingsViewModel : ViewModelBase
         _lockWithWindows = s.LockWithWindows;
         _allowRemoteLock = s.AllowRemoteLock;
         _autoLockMinutes = s.AutoLockMinutes;
+        _checkForUpdates = s.CheckForUpdates;
+        _updateProxy = s.UpdateProxy;
         _maxIncomingFileMB = s.MaxIncomingFileMB;
         _blockedExtensionsText = string.Join(" ", s.BlockedExtensions ?? new());
 
@@ -780,6 +791,66 @@ public partial class SettingsViewModel : ViewModelBase
 
     [RelayCommand]
     private void ApplyPort() => ApplyPorts();
+
+    partial void OnCheckForUpdatesChanged(bool value) => Save(s => s.CheckForUpdates = value);
+    partial void OnUpdateProxyChanged(string? value) => Save(s => s.UpdateProxy = value);
+
+    [RelayCommand]
+    public async Task CheckForUpdatesNowAsync()
+    {
+        IsCheckingForUpdates = true;
+        UpdateStatusText = "Checking for updates...";
+        try
+        {
+            string currentVersion = typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "0.9.0";
+            var result = await UpdateChecker.CheckForUpdateAsync(
+                currentVersion,
+                endpointUrl: _store.Current.CustomUpdateUrl,
+                proxyAddress: _store.Current.UpdateProxy);
+
+            if (!string.IsNullOrEmpty(result.Error))
+            {
+                UpdateStatusText = $"Update check failed: {result.Error}";
+                IsUpdateAvailable = false;
+            }
+            else if (result.IsUpdateAvailable)
+            {
+                IsUpdateAvailable = true;
+                LatestVersionText = result.LatestVersion;
+                ReleaseUrl = result.ReleaseUrl;
+                ReleaseNotesText = result.ReleaseNotes;
+                UpdateStatusText = $"Version {result.LatestVersion} is available!";
+            }
+            else
+            {
+                IsUpdateAvailable = false;
+                UpdateStatusText = $"Mouser is up to date (v{currentVersion})";
+            }
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusText = $"Error checking updates: {ex.Message}";
+        }
+        finally
+        {
+            IsCheckingForUpdates = false;
+        }
+    }
+
+    [RelayCommand]
+    public void OpenReleasePage()
+    {
+        string url = !string.IsNullOrEmpty(ReleaseUrl) ? ReleaseUrl : "https://github.com/xnevz/mouser/releases";
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
+        }
+        catch { }
+    }
 
     private void Save(Action<AppSettings> change)
     {

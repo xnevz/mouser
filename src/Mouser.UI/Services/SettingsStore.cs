@@ -94,6 +94,15 @@ public sealed class AppSettings
     {
         ".exe", ".msi", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".scr", ".lnk", ".jar", ".com", ".dll"
     };
+
+    /// <summary>Periodically check for new Mouser releases.</summary>
+    public bool CheckForUpdates { get; set; } = true;
+
+    /// <summary>Optional HTTP/HTTPS proxy address for update checks.</summary>
+    public string? UpdateProxy { get; set; }
+
+    /// <summary>Custom update endpoint or local file URL for test verification.</summary>
+    public string? CustomUpdateUrl { get; set; }
 }
 
 public sealed class HotkeySettings

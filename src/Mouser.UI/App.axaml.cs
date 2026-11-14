@@ -11,6 +11,7 @@ using Mouser.Core.Clipboard;
 using Mouser.Core.Input;
 using Mouser.Core.Networking;
 using Mouser.Core.Security;
+using Mouser.Core.Services;
 using Mouser.UI.Services;
 using Mouser.UI.ViewModels;
 using Mouser.UI.Views;
@@ -70,6 +71,11 @@ public partial class App : Application
             }
 
             var settings = new SettingsStore(dataDir == null ? null : Path.Combine(Path.GetFullPath(dataDir), "settings.json"));
+            string? updateUrl = ArgValue("--update-url");
+            if (!string.IsNullOrEmpty(updateUrl))
+            {
+                settings.Current.CustomUpdateUrl = updateUrl;
+            }
             ThemeService.Apply(settings.Current.Theme);
             ToastService.Initialize(settings);
             var appLock = new AppLockService(Path.Combine(settings.DataDirectory, "lock.json"));
@@ -412,6 +418,31 @@ public partial class App : Application
                 await vm.ClipboardHistory.PollClipboardAsync();
             };
             _refreshTimer.Start();
+
+            if (settings.Current.CheckForUpdates)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(3000);
+                        string currentVersion = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.9.0";
+                        var result = await UpdateChecker.CheckForUpdateAsync(
+                            currentVersion,
+                            endpointUrl: settings.Current.CustomUpdateUrl,
+                            proxyAddress: settings.Current.UpdateProxy);
+
+                        if (result.IsUpdateAvailable)
+                        {
+                            Dispatcher.UIThread.Post(() =>
+                            {
+                                ToastService.Show("Update Available", $"Mouser {result.LatestVersion} is available to download.");
+                            });
+                        }
+                    }
+                    catch { }
+                });
+            }
 
             desktop.Exit += (_, _) =>
             {

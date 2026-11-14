@@ -97,6 +97,33 @@
                                 Command="{Binding RestartNormalCommand}"
                                 IsVisible="{Binding CanRestartNormal}" />
                     </StackPanel>
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Check for updates automatically" />
+                            <TextBlock Classes="hint" Text="Queries GitHub Releases on startup and every 24 hours. No personal data is sent." />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding CheckForUpdates}" OnContent="" OffContent="" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2" VerticalAlignment="Center">
+                            <TextBlock Classes="hint" Text="{Binding UpdateStatusText}" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Classes="secondary-btn" Content="Check now"
+                                Command="{Binding CheckForUpdatesNowCommand}"
+                                IsEnabled="{Binding !IsCheckingForUpdates}" />
+                    </Grid>
+                    <Border Background="{DynamicResource BannerInfoBg}" BorderBrush="{DynamicResource BannerInfoBorder}"
+                            BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,4"
+                            IsVisible="{Binding IsUpdateAvailable}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="2">
+                                <TextBlock Classes="section-title" FontSize="13" Text="{Binding UpdateStatusText}" Foreground="{DynamicResource BannerInfoText}" />
+                                <TextBlock Classes="hint" Text="{Binding ReleaseNotesText}" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Classes="primary-btn" Content="Download"
+                                    Command="{Binding OpenReleasePageCommand}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                        </Grid>
+                    </Border>
                 </StackPanel>
             </Border>
 
