@@ -177,7 +177,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | F5 | Android crypto and pairing | F2, F3 | XL |
 | ✅ | F6 | Keys at rest (DPAPI); stop storing PINs | F3 | M |
 | ✅ | F7 | Incoming-file safety (prompt, limits, sanitising) | B9 | M |
-| ⬜ | F8 | Remove v1 PIN trust | F4, F5, F6 | M |
+| ✅ | F8 | Remove v1 PIN trust | F4, F5, F6 | M |
 | ✅ | F9 | Fuzz tests, SECURITY.md, threat model | F4 | M |
 | ✅ | F10 | Local-network-only, adapter picker, separate ports | B11 | S |
 
@@ -334,3 +334,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - A13: Added Slate light palette to Color.kt and lightColorScheme + System mode to Theme.kt; converted all backgrounds, text, and borders across MainActivity, ConnectionBar, TrackpadSurface, AirMouseSurface, and MediaMacrosView to dynamic MaterialTheme.colorScheme tokens; added theme mode persistence in MouserViewModel and FilterChips chooser in ConnectionBar; verified 0 remaining Zinc/raw hex occurrences outside theme.
 - C6: Added androidx.biometric:biometric:1.1.0 dependency, LockState pure timeout state machine, LockScreen composable, and FLAG_SECURE window masking; migrated MainActivity to FragmentActivity with BiometricPrompt; added App Lock toggle in ConnectionBar and input suppression in MouserViewModel while locked; added 5 unit tests in LockStateTest.
 - F5: Implemented Android PairingCrypto (P-256 ECDH, uncompressed ANSI X9.62 export, HKDF-SHA256, 6-digit confirmation code), SessionCrypto (directional keys, AES-256-GCM, 64-bit sliding replay window), and 51-byte SecureInputPacket; wired into MouserConnection and ConfirmCodeDialog in ConnectionBar; generated KnownAnswer test vectors in C# PairingCryptoTests and verified byte-for-byte interop in Kotlin PairingCryptoTest.
+- F8: Removed v1 PIN trust and cleartext pairing: deleted PairingGate.cs, removed TypePair/TypePairAck from InputMotionPacket wire protocol, removed PBKDF2-from-PIN key derivation (PeerTransferService.DeriveKey), removed AppSettings.PairingPin and PeerSettings.Pin; updated UI (Onboarding, Devices, AndroidRemote, MonitorLayout) to remove PIN boxes and 'New PIN' buttons; updated Android companion app (MouserConnection, InputMotionPacket, HostConnectionState, ConnectionBar, MainActivity, MouserViewModel); removed legacy PIN tests; verified grep check for TryPair|PairingPin|DeriveKey( returned 0 matches; all targeted tests pass.
