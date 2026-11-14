@@ -282,6 +282,19 @@
                                         Value="{Binding DimScreensOpacity}"
                                         ToolTip.Tip="Darkness of the dim overlay on inactive displays" />
                             </StackPanel>
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Max incoming file size (MB)" />
+                                    <TextBlock Classes="hint" Text="Reject incoming files larger than this size limit. Default is 2048 MB (2 GB)." />
+                                </StackPanel>
+                                <NumericUpDown Grid.Column="1" Value="{Binding MaxIncomingFileMB}" Minimum="1" Maximum="4096" Increment="128"
+                                               FormatString="0" Width="140" />
+                            </Grid>
+                            <StackPanel Spacing="6" Margin="0,4,0,0">
+                                <TextBlock Text="Blocked file extensions" Classes="label" />
+                                <TextBox Text="{Binding BlockedExtensionsText}" AcceptsReturn="False" Width="300" HorizontalAlignment="Left" />
+                                <TextBlock Text="Space-separated list of blocked extensions (e.g. .exe .msi .bat .cmd .ps1)." Classes="hint" />
+                            </StackPanel>
                         </StackPanel>
                     </Expander>
                 </StackPanel>

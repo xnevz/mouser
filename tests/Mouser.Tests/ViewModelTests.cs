@@ -66,6 +66,7 @@ public sealed class AppFixture : IAsyncDisposable
         Host.Restart();
         Storage = new ClipboardStorageService(Path.Combine(_dir, "clipboard.db"));
         Main = new MainViewModel(Host, Settings, Storage, appLock: appLock);
+        Main.DispatchToUI = a => a();
         Main.ClipboardHistory.AttachClipboard(Clipboard);
         Main.Activity.AttachClipboard(Clipboard);
     }

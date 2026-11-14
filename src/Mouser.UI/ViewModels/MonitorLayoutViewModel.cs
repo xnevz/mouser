@@ -42,6 +42,7 @@ public partial class PeerViewModel : ViewModelBase
     [ObservableProperty] private bool _sendClipboard = true;
     [ObservableProperty] private bool _receiveClipboard = true;
     [ObservableProperty] private bool _sendFiles = true;
+    [ObservableProperty] private bool _autoAcceptFiles;
 
     [ObservableProperty] private double _mouseSpeed = 1.0;
     [ObservableProperty] private double _scrollSpeed = 1.0;
@@ -118,6 +119,7 @@ public partial class PeerViewModel : ViewModelBase
             SendClipboard = s.SendClipboard;
             ReceiveClipboard = s.ReceiveClipboard;
             SendFiles = s.SendFiles;
+            AutoAcceptFiles = s.AutoAcceptFiles;
             MouseSpeed = s.MouseSpeed;
             ScrollSpeed = s.ScrollSpeed;
             InvertScroll = s.InvertScroll;
@@ -141,6 +143,7 @@ public partial class PeerViewModel : ViewModelBase
         OnPropertyChanged(nameof(SendClipboard));
         OnPropertyChanged(nameof(ReceiveClipboard));
         OnPropertyChanged(nameof(SendFiles));
+        OnPropertyChanged(nameof(AutoAcceptFiles));
         OnPropertyChanged(nameof(MouseSpeed));
         OnPropertyChanged(nameof(ScrollSpeed));
         OnPropertyChanged(nameof(InvertScroll));
@@ -187,6 +190,17 @@ public partial class PeerViewModel : ViewModelBase
         if (peer.SendFiles != value)
         {
             peer.SendFiles = value;
+            _owner.Settings.Save();
+        }
+    }
+
+    partial void OnAutoAcceptFilesChanged(bool value)
+    {
+        if (_updating || _owner.Settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (peer.AutoAcceptFiles != value)
+        {
+            peer.AutoAcceptFiles = value;
             _owner.Settings.Save();
         }
     }

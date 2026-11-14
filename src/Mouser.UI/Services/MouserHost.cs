@@ -53,6 +53,9 @@ public sealed class MouserHost : IDisposable
     /// <summary>A lock request arrived from a paired computer (sender device id). Background thread.</summary>
     public event Action<string>? LockRequestedByPeer;
 
+    /// <summary>Raised when an incoming file transfer requires user confirmation (senderId, peerName, fileName, totalBytes) -> bool accepted.</summary>
+    public Func<string, string, string, long, Task<bool>>? IncomingFilePromptHandler { get; set; }
+
     /// <summary>An incoming pairing request arrived (peerDeviceName, confirmationCode, allow, deny).</summary>
     public event Action<string, string, Action, Action>? PairingRequested;
 
@@ -248,6 +251,25 @@ public sealed class MouserHost : IDisposable
         try
         {
             var transfer = new PeerTransferService(_settings.Current.DeviceId, ReceiveKeys, _downloadDirectory, port, _settings.Current.DeviceName);
+            transfer.MaxIncomingBytes = (long)_settings.Current.MaxIncomingFileMB * 1024 * 1024;
+            transfer.BlockedExtensions.Clear();
+            foreach (var ext in _settings.Current.BlockedExtensions) transfer.BlockedExtensions.Add(ext);
+
+            transfer.AcceptFile = async incoming =>
+            {
+                if (_settings.Current.Peers.TryGetValue(incoming.SenderId, out var peerSettings))
+                {
+                    if (peerSettings.AutoAcceptFiles) return true;
+                }
+
+                if (IncomingFilePromptHandler != null)
+                {
+                    string from = PeerName(incoming.SenderId);
+                    return await IncomingFilePromptHandler(incoming.SenderId, from, incoming.FileName, incoming.TotalBytes);
+                }
+
+                return false;
+            };
             transfer.ClipReceived += (sender, clip) =>
             {
                 if (_settings.Current.ClipboardSyncEnabled)

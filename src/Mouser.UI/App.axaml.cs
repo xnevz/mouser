@@ -109,6 +109,7 @@ public partial class App : Application
             _clipboardStorage = new ClipboardStorageService(Path.Combine(settings.DataDirectory, "clipboard.db"));
 
             var vm = new MainViewModel(_host, settings, _clipboardStorage, appLock: appLock);
+            vm.EnsureWindowVisible = () => Dispatcher.UIThread.Post(ShowMainWindow);
             _clipboardWatcher = new ClipboardWatcher();
             _clipboardWatcher.Changed += () => Dispatcher.UIThread.Post(async () =>
             {

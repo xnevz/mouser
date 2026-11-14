@@ -182,5 +182,32 @@
         <ContentControl Grid.Column="0" Grid.ColumnSpan="2"
                         Content="{Binding Lock}"
                         IsVisible="{Binding IsLocked}" />
+
+        <!-- Modal incoming file card overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="2"
+              IsVisible="{Binding IsIncomingFilePromptVisible}">
+            <Border Background="{DynamicResource BgApp}" Opacity="0.8" />
+            <Border Classes="glass-card" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Padding="28" Width="460" CornerRadius="12"
+                    BorderBrush="{DynamicResource BorderStrong}" BorderThickness="1"
+                    Background="{DynamicResource BgSurface}">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="{Binding IncomingFilePromptTitle}"
+                               FontWeight="SemiBold" FontSize="16"
+                               Foreground="{DynamicResource TextPrimary}"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding IncomingFilePromptSubtitle}"
+                               Classes="hint" TextWrapping="Wrap" />
+                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Classes="secondary-btn" Content="Decline"
+                                Command="{Binding DeclineIncomingFileCommand}" Margin="0,0,8,0" />
+                        <Button Classes="secondary-btn" Content="Always accept from this device"
+                                Command="{Binding AlwaysAcceptIncomingFileCommand}" Margin="0,0,8,0" />
+                        <Button Classes="primary-btn" Content="Accept"
+                                Command="{Binding AcceptIncomingFileCommand}" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

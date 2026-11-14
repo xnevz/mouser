@@ -81,6 +81,15 @@ public sealed class AppSettings
     {
         "keepass", "keepassxc", "1password", "bitwarden", "lastpass", "dashlane", "enpass"
     };
+
+    /// <summary>Maximum incoming file transfer size in megabytes.</summary>
+    public int MaxIncomingFileMB { get; set; } = 2048;
+
+    /// <summary>File extensions blocked for incoming file transfers.</summary>
+    public List<string> BlockedExtensions { get; set; } = new()
+    {
+        ".exe", ".msi", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".scr", ".lnk", ".jar", ".com", ".dll"
+    };
 }
 
 public sealed class HotkeySettings
@@ -116,6 +125,7 @@ public sealed class PeerSettings
     public bool SendClipboard { get; set; } = true;
     public bool ReceiveClipboard { get; set; } = true;
     public bool SendFiles { get; set; } = true;
+    public bool AutoAcceptFiles { get; set; } = false;
     public double MouseSpeed { get; set; } = 1.0;
     public double ScrollSpeed { get; set; } = 1.0;
     public bool InvertScroll { get; set; }
@@ -166,6 +176,8 @@ public sealed class SettingsStore
             }
             settings.ManualPeers ??= new();
             settings.IgnoredApps ??= new() { "keepass", "keepassxc", "1password", "bitwarden", "lastpass", "dashlane", "enpass" };
+            settings.BlockedExtensions ??= new() { ".exe", ".msi", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".scr", ".lnk", ".jar", ".com", ".dll" };
+            if (settings.MaxIncomingFileMB <= 0) settings.MaxIncomingFileMB = 2048;
             if (string.IsNullOrWhiteSpace(settings.DeviceName)) settings.DeviceName = Environment.MachineName;
             if (settings.PairingPin is < 0 or > 999_999) settings.PairingPin = PairingGate.GeneratePin();
             if (settings.InputPort is < 1 or > 65535) settings.InputPort = InputInjectionService.DefaultPort;

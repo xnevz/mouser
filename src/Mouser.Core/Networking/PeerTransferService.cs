@@ -10,6 +10,8 @@ using Mouser.Core.Security;
 
 namespace Mouser.Core.Networking;
 
+public sealed record IncomingFile(string SenderId, string FileName, long TotalBytes, string Sha256Checksum);
+
 /// <summary>
 /// Encrypted TCP channel between paired Mouser computers for clipboard sync and file transfer.
 /// Every frame is AES-256-GCM encrypted with a key derived from the PIN of the computer that was paired to,
@@ -23,6 +25,20 @@ public sealed class PeerTransferService : IDisposable
     public const long MaxFileBytes = 4L * 1024 * 1024 * 1024;
     private const int KdfIterations = 200_000;
     private static readonly byte[] Magic = "MCH1"u8.ToArray();
+
+    public Func<IncomingFile, Task<bool>>? AcceptFile { get; set; }
+    public long MaxIncomingBytes { get; set; } = 2048L * 1024 * 1024;
+    public HashSet<string> BlockedExtensions { get; } = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".exe", ".msi", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".scr", ".lnk", ".jar", ".com", ".dll"
+    };
+
+    private static readonly HashSet<string> ExecutableExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".exe", ".msi", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".scr", ".lnk", ".jar", ".com", ".dll", ".appx", ".msix"
+    };
+
+    public static bool IsExecutableExtension(string ext) => ExecutableExtensions.Contains(ext);
 
     public enum FrameType : byte
     {
@@ -160,13 +176,39 @@ public sealed class PeerTransferService : IDisposable
 
         var header = new FileTransferHeader(Guid.NewGuid().ToString("N"), info.Name, info.Length, sha);
         await WriteFrameAsync(stream, FrameType.FileStart, key, EncodeHeader(header), ct);
-        await FileStreamingService.StreamFileChunksAsync(path,
-            (_, chunk) => WriteFrameAsync(stream, FrameType.FileChunk, key, chunk.ToArray(), ct), progress, ct: ct);
-        await WriteFrameAsync(stream, FrameType.FileEnd, key, Array.Empty<byte>(), ct);
 
-        // The receiver answers 1 only after the SHA-256 check passed and the file is saved.
-        var ack = new byte[1];
-        if (await stream.ReadAsync(ack, ct) != 1 || ack[0] != 1)
+        var ackTask = Task.Run(async () =>
+        {
+            var ack = new byte[1];
+            int n = await stream.ReadAsync(ack, ct);
+            return n == 1 ? ack[0] : (byte)0;
+        }, ct);
+
+        try
+        {
+            await FileStreamingService.StreamFileChunksAsync(path, async (_, chunk) =>
+            {
+                if (ackTask.IsCompleted) return;
+                await WriteFrameAsync(stream, FrameType.FileChunk, key, chunk.ToArray(), ct);
+            }, progress, ct: ct);
+        }
+        catch (Exception) when (ackTask.IsCompleted)
+        {
+        }
+
+        if (!ackTask.IsCompleted)
+        {
+            try
+            {
+                await WriteFrameAsync(stream, FrameType.FileEnd, key, Array.Empty<byte>(), ct);
+            }
+            catch (Exception) when (ackTask.IsCompleted) { }
+        }
+
+        byte ackByte = await ackTask;
+        if (ackByte == 2)
+            throw new IOException("The other computer declined the file.");
+        if (ackByte != 1)
             throw new IOException("The other computer didn't accept the file (wrong pairing or corrupted transfer).");
     }
 
@@ -268,10 +310,33 @@ public sealed class PeerTransferService : IDisposable
     private async Task ReceiveFileAsync(NetworkStream stream, IPAddress remote, string sender, byte[] key,
         FileTransferHeader header, CancellationToken ct)
     {
-        if (header.TotalBytes is < 0 or > MaxFileBytes) throw new InvalidDataException("File too large.");
+        if (header.TotalBytes is < 0 or > MaxFileBytes || header.TotalBytes > MaxIncomingBytes)
+        {
+            await stream.WriteAsync(new byte[] { 2 }, ct);
+            return;
+        }
+
+        string safeName = SafeFileName(header.FileName);
+        string ext = Path.GetExtension(safeName);
+        if (BlockedExtensions.Contains(ext))
+        {
+            await stream.WriteAsync(new byte[] { 2 }, ct);
+            return;
+        }
+
+        if (AcceptFile != null)
+        {
+            var incoming = new IncomingFile(sender, safeName, header.TotalBytes, header.Sha256Checksum);
+            bool accepted = await AcceptFile(incoming);
+            if (!accepted)
+            {
+                await stream.WriteAsync(new byte[] { 2 }, ct);
+                return;
+            }
+        }
 
         Directory.CreateDirectory(_downloadDirectory);
-        string path = UniquePath(Path.Combine(_downloadDirectory, SafeFileName(header.FileName)));
+        string path = UniquePath(Path.Combine(_downloadDirectory, safeName));
         long received = 0;
 
         await FileStreamingService.ReceiveFileAsync(path, header, async writeChunk =>
@@ -289,6 +354,19 @@ public sealed class PeerTransferService : IDisposable
         }, ct: ct);
 
         await stream.WriteAsync(new byte[] { 1 }, ct);
+
+        if (OperatingSystem.IsWindows() && IsExecutableExtension(ext))
+        {
+            try
+            {
+                File.WriteAllText(path + ":Zone.Identifier", "[ZoneTransfer]\r\nZoneId=3\r\n");
+            }
+            catch
+            {
+                // Windows, ignore errors (e.g. non-NTFS filesystem)
+            }
+        }
+
         FileReceived?.Invoke(sender, path);
     }
 
@@ -358,20 +436,65 @@ public sealed class PeerTransferService : IDisposable
         return new FileTransferHeader(parts[0], parts[1], size, parts[3]);
     }
 
-    /// <summary>Strips directories and invalid characters so a sender can't write outside the download folder.</summary>
+    private static readonly HashSet<string> ReservedDeviceNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CON", "PRN", "AUX", "NUL",
+        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+    };
+
+    /// <summary>Strips directories, invalid characters, alternate data streams, and reserved device names so a sender can't write outside the download folder.</summary>
     public static string SafeFileName(string name)
     {
-        string file = Path.GetFileName(name.Replace('\\', '/').Split('/').Last());
+        if (string.IsNullOrWhiteSpace(name)) return "received-file";
+
+        // Strip directory separators (both \ and /) and take only the last segment
+        string file = name.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? string.Empty;
+
+        // Remove Alternate Data Stream specifier: e.g. "foo.txt:evil" -> "foo.txt"
+        int colon = file.IndexOf(':');
+        if (colon >= 0) file = file.Substring(0, colon);
+
+        // Strip invalid file characters
         foreach (char c in Path.GetInvalidFileNameChars()) file = file.Replace(c, '_');
-        file = file.Trim().TrimStart('.');
-        return string.IsNullOrEmpty(file) ? "received-file" : file;
+
+        // Strip trailing dots and spaces, and leading dots
+        file = file.Trim().TrimStart('.').TrimEnd('.', ' ');
+
+        if (string.IsNullOrWhiteSpace(file)) return "received-file";
+
+        // Reserved Windows names check on root base name (e.g. CON, NUL.txt, nul.tar.gz)
+        string rootBase = file.Split('.')[0];
+        if (ReservedDeviceNames.Contains(rootBase))
+        {
+            file = "_" + file;
+        }
+
+        // Limit to 150 characters while preserving extension
+        if (file.Length > 150)
+        {
+            string ext = Path.GetExtension(file);
+            string basePart = Path.GetFileNameWithoutExtension(file);
+            if (ext.Length >= 150)
+            {
+                file = file.Substring(0, 150);
+            }
+            else
+            {
+                file = basePart.Substring(0, 150 - ext.Length) + ext;
+            }
+        }
+
+        return string.IsNullOrWhiteSpace(file) ? "received-file" : file;
     }
 
-    private static string UniquePath(string path)
+    public static string UniquePath(string path)
     {
         if (!File.Exists(path)) return path;
-        string dir = Path.GetDirectoryName(path)!, name = Path.GetFileNameWithoutExtension(path), ext = Path.GetExtension(path);
-        for (int i = 2; ; i++)
+        string dir = Path.GetDirectoryName(path) ?? string.Empty;
+        string name = Path.GetFileNameWithoutExtension(path);
+        string ext = Path.GetExtension(path);
+        for (int i = 1; ; i++)
         {
             string candidate = Path.Combine(dir, $"{name} ({i}){ext}");
             if (!File.Exists(candidate)) return candidate;

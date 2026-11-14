@@ -40,6 +40,8 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private int _clipboardRetentionHours;
     [ObservableProperty] private bool _clearOnExit;
     [ObservableProperty] private string _panicWipeHotkey = string.Empty;
+    [ObservableProperty] private int _maxIncomingFileMB = 2048;
+    [ObservableProperty] private string _blockedExtensionsText = string.Empty;
     [ObservableProperty] private string _historySizeText = "History uses 0 B";
     [ObservableProperty] private bool _startAtLogin;
     [ObservableProperty] private bool _runAsAdministrator;
@@ -143,6 +145,8 @@ public partial class SettingsViewModel : ViewModelBase
         _lockWithWindows = s.LockWithWindows;
         _allowRemoteLock = s.AllowRemoteLock;
         _autoLockMinutes = s.AutoLockMinutes;
+        _maxIncomingFileMB = s.MaxIncomingFileMB;
+        _blockedExtensionsText = string.Join(" ", s.BlockedExtensions ?? new());
 
         if (_appLock != null)
         {
@@ -207,6 +211,23 @@ public partial class SettingsViewModel : ViewModelBase
     {
         get => SwitchFeel == "Careful";
         set { if (value) SwitchFeel = "Careful"; }
+    }
+
+    partial void OnMaxIncomingFileMBChanged(int value)
+    {
+        if (value < 1) value = 1;
+        Save(s => s.MaxIncomingFileMB = value);
+        _host?.Restart();
+    }
+
+    partial void OnBlockedExtensionsTextChanged(string value)
+    {
+        var list = (value ?? "").Split(new[] { ' ', ',', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(ext => ext.StartsWith('.') ? ext.ToLowerInvariant() : "." + ext.ToLowerInvariant())
+            .Distinct()
+            .ToList();
+        Save(s => s.BlockedExtensions = list);
+        _host?.Restart();
     }
 
     partial void OnBlockInFullscreenChanged(bool value)

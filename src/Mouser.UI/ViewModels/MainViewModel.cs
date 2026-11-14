@@ -134,6 +134,23 @@ public partial class MainViewModel : ViewModelBase
         {
             Onboarding = new OnboardingViewModel(_settings, _host, () => Onboarding = null);
         }
+
+        _host.IncomingFilePromptHandler = (senderId, peerName, fileName, totalBytes) =>
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            DispatchToUI(() =>
+            {
+                _incomingFileSenderId = senderId;
+                _incomingFilePromptTcs = tcs;
+                string sizeText = ClipboardItemViewModel.FormatFileSize(totalBytes);
+                IncomingFilePromptTitle = $"{peerName} wants to send {fileName} ({sizeText})";
+                IncomingFilePromptSubtitle = "Accept incoming file from this computer?";
+                IsIncomingFilePromptVisible = true;
+                EnsureWindowVisible?.Invoke();
+            });
+            return tcs.Task;
+        };
+
         Refresh();
         _ = RefreshTagsAsync();
     }
@@ -329,6 +346,54 @@ public partial class MainViewModel : ViewModelBase
     }
 
     public event Action? FocusSearchRequested;
+    public Action<Action> DispatchToUI { get; set; } = action =>
+    {
+        try
+        {
+            if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess()) action();
+            else Avalonia.Threading.Dispatcher.UIThread.Post(action);
+        }
+        catch
+        {
+            action();
+        }
+    };
+
+    public Action? EnsureWindowVisible { get; set; }
+
+    [ObservableProperty] private bool _isIncomingFilePromptVisible;
+    [ObservableProperty] private string _incomingFilePromptTitle = string.Empty;
+    [ObservableProperty] private string _incomingFilePromptSubtitle = string.Empty;
+
+    private TaskCompletionSource<bool>? _incomingFilePromptTcs;
+    private string? _incomingFileSenderId;
+
+    [RelayCommand]
+    private void AcceptIncomingFile()
+    {
+        IsIncomingFilePromptVisible = false;
+        _incomingFilePromptTcs?.TrySetResult(true);
+    }
+
+    [RelayCommand]
+    private void DeclineIncomingFile()
+    {
+        IsIncomingFilePromptVisible = false;
+        _incomingFilePromptTcs?.TrySetResult(false);
+    }
+
+    [RelayCommand]
+    private void AlwaysAcceptIncomingFile()
+    {
+        IsIncomingFilePromptVisible = false;
+        if (_incomingFileSenderId != null && _settings.Current.Peers.TryGetValue(_incomingFileSenderId, out var s))
+        {
+            s.AutoAcceptFiles = true;
+            _settings.Save();
+        }
+        _incomingFilePromptTcs?.TrySetResult(true);
+    }
+
     [RelayCommand]
     private void FocusSearch()
     {

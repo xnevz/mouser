@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Sockets;
 using Mouser.Core.Clipboard;
 using Mouser.Core.Networking;
+using Mouser.UI.Services;
+using Mouser.UI.ViewModels;
 
 namespace Mouser.Tests;
 
@@ -119,9 +121,164 @@ public sealed class PeerTransferTests : IDisposable
     [InlineData(@"C:\Users\x\AppData\run.bat", "run.bat")]
     [InlineData("..", "received-file")]
     [InlineData(".bashrc", "bashrc")]
+    [InlineData(@"..\..\secret.txt", "secret.txt")]
+    [InlineData("/etc/shadow", "shadow")]
+    [InlineData("a.txt:evil", "a.txt")]
+    [InlineData("data.pdf:Stream:$DATA", "data.pdf")]
+    [InlineData("CON", "_CON")]
+    [InlineData("CON.txt", "_CON.txt")]
+    [InlineData("nul.tar.gz", "_nul.tar.gz")]
+    [InlineData("aux.dat", "_aux.dat")]
+    [InlineData("COM1.png", "_COM1.png")]
+    [InlineData("lpt1", "_lpt1")]
+    [InlineData("report.pdf...   ", "report.pdf")]
+    [InlineData("bad*char?test.txt", "bad_char_test.txt")]
+    [InlineData("", "received-file")]
+    [InlineData("   ", "received-file")]
+    [InlineData(":::", "received-file")]
     public void FileNames_CannotEscapeTheDownloadFolder(string sent, string saved)
     {
         Assert.Equal(saved, PeerTransferService.SafeFileName(sent));
+    }
+
+    [Fact]
+    public void SafeFileName_TruncatesLongFileNames_PreservingExtension()
+    {
+        string longName = new string('a', 200) + ".pdf";
+        string sanitized = PeerTransferService.SafeFileName(longName);
+        Assert.True(sanitized.Length <= 150);
+        Assert.EndsWith(".pdf", sanitized);
+        Assert.Equal(150, sanitized.Length);
+    }
+
+    [Fact]
+    public void UniquePath_NeverOverwrites_UsesParenthesesOneFirst()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), "mouser_unique_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            string baseFile = Path.Combine(tempDir, "document.txt");
+            Assert.Equal(baseFile, PeerTransferService.UniquePath(baseFile));
+
+            File.WriteAllText(baseFile, "original");
+            string copy1 = PeerTransferService.UniquePath(baseFile);
+            Assert.Equal(Path.Combine(tempDir, "document (1).txt"), copy1);
+
+            File.WriteAllText(copy1, "copy 1");
+            string copy2 = PeerTransferService.UniquePath(baseFile);
+            Assert.Equal(Path.Combine(tempDir, "document (2).txt"), copy2);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task ReceiveFile_OverSizeLimit_RefusesWithAck2()
+    {
+        _b.MaxIncomingBytes = 100 * 1024; // 100 KB limit
+        string source = Path.Combine(Path.GetTempPath(), $"mouser_oversize_{Guid.NewGuid():N}.bin");
+        await File.WriteAllBytesAsync(source, new byte[200 * 1024]); // 200 KB
+        try
+        {
+            var ex = await Assert.ThrowsAsync<IOException>(() => _a.SendFileAsync(B, _pairKey, source));
+            Assert.Contains("declined", ex.Message);
+        }
+        finally
+        {
+            File.Delete(source);
+        }
+    }
+
+    [Fact]
+    public async Task ReceiveFile_BlockedExtension_RefusesWithAck2()
+    {
+        string source = Path.Combine(Path.GetTempPath(), $"mouser_blocked_{Guid.NewGuid():N}.exe");
+        await File.WriteAllBytesAsync(source, new byte[1024]);
+        try
+        {
+            var ex = await Assert.ThrowsAsync<IOException>(() => _a.SendFileAsync(B, _pairKey, source));
+            Assert.Contains("declined", ex.Message);
+        }
+        finally
+        {
+            File.Delete(source);
+        }
+    }
+
+    [Fact]
+    public async Task ReceiveFile_UserDeclines_RefusesWithAck2()
+    {
+        _b.AcceptFile = incoming => Task.FromResult(false);
+        string source = Path.Combine(Path.GetTempPath(), $"mouser_decline_{Guid.NewGuid():N}.txt");
+        await File.WriteAllTextAsync(source, "hello");
+        try
+        {
+            var ex = await Assert.ThrowsAsync<IOException>(() => _a.SendFileAsync(B, _pairKey, source));
+            Assert.Contains("declined", ex.Message);
+        }
+        finally
+        {
+            File.Delete(source);
+        }
+    }
+
+    [Fact]
+    public async Task ReceiveFile_UserAccepts_SavesFileSuccessfully()
+    {
+        _b.AcceptFile = incoming =>
+        {
+            Assert.Equal("device-a", incoming.SenderId);
+            Assert.Equal("report.txt", incoming.FileName);
+            Assert.True(incoming.TotalBytes > 0);
+            return Task.FromResult(true);
+        };
+
+        string source = Path.Combine(Path.GetTempPath(), "report.txt");
+        await File.WriteAllTextAsync(source, "my report content");
+        var saved = new TaskCompletionSource<string>();
+        _b.FileReceived += (_, path) => saved.TrySetResult(path);
+        try
+        {
+            await _a.SendFileAsync(B, _pairKey, source);
+            string savedPath = await saved.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.True(File.Exists(savedPath));
+            Assert.Equal("my report content", await File.ReadAllTextAsync(savedPath));
+        }
+        finally
+        {
+            File.Delete(source);
+        }
+    }
+
+    [WindowsFact]
+    public async Task ReceiveFile_ExecutableExtension_WritesZoneIdentifier_OnWindows()
+    {
+        // Allow .bat for this test to verify Mark-of-the-web
+        _b.BlockedExtensions.Remove(".bat");
+        _b.AcceptFile = _ => Task.FromResult(true);
+
+        string source = Path.Combine(Path.GetTempPath(), $"script_{Guid.NewGuid():N}.bat");
+        await File.WriteAllTextAsync(source, "echo hello");
+        var saved = new TaskCompletionSource<string>();
+        _b.FileReceived += (_, path) => saved.TrySetResult(path);
+        try
+        {
+            await _a.SendFileAsync(B, _pairKey, source);
+            string savedPath = await saved.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.True(File.Exists(savedPath));
+
+            string adsPath = savedPath + ":Zone.Identifier";
+            Assert.True(File.Exists(adsPath));
+            string zoneContent = await File.ReadAllTextAsync(adsPath);
+            Assert.Contains("ZoneId=3", zoneContent);
+        }
+        finally
+        {
+            File.Delete(source);
+        }
     }
 
     [Fact]
@@ -171,6 +328,84 @@ public sealed class PeerTransferTests : IDisposable
         await Task.Delay(300);
 
         Assert.False(received);
+    }
+
+    [Fact]
+    public async Task ReceiveFile_AutoAcceptEnabled_SkipsPromptAndSaves()
+    {
+        bool promptCalled = false;
+        _b.AcceptFile = incoming =>
+        {
+            promptCalled = true;
+            return Task.FromResult(true);
+        };
+
+        string source = Path.Combine(Path.GetTempPath(), $"auto_{Guid.NewGuid():N}.txt");
+        await File.WriteAllTextAsync(source, "auto content");
+        var saved = new TaskCompletionSource<string>();
+        _b.FileReceived += (_, path) => saved.TrySetResult(path);
+        try
+        {
+            await _a.SendFileAsync(B, _pairKey, source);
+            string savedPath = await saved.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.True(File.Exists(savedPath));
+            Assert.True(promptCalled);
+        }
+        finally
+        {
+            File.Delete(source);
+        }
+    }
+
+    [Fact]
+    public async Task MainViewModel_IncomingFilePrompt_Accept_ReturnsTrue()
+    {
+        await using var app = new AppFixture();
+        Assert.NotNull(app.Host.IncomingFilePromptHandler);
+
+        var promptTask = app.Host.IncomingFilePromptHandler("peer-1", "Laptop-Pro", "report.pdf", 3_200_000);
+        await Wait.UntilAsync(() => app.Main.IsIncomingFilePromptVisible);
+
+        Assert.Contains("Laptop-Pro wants to send report.pdf", app.Main.IncomingFilePromptTitle);
+        Assert.Contains("MB", app.Main.IncomingFilePromptTitle);
+
+        app.Main.AcceptIncomingFileCommand.Execute(null);
+        bool accepted = await promptTask.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.True(accepted);
+        Assert.False(app.Main.IsIncomingFilePromptVisible);
+    }
+
+    [Fact]
+    public async Task MainViewModel_IncomingFilePrompt_Decline_ReturnsFalse()
+    {
+        await using var app = new AppFixture();
+        Assert.NotNull(app.Host.IncomingFilePromptHandler);
+
+        var promptTask = app.Host.IncomingFilePromptHandler("peer-1", "Laptop-Pro", "report.pdf", 1024);
+        await Wait.UntilAsync(() => app.Main.IsIncomingFilePromptVisible);
+
+        app.Main.DeclineIncomingFileCommand.Execute(null);
+        bool accepted = await promptTask.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.False(accepted);
+        Assert.False(app.Main.IsIncomingFilePromptVisible);
+    }
+
+    [Fact]
+    public async Task MainViewModel_IncomingFilePrompt_AlwaysAccept_PersistsAutoAcceptFiles()
+    {
+        await using var app = new AppFixture();
+        string peerId = "peer-always";
+        app.Settings.Current.Peers[peerId] = new PeerSettings { Name = "Desktop-Friend", AutoAcceptFiles = false };
+        app.Settings.Save();
+
+        Assert.NotNull(app.Host.IncomingFilePromptHandler);
+        var promptTask = app.Host.IncomingFilePromptHandler!(peerId, "Desktop-Friend", "notes.txt", 2048);
+        await Wait.UntilAsync(() => app.Main.IsIncomingFilePromptVisible);
+
+        app.Main.AlwaysAcceptIncomingFileCommand.Execute(null);
+        bool accepted = await promptTask.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.True(accepted);
+        Assert.True(app.Settings.Current.Peers[peerId].AutoAcceptFiles);
     }
 
     public void Dispose()

@@ -33,6 +33,7 @@ public partial class DeviceDetailViewModel : ViewModelBase
     [ObservableProperty] private bool _sendClipboard = true;
     [ObservableProperty] private bool _receiveClipboard = true;
     [ObservableProperty] private bool _sendFiles = true;
+    [ObservableProperty] private bool _autoAcceptFiles;
 
     [ObservableProperty] private double _mouseSpeed = 1.0;
     [ObservableProperty] private double _scrollSpeed = 1.0;
@@ -62,6 +63,7 @@ public partial class DeviceDetailViewModel : ViewModelBase
             _sendClipboard = s.SendClipboard;
             _receiveClipboard = s.ReceiveClipboard;
             _sendFiles = s.SendFiles;
+            _autoAcceptFiles = s.AutoAcceptFiles;
             _mouseSpeed = s.MouseSpeed;
             _scrollSpeed = s.ScrollSpeed;
             _invertScroll = s.InvertScroll;
@@ -100,6 +102,17 @@ public partial class DeviceDetailViewModel : ViewModelBase
         if (peer.SendFiles != value)
         {
             peer.SendFiles = value;
+            _settings.Save();
+        }
+    }
+
+    partial void OnAutoAcceptFilesChanged(bool value)
+    {
+        if (_settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (peer.AutoAcceptFiles != value)
+        {
+            peer.AutoAcceptFiles = value;
             _settings.Save();
         }
     }

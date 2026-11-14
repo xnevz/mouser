@@ -137,6 +137,7 @@ public partial class DevicesViewModel : ViewModelBase
                     existing.SendClipboard = saved.SendClipboard;
                     existing.ReceiveClipboard = saved.ReceiveClipboard;
                     existing.SendFiles = saved.SendFiles;
+                    existing.AutoAcceptFiles = saved.AutoAcceptFiles;
                     existing.MouseSpeed = saved.MouseSpeed;
                     existing.ScrollSpeed = saved.ScrollSpeed;
                     existing.InvertScroll = saved.InvertScroll;
@@ -168,6 +169,7 @@ public partial class DevicesViewModel : ViewModelBase
                         SendClipboard = peerSettings.SendClipboard,
                         ReceiveClipboard = peerSettings.ReceiveClipboard,
                         SendFiles = peerSettings.SendFiles,
+                        AutoAcceptFiles = peerSettings.AutoAcceptFiles,
                         MouseSpeed = peerSettings.MouseSpeed,
                         ScrollSpeed = peerSettings.ScrollSpeed,
                         InvertScroll = peerSettings.InvertScroll
@@ -184,6 +186,7 @@ public partial class DevicesViewModel : ViewModelBase
                     existing.SendClipboard = peerSettings.SendClipboard;
                     existing.ReceiveClipboard = peerSettings.ReceiveClipboard;
                     existing.SendFiles = peerSettings.SendFiles;
+                    existing.AutoAcceptFiles = peerSettings.AutoAcceptFiles;
                     existing.MouseSpeed = peerSettings.MouseSpeed;
                     existing.ScrollSpeed = peerSettings.ScrollSpeed;
                     existing.InvertScroll = peerSettings.InvertScroll;

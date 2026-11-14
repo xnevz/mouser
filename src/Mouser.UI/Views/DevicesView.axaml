@@ -279,6 +279,18 @@
                                                           ToolTip.Tip="Toggle receiving clipboard from this device" />
                                         </Grid>
 
+                                        <!-- Automatically accept files toggle -->
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Classes="section-title" FontSize="13" Text="Automatically accept files" />
+                                                <TextBlock Classes="hint" Text="Accept incoming files from this device without asking every time." />
+                                            </StackPanel>
+                                            <ToggleSwitch Grid.Column="1"
+                                                          IsChecked="{Binding AutoAcceptFiles}"
+                                                          OnContent="" OffContent=""
+                                                          ToolTip.Tip="Toggle automatically accepting incoming files from this device" />
+                                        </Grid>
+
                                         <!-- Actions -->
                                         <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
                                             <Button Classes="secondary-btn" Content="Send file…"
