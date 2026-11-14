@@ -51,7 +51,7 @@ public sealed class ClipboardPrivacyFilterTests
         history.ShareCapturedText = _ =>
         {
             shareCalled = true;
-            return Task.CompletedTask;
+            return Task.FromResult<IReadOnlyList<ClipDelivery>>(Array.Empty<ClipDelivery>());
         };
 
         // App is KeePass, which is in the default IgnoredApps list
@@ -77,7 +77,7 @@ public sealed class ClipboardPrivacyFilterTests
         history.ShareCapturedText = _ =>
         {
             shareCalled = true;
-            return Task.CompletedTask;
+            return Task.FromResult<IReadOnlyList<ClipDelivery>>(Array.Empty<ClipDelivery>());
         };
 
         // App is not in ignored list, but owner marked content as excluded
@@ -104,7 +104,7 @@ public sealed class ClipboardPrivacyFilterTests
         history.ShareCapturedText = t =>
         {
             sharedText = t;
-            return Task.CompletedTask;
+            return Task.FromResult<IReadOnlyList<ClipDelivery>>(Array.Empty<ClipDelivery>());
         };
 
         history.AppProbe = () => ("code", "Visual Studio Code");

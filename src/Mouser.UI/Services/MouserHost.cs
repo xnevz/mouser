@@ -33,6 +33,7 @@ public sealed class MouserHost : IDisposable
     private readonly HashSet<string> _pairing = new();
     // Computers that proved (via a hello frame) they paired with us; lets us sync to them by device id.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _pairedWithUs = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (string Text, DateTime Timestamp)> _failedClips = new();
     private ScreenBounds? _desktop;
     private bool _locked;
 
@@ -244,21 +245,81 @@ public sealed class MouserHost : IDisposable
         Peers.FirstOrDefault(p => p.DeviceId == deviceId)?.Hostname
         ?? (_settings.Current.Peers.TryGetValue(deviceId, out var s) ? s.Name : "another computer");
 
-    /// <summary>Sends copied text to every reachable paired computer. Failures are ignored (best effort).</summary>
-    public async Task ShareClipboardAsync(string text)
+    /// <summary>Sends copied text to a specific peer.</summary>
+    public async Task SendClipAsync(DiscoveredPeer peer, string text)
     {
-        if (Transfer == null || !_settings.Current.ClipboardSyncEnabled) return;
-        var clip = new ClipboardPayload { TextContent = text, SourceDevice = Environment.MachineName, ContentType = ClipboardClassifier.Classify(text) };
-        var sends = Peers
-            .Where(p => p.ControlPort > 0)
-            .Select(p => (Peer: p, Key: SendKey(p)))
-            .Where(x => x.Key != null)
-            .Select(async x =>
+        if (Transfer == null) throw new InvalidOperationException("Transfer service not available");
+        var key = SendKey(peer) ?? throw new InvalidOperationException($"Not paired with {peer.Hostname}");
+        if (peer.ControlPort <= 0) throw new InvalidOperationException($"{peer.Hostname} control port is closed");
+        var clip = new ClipboardPayload
+        {
+            TextContent = text,
+            SourceDevice = Environment.MachineName,
+            ContentType = ClipboardClassifier.Classify(text)
+        };
+        await Transfer.SendClipAsync(new IPEndPoint(peer.IpAddress, peer.ControlPort), key, clip);
+    }
+
+    /// <summary>Sends copied text to every reachable paired computer.</summary>
+    public async Task<IReadOnlyList<ClipDelivery>> ShareClipboardAsync(string text)
+    {
+        if (!_settings.Current.ClipboardSyncEnabled)
+            return Array.Empty<ClipDelivery>();
+
+        var pairedTargets = new Dictionary<string, string>();
+
+        foreach (var (id, s) in _settings.Current.Peers)
+        {
+            if (s.Pin != null || _pairedWithUs.ContainsKey(id))
             {
-                try { await Transfer.SendClipAsync(new IPEndPoint(x.Peer.IpAddress, x.Peer.ControlPort), x.Key!, clip); }
-                catch (Exception e) when (e is SocketException or IOException or OperationCanceledException) { }
-            });
-        await Task.WhenAll(sends);
+                pairedTargets[id] = !string.IsNullOrWhiteSpace(s.Name) ? s.Name : id;
+            }
+        }
+
+        foreach (var id in _pairedWithUs.Keys)
+        {
+            if (!pairedTargets.ContainsKey(id))
+            {
+                pairedTargets[id] = PeerName(id);
+            }
+        }
+
+        foreach (var peer in Peers)
+        {
+            if (SendKey(peer) != null && !pairedTargets.ContainsKey(peer.DeviceId))
+            {
+                pairedTargets[peer.DeviceId] = peer.Hostname;
+            }
+        }
+
+        if (pairedTargets.Count == 0)
+            return Array.Empty<ClipDelivery>();
+
+        var tasks = pairedTargets.Select(async kvp =>
+        {
+            var (peerId, peerName) = (kvp.Key, kvp.Value);
+            var peer = Peers.FirstOrDefault(p => p.DeviceId == peerId);
+
+            if (peer == null || peer.ControlPort <= 0)
+            {
+                return new ClipDelivery(peerId, peerName, "Skipped", "Not on the network");
+            }
+
+            string resolvedName = !string.IsNullOrWhiteSpace(peer.Hostname) ? peer.Hostname : peerName;
+            try
+            {
+                await SendClipAsync(peer, text);
+                return new ClipDelivery(peer.DeviceId, resolvedName, "Sent", null);
+            }
+            catch (Exception e)
+            {
+                _failedClips[peer.DeviceId] = (text, DateTime.UtcNow);
+                return new ClipDelivery(peer.DeviceId, resolvedName, "Failed", e.Message);
+            }
+        });
+
+        var results = await Task.WhenAll(tasks);
+        return results;
     }
 
     public bool CanSendFileTo(DiscoveredPeer peer) => Transfer != null && peer.ControlPort > 0 && SendKey(peer) != null;
@@ -363,6 +424,11 @@ public sealed class MouserHost : IDisposable
             {
                 Kvm?.RemovePeer(id); // out of sight: never try to hand control to it
                 continue;
+            }
+
+            if (_failedClips.TryRemove(peer.DeviceId, out var failed) && DateTime.UtcNow - failed.Timestamp < TimeSpan.FromMinutes(10))
+            {
+                _ = SendClipAsync(peer, failed.Text).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
             }
 
             var link = EnsureLink(peer);

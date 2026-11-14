@@ -113,6 +113,19 @@ public sealed class ClipboardStorageService : IAsyncDisposable
 
             CREATE INDEX IF NOT EXISTS idx_clip_tags_clip ON clip_tags(clip_id);
             CREATE INDEX IF NOT EXISTS idx_clip_tags_tag ON clip_tags(tag_id);
+
+            CREATE TABLE IF NOT EXISTS deliveries (
+                clip_id TEXT,
+                device_id TEXT,
+                device_name TEXT,
+                status TEXT,
+                error TEXT,
+                updated INTEGER,
+                PRIMARY KEY(clip_id, device_id),
+                FOREIGN KEY(clip_id) REFERENCES clips(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_deliveries_clip ON deliveries(clip_id);
         ";
 
         using var cmd = _connection.CreateCommand();
@@ -428,7 +441,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         }
 
         using var transaction = _connection.BeginTransaction();
-        foreach (var sql in new[] { "DELETE FROM clip_tags WHERE clip_id = @id;", "DELETE FROM clips WHERE id = @id;", "DELETE FROM clips_fts WHERE id = @id;" })
+        foreach (var sql in new[] { "DELETE FROM deliveries WHERE clip_id = @id;", "DELETE FROM clip_tags WHERE clip_id = @id;", "DELETE FROM clips WHERE id = @id;", "DELETE FROM clips_fts WHERE id = @id;" })
         {
             using var cmd = _connection.CreateCommand();
             cmd.Transaction = transaction;
@@ -471,6 +484,11 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         }
 
         using var transaction = _connection!.BeginTransaction();
+
+        using var delDeliveryCmd = _connection.CreateCommand();
+        delDeliveryCmd.Transaction = transaction;
+        delDeliveryCmd.CommandText = $"DELETE FROM deliveries WHERE clip_id IN (SELECT id FROM clips{filter});";
+        await delDeliveryCmd.ExecuteNonQueryAsync();
 
         using var tagCmd = _connection.CreateCommand();
         tagCmd.Transaction = transaction;
@@ -536,6 +554,13 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             }
 
             if (idsToDelete.Count == 0) return 0;
+
+            const string deleteDeliveries = "DELETE FROM deliveries WHERE clip_id IN (SELECT id FROM clips WHERE timestamp < @threshold AND is_favorite = 0);";
+            using var delDeliveryCmd = _connection.CreateCommand();
+            delDeliveryCmd.Transaction = transaction;
+            delDeliveryCmd.CommandText = deleteDeliveries;
+            delDeliveryCmd.Parameters.AddWithValue("@threshold", threshold);
+            await delDeliveryCmd.ExecuteNonQueryAsync();
 
             const string deleteTags = "DELETE FROM clip_tags WHERE clip_id IN (SELECT id FROM clips WHERE timestamp < @threshold AND is_favorite = 0);";
             using var delTagCmd = _connection.CreateCommand();
@@ -928,6 +953,64 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         if (reader.FieldCount > 12 && !reader.IsDBNull(12)) payload.MediaBytes = reader.GetInt64(12);
 
         return payload;
+    }
+
+    public async Task SaveDeliveriesAsync(string clipId, IReadOnlyList<ClipDelivery> deliveries)
+    {
+        if (deliveries == null || deliveries.Count == 0) return;
+        if (_connection == null) await InitializeAsync();
+
+        long updated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        using var transaction = _connection!.BeginTransaction();
+
+        const string sql = @"
+            INSERT INTO deliveries (clip_id, device_id, device_name, status, error, updated)
+            VALUES (@clipId, @deviceId, @deviceName, @status, @error, @updated)
+            ON CONFLICT(clip_id, device_id) DO UPDATE SET
+                device_name = excluded.device_name,
+                status = excluded.status,
+                error = excluded.error,
+                updated = excluded.updated;";
+
+        foreach (var d in deliveries)
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("@clipId", clipId);
+            cmd.Parameters.AddWithValue("@deviceId", d.DeviceId);
+            cmd.Parameters.AddWithValue("@deviceName", d.DeviceName);
+            cmd.Parameters.AddWithValue("@status", d.Status);
+            cmd.Parameters.AddWithValue("@error", (object?)d.Error ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@updated", updated);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        await transaction.CommitAsync();
+    }
+
+    public async Task<IReadOnlyList<ClipDelivery>> GetDeliveriesAsync(string clipId)
+    {
+        if (_connection == null) await InitializeAsync();
+
+        const string sql = "SELECT device_id, device_name, status, error FROM deliveries WHERE clip_id = @clipId ORDER BY updated ASC;";
+        var list = new List<ClipDelivery>();
+
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("@clipId", clipId);
+
+        using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            string deviceId = reader.GetString(0);
+            string deviceName = reader.GetString(1);
+            string status = reader.GetString(2);
+            string? error = reader.IsDBNull(3) ? null : reader.GetString(3);
+            list.Add(new ClipDelivery(deviceId, deviceName, status, error));
+        }
+
+        return list;
     }
 
     public async ValueTask DisposeAsync()

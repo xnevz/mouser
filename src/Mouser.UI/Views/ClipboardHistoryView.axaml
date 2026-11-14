@@ -151,7 +151,7 @@
             <Border Grid.Column="2" Classes="glass-card" Padding="16">
                 <Grid>
                     <!-- Detail content when selected -->
-                    <Grid RowDefinitions="Auto,Auto,*,Auto"
+                    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto"
                           IsVisible="{Binding SelectedClip, Converter={x:Static ObjectConverters.IsNotNull}}">
 
                         <!-- Action buttons row for Text -->
@@ -350,6 +350,25 @@
                                 </TextBlock>
                             </StackPanel>
                         </Border>
+
+                        <!-- Delivery status per device -->
+                        <StackPanel Grid.Row="4" IsVisible="{Binding HasDeliveries}">
+                            <TextBlock Text="{Binding DeliverySummaryHeader}" Classes="label" Margin="0,16,0,8" />
+                            <Border Classes="card" Background="{DynamicResource BgSurface}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8" Padding="12">
+                                <ItemsControl ItemsSource="{Binding SelectedClipDeliveries}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="vm:ClipDeliveryViewModel">
+                                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,4">
+                                                <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{Binding StatusBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                <TextBlock Grid.Column="1" Text="{Binding DeviceName}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="2" Text="{Binding StatusDisplay}" Foreground="{DynamicResource TextMuted}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="3" Text="ⓘ" Foreground="{DynamicResource Danger}" ToolTip.Tip="{Binding Error}" IsVisible="{Binding HasError}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </StackPanel>
                     </Grid>
 
                     <!-- Centered empty state hint when no clip is selected -->

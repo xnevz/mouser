@@ -9,6 +9,7 @@ public sealed class DiscoveredPeer
 {
     public string DeviceId { get; set; } = string.Empty;
     public string Hostname { get; set; } = string.Empty;
+    public string DeviceName => Hostname;
     public string OperatingSystem { get; set; } = string.Empty;
     public IPAddress IpAddress { get; set; } = IPAddress.Loopback;
     public IPAddress Address => IpAddress;

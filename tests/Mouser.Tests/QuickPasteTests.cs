@@ -158,7 +158,7 @@ public class QuickPasteTests
         var (app, _) = await SetupAsync();
         await using var __ = app;
         int shared = 0;
-        app.Main.ClipboardHistory.ShareCapturedText = _ => { shared++; return Task.CompletedTask; };
+        app.Main.ClipboardHistory.ShareCapturedText = _ => { shared++; return Task.FromResult<IReadOnlyList<ClipDelivery>>(Array.Empty<ClipDelivery>()); };
 
         await app.Main.ClipboardHistory.CopyTextAsync("ssh deploy@build-server");
 

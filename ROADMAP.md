@@ -134,7 +134,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | D8 | File clips (Explorer copy) | D4, D5 | M |
 | ✅ | D9 | Tags (system + custom) and sidebar Tags | B2, D5 | L |
 | ✅ | D10 | Search operators (`type: app: @device #tag before:`) | D9 | M |
-| ⬜ | D11 | Delivery status per device | B9, D2 | L |
+| ✅ | D11 | Delivery status per device | B9, D2 | L |
 | ⬜ | D12 | Per-device sync rules, "Send to device…" | D11, B9 | M |
 | ⬜ | D13 | Snippets with variables | B2 | L |
 | ⬜ | D14 | Text transforms | B6 | S |
@@ -295,3 +295,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - D8: Added file clips capture from Explorer (FileUri) with newline-separated paths, deduplication, and privacy checks; exposed IsFileClip, FilePaths, HasFiles, IsDirectoryOnly, FileBadgeText, FileTitle, and FileClipItems on ClipboardItemViewModel; added CopyFilesAsync and SendFileToPeerAsync wired to MouserHost.SendFileAsync on ClipboardHistoryViewModel and MainViewModel; updated ClipboardHistoryView with FOLDER/FILE badges, list subtitle, dedicated file action buttons, BgSunken file list preview with icons and sizes, and File Details metadata card; added 10 unit tests in ClipboardFileClipsTests (253 passing).
 - D9: Implemented system and custom tags with tags/clip_tags SQLite tables, deterministic 8-color palette, and cascading cleanup; added TagInfo in Core and TagViewModel in UI; added Tags row with pill chips and ＋ Tag flyout in detail pane, active tag pill in filter bar, and TAGS section in sidebar with count badges; added #tag search and tag filtering; added 10 unit tests in ClipboardTagsTests (263 passing).
 - D10: Implemented pure SearchQuery parser in Core supporting type:, app:, device:, @device, #tag, before:, after:, on: operators, whitespace tokenization, and quote preservation; wired search operator filtering in ClipboardHistoryViewModel.ReloadAsync(); updated search box placeholder to "Search, or type # @ type: on:"; added 40 unit and ViewModel integration tests in SearchQueryTests (303 passing).
+- D11: Implemented ClipDelivery record in Core, deliveries SQLite table with SaveDeliveriesAsync/GetDeliveriesAsync/cascading deletion in ClipboardStorageService; updated MouserHost.ShareClipboardAsync to return per-device ClipDelivery list, with failed clip 10-minute retry in SyncPeers; updated ClipboardHistoryViewModel with ShareCapturedText returning delivery status, ClipDeliveryViewModel with theme-token brush mapping, SelectedClipDeliveries collection and delivery summary header; added Delivery section card to ClipboardHistoryView detail pane using dynamic theme tokens; added 11 unit tests in ClipboardDeliveryTests (314 passing).

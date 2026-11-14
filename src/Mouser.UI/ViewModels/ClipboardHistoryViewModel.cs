@@ -36,6 +36,9 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     [ObservableProperty] private string _selectedLibrary = "All";   // All, Starred
     [ObservableProperty] private string _selectedFilter = "All types";    // All types, Text, Link, Code
     [ObservableProperty] private ClipboardItemViewModel? _selectedClip;
+    [ObservableProperty] private string _deliverySummaryHeader = "Delivery";
+    [ObservableProperty] private bool _hasDeliveries;
+    public ObservableCollection<ClipDeliveryViewModel> SelectedClipDeliveries { get; } = new();
     [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private int _allCount;
     [ObservableProperty] private int _starredCount;
@@ -196,9 +199,19 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
                 StatusMessage = "Skipped a copy from a password manager.";
                 return false;
             }
-            bool captured = await CaptureAsync(text, app, snapshot.Html);
-            if (ShareCapturedText != null && IsShareable(text)) _ = ShareCapturedText(text);
-            return captured;
+            var capturedPayload = await CaptureInternalAsync(text, app, snapshot.Html);
+            if (capturedPayload == null) return false;
+
+            if (ShareCapturedText != null && IsShareable(text))
+            {
+                var deliveries = await ShareCapturedText(text);
+                if (deliveries != null && deliveries.Count > 0)
+                {
+                    await _storage.SaveDeliveriesAsync(capturedPayload.Id, deliveries);
+                    await LoadDeliveriesForSelectedClipAsync();
+                }
+            }
+            return true;
         }
         finally
         {
@@ -207,7 +220,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     }
 
     /// <summary>Set by the app to send newly copied text to paired computers.</summary>
-    public Func<string, Task>? ShareCapturedText { get; set; }
+    public Func<string, Task<IReadOnlyList<ClipDelivery>>>? ShareCapturedText { get; set; }
 
     private bool IsShareable(string text) =>
         !string.IsNullOrWhiteSpace(text) && text.Length <= MaxClipLength &&
@@ -245,33 +258,66 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
 
     public async Task<bool> CaptureAsync(string text, string? sourceApp = null, string? html = null)
     {
+        var payload = await CaptureInternalAsync(text, sourceApp, html);
+        return payload != null;
+    }
+
+    private async Task<ClipboardPayload?> CaptureInternalAsync(string text, string? sourceApp = null, string? html = null)
+    {
         OnPropertyChanged(nameof(IsCaptureEnabled));
-        if (!_settings.Current.ClipboardHistoryEnabled || string.IsNullOrWhiteSpace(text)) return false;
+        if (!_settings.Current.ClipboardHistoryEnabled || string.IsNullOrWhiteSpace(text)) return null;
 
         if (text.Length > MaxClipLength)
         {
             StatusMessage = "Skipped a very large copy (over 1 MB of text).";
-            return false;
+            return null;
         }
 
         if (_settings.Current.SkipSensitiveClips && ClipboardPrivacyFilter.IsSensitive(text))
         {
             StatusMessage = "Skipped a copied secret (looks like a key, token or card number).";
-            return false;
+            return null;
         }
 
         sourceApp ??= AppProbe?.Invoke().App ?? string.Empty;
 
-        await _storage.SaveClipAsync(new ClipboardPayload
+        var payload = new ClipboardPayload
         {
             ContentType = ClipboardClassifier.Classify(text),
             TextContent = text,
             HtmlContent = html,
             SourceDevice = Environment.MachineName,
             SourceApp = sourceApp ?? string.Empty
-        });
+        };
+
+        await _storage.SaveClipAsync(payload);
         await ReloadAsync();
-        return true;
+        return payload;
+    }
+
+    partial void OnSelectedClipChanged(ClipboardItemViewModel? value)
+    {
+        _ = LoadDeliveriesForSelectedClipAsync();
+    }
+
+    public async Task LoadDeliveriesForSelectedClipAsync()
+    {
+        SelectedClipDeliveries.Clear();
+        if (SelectedClip != null)
+        {
+            var dels = await _storage.GetDeliveriesAsync(SelectedClip.Id);
+            foreach (var d in dels) SelectedClipDeliveries.Add(new ClipDeliveryViewModel(d));
+            HasDeliveries = SelectedClipDeliveries.Count > 0;
+            int sentCount = SelectedClipDeliveries.Count(d => d.IsDeliveredOrSent);
+            DeliverySummaryHeader = HasDeliveries
+                ? $"Delivery · {sentCount} of {SelectedClipDeliveries.Count} devices"
+                : "Delivery";
+        }
+        else
+        {
+            HasDeliveries = false;
+            DeliverySummaryHeader = "Delivery";
+        }
     }
 
     partial void OnSearchQueryChanged(string value) => _ = ReloadAsync();
