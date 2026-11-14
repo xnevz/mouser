@@ -98,6 +98,11 @@
                                     <TextBlock Text="days" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" FontSize="12" />
                                 </StackPanel>
                             </Grid>
+                            <StackPanel Spacing="6" Margin="0,8,0,0">
+                                <TextBlock Text="Don't save copies from these apps (one per line)" Classes="label" />
+                                <TextBox Text="{Binding IgnoredAppsText}" AcceptsReturn="True" Height="100" TextWrapping="Wrap" />
+                                <TextBlock Text="Copies made in these apps will not be captured or synced." Classes="hint" />
+                            </StackPanel>
                         </StackPanel>
                     </Expander>
                 </StackPanel>

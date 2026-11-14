@@ -42,6 +42,30 @@ public static partial class ClipboardPrivacyFilter
     }
 
     /// <summary>
+    /// Checks whether an application is in the ignored apps list (e.g., password managers).
+    /// Comparison is case-insensitive and ignores trailing .exe extensions.
+    /// </summary>
+    public static bool IsIgnoredApp(string? app, IEnumerable<string>? ignored)
+    {
+        if (string.IsNullOrWhiteSpace(app) || ignored == null) return false;
+        string normalized = app.Trim();
+        if (normalized.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            normalized = normalized[..^4];
+
+        foreach (var item in ignored)
+        {
+            if (string.IsNullOrWhiteSpace(item)) continue;
+            string itemNorm = item.Trim();
+            if (itemNorm.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                itemNorm = itemNorm[..^4];
+
+            if (string.Equals(normalized, itemNorm, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Masks sensitive tokens for safe display in UI or logs.
     /// </summary>
     public static string Mask(string text)

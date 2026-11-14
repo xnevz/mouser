@@ -43,6 +43,12 @@ public sealed class AppSettings
     public Dictionary<string, PeerSettings> Peers { get; set; } = new();
 
     public List<string> ManualPeers { get; set; } = new();
+
+    /// <summary>Applications whose clipboard operations should not be captured or synced (e.g. password managers).</summary>
+    public List<string> IgnoredApps { get; set; } = new()
+    {
+        "keepass", "keepassxc", "1password", "bitwarden", "lastpass", "dashlane", "enpass"
+    };
 }
 
 public sealed class PeerSettings
@@ -89,6 +95,7 @@ public sealed class SettingsStore
             var settings = JsonSerializer.Deserialize<AppSettings>(rawJson, JsonOptions) ?? new AppSettings();
             settings.Peers ??= new();
             settings.ManualPeers ??= new();
+            settings.IgnoredApps ??= new() { "keepass", "keepassxc", "1password", "bitwarden", "lastpass", "dashlane", "enpass" };
             if (string.IsNullOrWhiteSpace(settings.DeviceName)) settings.DeviceName = Environment.MachineName;
             if (settings.PairingPin is < 0 or > 999_999) settings.PairingPin = PairingGate.GeneratePin();
             if (settings.InputPort is < 1 or > 65535) settings.InputPort = InputInjectionService.DefaultPort;

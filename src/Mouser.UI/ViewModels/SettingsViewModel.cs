@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Mouser.Core.Security;
@@ -121,6 +123,23 @@ public partial class SettingsViewModel : ViewModelBase
     partial void OnClipboardRetentionDaysChanged(int value)
     {
         if (value >= 1) Save(s => s.ClipboardRetentionDays = value);
+    }
+
+    public string IgnoredAppsText
+    {
+        get => string.Join(Environment.NewLine, _store.Current.IgnoredApps ?? new());
+        set
+        {
+            var list = (value ?? string.Empty)
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim().ToLowerInvariant())
+                .Where(x => !string.IsNullOrEmpty(x))
+                .Distinct()
+                .ToList();
+            _store.Current.IgnoredApps = list;
+            _store.Save();
+            OnPropertyChanged();
+        }
     }
 
     partial void OnStartAtLoginChanged(bool value)

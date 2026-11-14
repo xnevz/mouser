@@ -38,6 +38,9 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     /// <summary>Probes the foreground application and window title.</summary>
     public Func<(string App, string Title)> AppProbe { get; set; } = ForegroundApp.Get;
 
+    /// <summary>Probes whether the clipboard content is marked to be excluded by its owner (e.g. password manager).</summary>
+    public Func<bool> ExcludedByOwnerProbe { get; set; } = ClipboardFormats.IsExcludedByOwner;
+
     public static string[] TypeOptions { get; } = { "All types", "Text", "Link", "Code" };
     public static string[] TimeOptions { get; } = { "Any time", "Today", "Yesterday", "Last 7 days", "Last 30 days" };
     public ObservableCollection<string> DeviceOptions { get; } = new() { "All devices" };
@@ -80,6 +83,11 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
             if (text == null || text == _lastSeenText) return false;
             _lastSeenText = text;
             var (app, _) = AppProbe?.Invoke() ?? ("", "");
+            if ((ExcludedByOwnerProbe?.Invoke() ?? false) || ClipboardPrivacyFilter.IsIgnoredApp(app, _settings.Current.IgnoredApps))
+            {
+                StatusMessage = "Skipped a copy from a password manager.";
+                return false;
+            }
             bool captured = await CaptureAsync(text, app);
             if (ShareCapturedText != null && IsShareable(text)) _ = ShareCapturedText(text);
             return captured;
