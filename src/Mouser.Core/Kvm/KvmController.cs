@@ -109,6 +109,7 @@ public sealed class KvmController : IDisposable
             Options = o;
             _edges.EdgeResistanceMs = o.EdgeResistanceMs;
             _edges.EdgePushDistanceThreshold = o.EdgePushPixels;
+            _edges.ProportionalEntry = o.ProportionalEntry;
             _switchPolicy = new SwitchPolicy(o);
         }
     }
@@ -387,40 +388,82 @@ public sealed class KvmController : IDisposable
 
         if (_active == null)
         {
-            if (e.Kind == CaptureKind.Move && _peers.Count > 0 && _local != null)
+            if (e.Kind == CaptureKind.Move && _local != null && !IsScreenLocked)
             {
-                if (IsNearEdge(e.X, e.Y, _local))
-                {
-                    var now = DateTime.UtcNow;
-                    var (fullscreen, maximized) = GetForegroundInfo(now);
-                    bool ctrl = _physicalKeys.Contains(0x11) || _physicalKeys.Contains(0xA2) || _physicalKeys.Contains(0xA3);
-                    bool alt = _physicalKeys.Contains(0x12) || _physicalKeys.Contains(0xA4) || _physicalKeys.Contains(0xA5);
-                    bool shift = _physicalKeys.Contains(0x10) || _physicalKeys.Contains(0xA0) || _physicalKeys.Contains(0xA1);
-
-                    var ctx = new SwitchContext(
-                        ForegroundFullscreen: fullscreen,
-                        ForegroundMaximized: maximized,
-                        CursorX: e.X,
-                        CursorY: e.Y,
-                        Local: _local,
-                        CtrlDown: ctrl,
-                        AltDown: alt,
-                        ShiftDown: shift,
-                        Now: now);
-
-                    if (!_switchPolicy.Allows(ctx))
-                    {
-                        return false;
-                    }
-                }
-                else
+                var hitEdge = _edges.DetectScreenEdgeCollision(e.X, e.Y, ClampShort(e.Dx), ClampShort(e.Dy));
+                if (hitEdge == ScreenEdge.None)
                 {
                     _switchPolicy.ResetEdgeZone();
+                    _edges.ResetEdgeResistance();
+                    return false;
                 }
 
-                // EnterPeer may refuse an unreachable peer, so only swallow when control really moved.
-                return _edges.ProcessLocalMotion(e.X, e.Y, ClampShort(e.Dx), ClampShort(e.Dy))
-                    && _active != null;
+                if (HasPeer(hitEdge))
+                {
+                    if (IsNearEdge(e.X, e.Y, _local))
+                    {
+                        var now = DateTime.UtcNow;
+                        var (fullscreen, maximized) = GetForegroundInfo(now);
+                        bool ctrl = _physicalKeys.Contains(0x11) || _physicalKeys.Contains(0xA2) || _physicalKeys.Contains(0xA3);
+                        bool alt = _physicalKeys.Contains(0x12) || _physicalKeys.Contains(0xA4) || _physicalKeys.Contains(0xA5);
+                        bool shift = _physicalKeys.Contains(0x10) || _physicalKeys.Contains(0xA0) || _physicalKeys.Contains(0xA1);
+
+                        var ctx = new SwitchContext(
+                            ForegroundFullscreen: fullscreen,
+                            ForegroundMaximized: maximized,
+                            CursorX: e.X,
+                            CursorY: e.Y,
+                            Local: _local,
+                            CtrlDown: ctrl,
+                            AltDown: alt,
+                            ShiftDown: shift,
+                            Now: now);
+
+                        if (!_switchPolicy.Allows(ctx))
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        _switchPolicy.ResetEdgeZone();
+                    }
+
+                    // EnterPeer may refuse an unreachable peer, so only swallow when control really moved.
+                    return _edges.ProcessLocalMotion(e.X, e.Y, ClampShort(e.Dx), ClampShort(e.Dy))
+                        && _active != null;
+                }
+
+                if (Options.WrapAround)
+                {
+                    if (_edges.CheckEdgeResistanceExceeded(hitEdge, ClampShort(e.Dx), ClampShort(e.Dy)))
+                    {
+                        int warpX = e.X;
+                        int warpY = e.Y;
+                        switch (hitEdge)
+                        {
+                            case ScreenEdge.Right:
+                                warpX = (int)_local.X + 3;
+                                warpY = (int)Math.Clamp(e.Y, _local.Y, _local.Bottom - 1);
+                                break;
+                            case ScreenEdge.Left:
+                                warpX = (int)_local.Right - 4;
+                                warpY = (int)Math.Clamp(e.Y, _local.Y, _local.Bottom - 1);
+                                break;
+                            case ScreenEdge.Bottom:
+                                warpX = (int)Math.Clamp(e.X, _local.X, _local.Right - 1);
+                                warpY = (int)_local.Y + 3;
+                                break;
+                            case ScreenEdge.Top:
+                                warpX = (int)Math.Clamp(e.X, _local.X, _local.Right - 1);
+                                warpY = (int)_local.Bottom - 4;
+                                break;
+                        }
+
+                        _capture.WarpCursor(warpX, warpY);
+                        return true;
+                    }
+                }
             }
 
             return false;
@@ -472,14 +515,24 @@ public sealed class KvmController : IDisposable
     }
 
 
+    private bool HasPeer(ScreenEdge edge) => _edges.FindAdjacentScreen(edge) != null;
+
     /// <summary>True when the virtual cursor crossed the peer's edge that faces this computer.</summary>
     private bool LeftThroughReturnEdge(out int localX, out int localY)
     {
         var r = _active!.Remote;
         var l = _local!;
-        double ratioX = (_virtualX - r.X) / r.Width, ratioY = (_virtualY - r.Y) / r.Height;
-        localX = (int)(l.X + Math.Clamp(ratioX, 0, 1) * (l.Width - 1));
-        localY = (int)(l.Y + Math.Clamp(ratioY, 0, 1) * (l.Height - 1));
+        if (Options.ProportionalEntry)
+        {
+            double ratioX = (_virtualX - r.X) / r.Width, ratioY = (_virtualY - r.Y) / r.Height;
+            localX = (int)(l.X + Math.Clamp(ratioX, 0, 1) * (l.Width - 1));
+            localY = (int)(l.Y + Math.Clamp(ratioY, 0, 1) * (l.Height - 1));
+        }
+        else
+        {
+            localX = (int)Math.Clamp(l.X + (_virtualX - r.X), l.X, l.Right - 1);
+            localY = (int)Math.Clamp(l.Y + (_virtualY - r.Y), l.Y, l.Bottom - 1);
+        }
         // Land a few pixels inside our edge so we don't bounce straight back.
         switch (_active.Placement)
         {

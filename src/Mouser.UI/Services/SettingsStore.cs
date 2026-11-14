@@ -62,6 +62,8 @@ public sealed class AppSettings
     public bool BlockInCorners { get; set; } = false;
     public string RequireModifier { get; set; } = "None";
     public bool DoubleTapOverride { get; set; } = true;
+    public bool WrapAround { get; set; } = false;
+    public bool ProportionalEntry { get; set; } = true;
     public bool DimScreensOnControl { get; set; } = true;
     public double DimScreensOpacity { get; set; } = 0.4;
 

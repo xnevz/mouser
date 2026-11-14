@@ -53,6 +53,8 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _blockInCorners;
     [ObservableProperty] private string _requireModifier = "None";
     [ObservableProperty] private bool _doubleTapOverride;
+    [ObservableProperty] private bool _wrapAround;
+    [ObservableProperty] private bool _proportionalEntry = true;
     [ObservableProperty] private bool _dimScreensOnControl = true;
     [ObservableProperty] private double _dimScreensOpacity = 0.4;
 
@@ -122,6 +124,8 @@ public partial class SettingsViewModel : ViewModelBase
         _blockInCorners = s.BlockInCorners;
         _requireModifier = s.RequireModifier;
         _doubleTapOverride = s.DoubleTapOverride;
+        _wrapAround = s.WrapAround;
+        _proportionalEntry = s.ProportionalEntry;
         _dimScreensOnControl = s.DimScreensOnControl;
         _dimScreensOpacity = s.DimScreensOpacity;
         _lockWithWindows = s.LockWithWindows;
@@ -219,6 +223,18 @@ public partial class SettingsViewModel : ViewModelBase
     partial void OnDoubleTapOverrideChanged(bool value)
     {
         Save(s => s.DoubleTapOverride = value);
+        _host?.ApplyKvmOptions();
+    }
+
+    partial void OnWrapAroundChanged(bool value)
+    {
+        Save(s => s.WrapAround = value);
+        _host?.ApplyKvmOptions();
+    }
+
+    partial void OnProportionalEntryChanged(bool value)
+    {
+        Save(s => s.ProportionalEntry = value);
         _host?.ApplyKvmOptions();
     }
 

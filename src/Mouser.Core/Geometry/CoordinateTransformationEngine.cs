@@ -16,7 +16,8 @@ public static class CoordinateTransformationEngine
         double sourceExitY,
         ScreenBounds source,
         ScreenBounds target,
-        ScreenEdge exitEdge)
+        ScreenEdge exitEdge,
+        bool proportional = true)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(target);
@@ -31,26 +32,29 @@ public static class CoordinateTransformationEngine
             case ScreenEdge.Right:
             {
                 // Exiting right edge of source -> enters left edge of target
-                double ratioY = Math.Clamp((sourceExitY - source.Y) / source.Height, 0.0, 1.0);
-                double entryY = target.Y + (ratioY * target.Height);
                 double entryX = target.X;
+                double entryY = proportional
+                    ? target.Y + (Math.Clamp((sourceExitY - source.Y) / source.Height, 0.0, 1.0) * target.Height)
+                    : Math.Clamp(sourceExitY - source.Y + target.Y, target.Y, target.Bottom - 1);
                 return (Math.Round(entryX), Math.Round(entryY));
             }
 
             case ScreenEdge.Left:
             {
                 // Exiting left edge of source -> enters right edge of target
-                double ratioY = Math.Clamp((sourceExitY - source.Y) / source.Height, 0.0, 1.0);
-                double entryY = target.Y + (ratioY * target.Height);
                 double entryX = target.Right - 1;
+                double entryY = proportional
+                    ? target.Y + (Math.Clamp((sourceExitY - source.Y) / source.Height, 0.0, 1.0) * target.Height)
+                    : Math.Clamp(sourceExitY - source.Y + target.Y, target.Y, target.Bottom - 1);
                 return (Math.Round(entryX), Math.Round(entryY));
             }
 
             case ScreenEdge.Bottom:
             {
                 // Exiting bottom edge of source -> enters top edge of target
-                double ratioX = Math.Clamp((sourceExitX - source.X) / source.Width, 0.0, 1.0);
-                double entryX = target.X + (ratioX * target.Width);
+                double entryX = proportional
+                    ? target.X + (Math.Clamp((sourceExitX - source.X) / source.Width, 0.0, 1.0) * target.Width)
+                    : Math.Clamp(sourceExitX - source.X + target.X, target.X, target.Right - 1);
                 double entryY = target.Y;
                 return (Math.Round(entryX), Math.Round(entryY));
             }
@@ -58,8 +62,9 @@ public static class CoordinateTransformationEngine
             case ScreenEdge.Top:
             {
                 // Exiting top edge of source -> enters bottom edge of target
-                double ratioX = Math.Clamp((sourceExitX - source.X) / source.Width, 0.0, 1.0);
-                double entryX = target.X + (ratioX * target.Width);
+                double entryX = proportional
+                    ? target.X + (Math.Clamp((sourceExitX - source.X) / source.Width, 0.0, 1.0) * target.Width)
+                    : Math.Clamp(sourceExitX - source.X + target.X, target.X, target.Right - 1);
                 double entryY = target.Bottom - 1;
                 return (Math.Round(entryX), Math.Round(entryY));
             }

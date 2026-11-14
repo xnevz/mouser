@@ -674,4 +674,60 @@ public class KvmControllerTests
         Assert.Equal("at -1270,730", events[1]);
         Assert.Equal("at -1250,750", events[2]);
     }
+
+    [Fact]
+    public async Task WrapAround_WhenEnabledAndEdgeHasNoPeer_WarpsToOppositeEdge_AndActivePeerIdStaysNull()
+    {
+        await using var rig = await KvmRig.CreateAsync(PeerPlacement.Right);
+
+        // Right edge has a peer, Left edge has NO peer.
+        rig.Kvm.ApplyOptions(new KvmOptions { WrapAround = true });
+
+        // Push past left edge (-5, 540 with dx = -30)
+        bool swallowed = rig.Capture.Move(-5, 540, -30, 0);
+
+        Assert.True(swallowed);
+        Assert.Null(rig.Kvm.ActivePeerId);
+        // Exiting left edge warps to right edge (local.Right - 4, y) = (1920 - 4, 540) = (1916, 540)
+        Assert.Equal((1916, 540), rig.Capture.Cursor);
+
+        // When WrapAround is disabled, pushing past empty edge does not warp
+        rig.Kvm.ApplyOptions(new KvmOptions { WrapAround = false });
+        Assert.False(rig.Capture.Move(-5, 540, -30, 0));
+    }
+
+    [Fact]
+    public async Task WrapAround_TopAndBottomEdges_WarpsVertically()
+    {
+        await using var rig = await KvmRig.CreateAsync(PeerPlacement.Right);
+        rig.Kvm.ApplyOptions(new KvmOptions { WrapAround = true });
+
+        // Push past top edge (960, -5 with dy = -30): warps to bottom (960, local.Bottom - 4) = (960, 1076)
+        Assert.True(rig.Capture.Move(960, -5, 0, -30));
+        Assert.Null(rig.Kvm.ActivePeerId);
+        Assert.Equal((960, 1076), rig.Capture.Cursor);
+
+        // Push past bottom edge (960, 1085 with dy = 30): warps to top (960, local.Y + 3) = (960, 3)
+        Assert.True(rig.Capture.Move(960, 1085, 0, 30));
+        Assert.Null(rig.Kvm.ActivePeerId);
+        Assert.Equal((960, 3), rig.Capture.Cursor);
+    }
+
+    [Fact]
+    public async Task ReturningToLocal_WhenProportionalEntryFalse_UsesPixelAlignedPosition()
+    {
+        await using var rig = await KvmRig.CreateAsync(PeerPlacement.Right);
+        rig.Kvm.ApplyOptions(new KvmOptions { ProportionalEntry = false });
+
+        // Cross to the peer at y = 540
+        rig.CrossRight(540);
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+
+        // Virtual cursor is at (-1280, 540). Moving left with dx = -10 pushes virtualX < -1280
+        Assert.True(rig.Capture.Move(960, 540, -10, 0));
+
+        // Returns to local machine, pixel-aligned at y=540, and local.Right - 5 = 1915
+        Assert.Null(rig.Kvm.ActivePeerId);
+        Assert.Equal((1915, 540), rig.Capture.Cursor);
+    }
 }

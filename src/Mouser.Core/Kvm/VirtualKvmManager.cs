@@ -38,6 +38,7 @@ public sealed class VirtualKvmManager
     public bool IsScreenLocked { get; set; }
     public bool IsRedirected { get; private set; }
     public string? CurrentFocusedHostId { get; private set; }
+    public bool ProportionalEntry { get; set; } = true;
 
     // Edge Resistance settings (prevents accidental boundary crossing)
     public int EdgeResistanceMs { get; set; } = 80;
@@ -137,7 +138,28 @@ public sealed class VirtualKvmManager
                 return false;
             }
 
-            // Check edge resistance dwell and push accumulation
+            if (CheckEdgeResistanceExceeded(hitEdge, deltaX, deltaY))
+            {
+                // Transition to remote screen!
+                ExecuteTransitionToRemote(targetScreen, cursorX, cursorY, hitEdge);
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    public bool CheckEdgeResistanceExceeded(ScreenEdge hitEdge, short deltaX, short deltaY)
+    {
+        lock (_lock)
+        {
+            if (hitEdge == ScreenEdge.None)
+            {
+                _activeCollisionEdge = ScreenEdge.None;
+                _accumulatedEdgePush = 0;
+                return false;
+            }
+
             if (_activeCollisionEdge != hitEdge)
             {
                 _activeCollisionEdge = hitEdge;
@@ -159,8 +181,8 @@ public sealed class VirtualKvmManager
 
             if (elapsedMs >= EdgeResistanceMs || _accumulatedEdgePush >= EdgePushDistanceThreshold)
             {
-                // Transition to remote screen!
-                ExecuteTransitionToRemote(targetScreen, cursorX, cursorY, hitEdge);
+                _activeCollisionEdge = ScreenEdge.None;
+                _accumulatedEdgePush = 0;
                 return true;
             }
 
@@ -168,7 +190,16 @@ public sealed class VirtualKvmManager
         }
     }
 
-    private ScreenEdge DetectScreenEdgeCollision(double x, double y, short dx, short dy)
+    public void ResetEdgeResistance()
+    {
+        lock (_lock)
+        {
+            _activeCollisionEdge = ScreenEdge.None;
+            _accumulatedEdgePush = 0;
+        }
+    }
+
+    public ScreenEdge DetectScreenEdgeCollision(double x, double y, short dx, short dy)
     {
         if (LocalScreen == null) return ScreenEdge.None;
 
@@ -186,7 +217,7 @@ public sealed class VirtualKvmManager
         return ScreenEdge.None;
     }
 
-    private ScreenBounds? FindAdjacentScreen(ScreenEdge edge)
+    public ScreenBounds? FindAdjacentScreen(ScreenEdge edge)
     {
         if (LocalScreen == null) return null;
 
@@ -209,7 +240,7 @@ public sealed class VirtualKvmManager
 
         // Calculate entry position on target screen
         var (entryX, entryY) = CoordinateTransformationEngine.CalculateEntryPosition(
-            exitX, exitY, LocalScreen!, target, edge);
+            exitX, exitY, LocalScreen!, target, edge, ProportionalEntry);
 
         CursorTransitionedToRemote?.Invoke(this, new CursorTransitionEventArgs(
             target.HostId, target.Hostname, entryX, entryY, edge));

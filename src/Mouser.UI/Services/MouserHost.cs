@@ -483,6 +483,8 @@ public sealed class MouserHost : IDisposable
             BlockInCorners = _settings.Current.BlockInCorners,
             RequireModifier = _settings.Current.RequireModifier,
             DoubleTapOverride = _settings.Current.DoubleTapOverride,
+            WrapAround = _settings.Current.WrapAround,
+            ProportionalEntry = _settings.Current.ProportionalEntry,
             ReturnControlHotkey = HotkeyBinding.TryParse(hotkeys.ReturnControl, out var ret) ? ret : (HotkeyBinding.TryParse("Ctrl+Alt+Esc", out var defRet) ? defRet : default),
             SecondaryReturnControlHotkey = HotkeyBinding.TryParse("Scroll Lock", out var sec) ? sec : default,
             LockCursorHotkey = HotkeyBinding.TryParse(hotkeys.LockCursor, out var lockHk) ? lockHk : default,

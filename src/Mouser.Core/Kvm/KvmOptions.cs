@@ -12,6 +12,8 @@ public sealed class KvmOptions
     public bool BlockInCorners { get; init; } = false;
     public string RequireModifier { get; init; } = "None"; // "None", "Ctrl", "Alt", "Shift"
     public bool DoubleTapOverride { get; init; } = true;
+    public bool WrapAround { get; init; } = false;
+    public bool ProportionalEntry { get; init; } = true;
 
     public HotkeyBinding ReturnControlHotkey { get; init; } = HotkeyBinding.TryParse("Ctrl+Alt+Esc", out var b) ? b : default;
     public HotkeyBinding SecondaryReturnControlHotkey { get; init; } = HotkeyBinding.TryParse("Scroll Lock", out var b) ? b : default;

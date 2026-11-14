@@ -214,6 +214,18 @@
                                     <TextBlock Classes="hint" Text="Bump the edge twice quickly within 400 ms to bypass switching blocks." />
                                 </StackPanel>
                             </CheckBox>
+                            <CheckBox IsChecked="{Binding WrapAround}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Wrap the pointer around at the screen edges" />
+                                    <TextBlock Classes="hint" Text="Moving the cursor off an empty screen edge wraps it to the opposite side." />
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox IsChecked="{Binding ProportionalEntry}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Scale the cursor position between different-size screens" />
+                                    <TextBlock Classes="hint" Text="When off, enters at the exact pixel position instead of the proportional height or width." />
+                                </StackPanel>
+                            </CheckBox>
                             <Grid ColumnDefinitions="*,Auto" Margin="0,4">
                                 <StackPanel Spacing="2">
                                     <TextBlock Classes="section-title" FontSize="13" Text="Dim this computer's screens while controlling another" />
