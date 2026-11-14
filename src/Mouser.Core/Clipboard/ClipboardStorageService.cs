@@ -26,6 +26,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
     public const int LargeTextDbChars = 20_000;
 
     public string? DatabasePath => _databasePath;
+    internal SqliteConnection? Connection => _connection;
 
     public static readonly string[] TagPalette = new[]
     {

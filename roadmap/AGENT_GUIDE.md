@@ -26,6 +26,8 @@ you created), write the exact error in ROADMAP.md under **Blocked**, and stop.
 | :--- | :--- | :--- |
 | Build everything | `dotnet build Mouser.sln` | `Build succeeded`, 0 errors (CA1416 warnings are normal) |
 | Run all tests | `dotnet test tests/Mouser.Tests --nologo -v q` | `Passed! Failed: 0, Passed: 130, Skipped: 3` (verified 2026-11-13) |
+| Run tests (exclude perf) | `dotnet test tests/Mouser.Tests --filter "Category!=Perf" --nologo -v q` | passes (fast suite) |
+| Run perf benchmarks | `dotnet test tests/Mouser.Tests --filter "Category=Perf" --nologo -v q` | passes (performance budget) |
 | Run one test | `dotnet test tests/Mouser.Tests --filter "FullyQualifiedName~ViewModelTests"` | passes |
 | Run the app | `dotnet run --project src/Mouser.Desktop` | window opens |
 | Run a second instance | `dotnet run --project src/Mouser.Desktop -- --data-dir C:\temp\mouser-b` | second window |
