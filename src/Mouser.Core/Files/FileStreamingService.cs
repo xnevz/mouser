@@ -92,28 +92,38 @@ public static class FileStreamingService
             Directory.CreateDirectory(dir);
         }
 
-        long totalWritten = 0;
-        await using (var fileStream = new FileStream(destinationFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+        try
         {
-            await chunkSource(async chunk =>
+            long totalWritten = 0;
+            await using (var fileStream = new FileStream(destinationFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                await fileStream.WriteAsync(chunk, ct);
-                totalWritten += chunk.Length;
+                await chunkSource(async chunk =>
+                {
+                    await fileStream.WriteAsync(chunk, ct);
+                    totalWritten += chunk.Length;
 
-                double percent = header.TotalBytes > 0 ? (double)totalWritten / header.TotalBytes * 100.0 : 100.0;
-                progress?.Report(new FileTransferProgress(header.TransferId, totalWritten, header.TotalBytes, percent));
-            });
+                    double percent = header.TotalBytes > 0 ? (double)totalWritten / header.TotalBytes * 100.0 : 100.0;
+                    progress?.Report(new FileTransferProgress(header.TransferId, totalWritten, header.TotalBytes, percent));
+                });
 
-            await fileStream.FlushAsync(ct);
+                await fileStream.FlushAsync(ct);
+            }
+
+            // Verify integrity
+            string actualHash = await ComputeSha256Async(destinationFilePath, ct);
+            if (!string.Equals(actualHash, header.Sha256Checksum, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new CryptographicException(
+                    $"File transfer SHA-256 mismatch! Expected {header.Sha256Checksum}, got {actualHash}. File removed for security.");
+            }
         }
-
-        // Verify integrity
-        string actualHash = await ComputeSha256Async(destinationFilePath, ct);
-        if (!string.Equals(actualHash, header.Sha256Checksum, StringComparison.OrdinalIgnoreCase))
+        catch
         {
-            File.Delete(destinationFilePath);
-            throw new CryptographicException(
-                $"File transfer SHA-256 mismatch! Expected {header.Sha256Checksum}, got {actualHash}. File removed for security.");
+            if (File.Exists(destinationFilePath))
+            {
+                try { File.Delete(destinationFilePath); } catch { }
+            }
+            throw;
         }
     }
 }
