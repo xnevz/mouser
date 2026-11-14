@@ -47,16 +47,18 @@ public sealed class AppFixture : IAsyncDisposable
     public ClipboardStorageService Storage { get; }
     public RecordingSink Sink { get; } = new();
     public FakeClipboard Clipboard { get; } = new();
+    public FakeCapture? Capture { get; }
     public MainViewModel Main { get; }
     public AppLockService? AppLock { get; }
 
     public string Downloads => Path.Combine(_dir, "downloads");
 
-    public AppFixture(int? discoveryPort = null, AppLockService? appLock = null)
+    public AppFixture(int? discoveryPort = null, AppLockService? appLock = null, FakeCapture? capture = null)
     {
+        Capture = capture;
         Settings = new SettingsStore(Path.Combine(_dir, "settings.json"));
         Settings.Current.InputPort = 0; // any free port
-        Host = new MouserHost(Settings, Sink, discoveryPort: discoveryPort ?? Random.Shared.Next(40_000, 50_000),
+        Host = new MouserHost(Settings, Sink, capture: capture, discoveryPort: discoveryPort ?? Random.Shared.Next(40_000, 50_000),
             downloadDirectory: Path.Combine(_dir, "downloads"));
         AppLock = appLock;
         if (appLock?.IsLocked == true)

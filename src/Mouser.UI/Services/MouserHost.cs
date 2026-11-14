@@ -430,6 +430,15 @@ public sealed class MouserHost : IDisposable
         await Transfer.SendClipAsync(new IPEndPoint(peer.IpAddress, peer.ControlPort), key, clip);
     }
 
+    /// <summary>Sends a full clipboard payload directly to a specific peer.</summary>
+    public async Task SendClipPayloadAsync(DiscoveredPeer peer, ClipboardPayload clip)
+    {
+        if (Transfer == null) throw new InvalidOperationException("Transfer service not available");
+        var key = SendKey(peer) ?? throw new InvalidOperationException($"Not paired with {peer.Hostname}");
+        if (peer.ControlPort <= 0) throw new InvalidOperationException($"{peer.Hostname} control port is closed");
+        await Transfer.SendClipAsync(new IPEndPoint(peer.IpAddress, peer.ControlPort), key, clip);
+    }
+
     /// <summary>Sends copied text directly to a specific peer, ignoring the SendClipboard sync rule.</summary>
     public async Task<ClipDelivery> SendClipToAsync(DiscoveredPeer peer, string text)
     {
