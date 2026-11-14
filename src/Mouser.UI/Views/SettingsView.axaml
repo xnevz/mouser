@@ -182,6 +182,37 @@
                                             ToolTip.Tip="Apply connection port" />
                                 </StackPanel>
                             </Grid>
+                            <CheckBox IsChecked="{Binding BlockInFullscreen}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Don't switch while a full-screen app or game is in front" />
+                                    <TextBlock Classes="hint" Text="Keeps the pointer locked inside games and full-screen video players." />
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox IsChecked="{Binding BlockInMaximized}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Don't switch while a maximized window is in front" />
+                                    <TextBlock Classes="hint" Text="Prevents accidentally leaving when a window fills the screen." />
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox IsChecked="{Binding BlockInCorners}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Block switching near corners" />
+                                    <TextBlock Classes="hint" Text="Ignore screen boundaries within 80 pixels of screen corners." />
+                                </StackPanel>
+                            </CheckBox>
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Require modifier key to switch" />
+                                    <TextBlock Classes="hint" Text="Only cross to another computer while holding this key." />
+                                </StackPanel>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding ModifierOptions}" SelectedItem="{Binding RequireModifier}" Width="140" />
+                            </Grid>
+                            <CheckBox IsChecked="{Binding DoubleTapOverride}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="section-title" FontSize="13" Text="Double-tap edge to switch anyway" />
+                                    <TextBlock Classes="hint" Text="Bump the edge twice quickly within 400 ms to bypass switching blocks." />
+                                </StackPanel>
+                            </CheckBox>
                         </StackPanel>
                     </Expander>
                 </StackPanel>

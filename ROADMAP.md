@@ -146,7 +146,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | Status | ID | Task | Needs | Size |
 | :-: | :-: | :--- | :--- | :-: |
 | ✅ | E1 | Switching feel (Relaxed/Normal/Careful) + `KvmOptions` | B11 | M |
-| ⬜ | E2 | Prevent switching (full-screen, maximized, corners, modifier, double-tap) | E1 | L |
+| ✅ | E2 | Prevent switching (full-screen, maximized, corners, modifier, double-tap) | E1 | L |
 | ⬜ | E3 | Hotkeys page, configurable hotkeys, panic double-press | D15 parser | L |
 | ⬜ | E4 | Jump hotkeys and "next computer" | E3 | M |
 | ⬜ | E5 | Mouse speed, scroll speed, reverse scroll per device | B9 | M |

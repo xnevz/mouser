@@ -47,6 +47,12 @@ public sealed class AppSettings
     /// <summary>Edge resistance feel when crossing to a peer ("Relaxed", "Normal", "Careful").</summary>
     public string SwitchFeel { get; set; } = "Normal";
 
+    public bool BlockInFullscreen { get; set; } = true;
+    public bool BlockInMaximized { get; set; } = false;
+    public bool BlockInCorners { get; set; } = false;
+    public string RequireModifier { get; set; } = "None";
+    public bool DoubleTapOverride { get; set; } = true;
+
     /// <summary>Other Mouser computers, keyed by device id.</summary>
     public Dictionary<string, PeerSettings> Peers { get; set; } = new();
 
@@ -129,6 +135,10 @@ public sealed class SettingsStore
             if (settings.SwitchFeel != "Relaxed" && settings.SwitchFeel != "Normal" && settings.SwitchFeel != "Careful")
             {
                 settings.SwitchFeel = "Normal";
+            }
+            if (settings.RequireModifier != "None" && settings.RequireModifier != "Ctrl" && settings.RequireModifier != "Alt" && settings.RequireModifier != "Shift")
+            {
+                settings.RequireModifier = "None";
             }
             // Pre-existing settings files from before B13 do not nag existing users.
             if (!rawJson.Contains(nameof(AppSettings.FirstRunDone)))

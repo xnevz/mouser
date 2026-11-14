@@ -48,6 +48,14 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private string _theme;
     [ObservableProperty] private string _deviceName;
     [ObservableProperty] private string _switchFeel = "Normal";
+    [ObservableProperty] private bool _blockInFullscreen;
+    [ObservableProperty] private bool _blockInMaximized;
+    [ObservableProperty] private bool _blockInCorners;
+    [ObservableProperty] private string _requireModifier = "None";
+    [ObservableProperty] private bool _doubleTapOverride;
+
+    public string[] ModifierOptions { get; } = ["None", "Ctrl", "Alt", "Shift"];
+
     [ObservableProperty] private string? _statusMessage;
 
     public event Func<Task>? HistoryCleared;
@@ -105,6 +113,11 @@ public partial class SettingsViewModel : ViewModelBase
         _theme = s.Theme;
         _deviceName = s.DeviceName;
         _switchFeel = s.SwitchFeel;
+        _blockInFullscreen = s.BlockInFullscreen;
+        _blockInMaximized = s.BlockInMaximized;
+        _blockInCorners = s.BlockInCorners;
+        _requireModifier = s.RequireModifier;
+        _doubleTapOverride = s.DoubleTapOverride;
         _lockWithWindows = s.LockWithWindows;
         _autoLockMinutes = s.AutoLockMinutes;
 
@@ -171,6 +184,36 @@ public partial class SettingsViewModel : ViewModelBase
     {
         get => SwitchFeel == "Careful";
         set { if (value) SwitchFeel = "Careful"; }
+    }
+
+    partial void OnBlockInFullscreenChanged(bool value)
+    {
+        Save(s => s.BlockInFullscreen = value);
+        _host?.ApplyKvmOptions();
+    }
+
+    partial void OnBlockInMaximizedChanged(bool value)
+    {
+        Save(s => s.BlockInMaximized = value);
+        _host?.ApplyKvmOptions();
+    }
+
+    partial void OnBlockInCornersChanged(bool value)
+    {
+        Save(s => s.BlockInCorners = value);
+        _host?.ApplyKvmOptions();
+    }
+
+    partial void OnRequireModifierChanged(string value)
+    {
+        Save(s => s.RequireModifier = value);
+        _host?.ApplyKvmOptions();
+    }
+
+    partial void OnDoubleTapOverrideChanged(bool value)
+    {
+        Save(s => s.DoubleTapOverride = value);
+        _host?.ApplyKvmOptions();
     }
     partial void OnCloseToTrayChanged(bool value) => Save(s => s.CloseToTray = value);
     partial void OnMinimizeToTrayChanged(bool value) => Save(s => s.MinimizeToTray = value);

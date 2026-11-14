@@ -78,7 +78,11 @@ public sealed class MouserHost : IDisposable
         if (capture != null)
         {
             Kvm = new KvmController(capture);
-            Kvm.ApplyOptions(KvmOptions.FromFeel(_settings.Current.SwitchFeel));
+            if (OperatingSystem.IsWindows())
+            {
+                Kvm.ForegroundProbe = ForegroundWindowInfo.Get;
+            }
+            ApplyKvmOptions();
         }
     }
 
@@ -436,12 +440,28 @@ public sealed class MouserHost : IDisposable
         SyncPeers();
     }
 
+    public void ApplyKvmOptions()
+    {
+        if (Kvm == null) return;
+        var feel = KvmOptions.FromFeel(_settings.Current.SwitchFeel);
+        Kvm.ApplyOptions(new KvmOptions
+        {
+            EdgeResistanceMs = feel.EdgeResistanceMs,
+            EdgePushPixels = feel.EdgePushPixels,
+            BlockInFullscreen = _settings.Current.BlockInFullscreen,
+            BlockInMaximized = _settings.Current.BlockInMaximized,
+            BlockInCorners = _settings.Current.BlockInCorners,
+            RequireModifier = _settings.Current.RequireModifier,
+            DoubleTapOverride = _settings.Current.DoubleTapOverride
+        });
+    }
+
     public void SetSwitchFeel(string feel)
     {
         if (feel != "Relaxed" && feel != "Normal" && feel != "Careful") feel = "Normal";
         _settings.Current.SwitchFeel = feel;
         _settings.Save();
-        Kvm?.ApplyOptions(KvmOptions.FromFeel(feel));
+        ApplyKvmOptions();
     }
 
     /// <summary>

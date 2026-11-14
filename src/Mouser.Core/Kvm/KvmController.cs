@@ -35,12 +35,27 @@ public sealed class KvmController : IDisposable
     private ScreenBounds? _local;
     private Timer? _watchdog;
     private bool _stateDirty;
+    private SwitchPolicy _switchPolicy;
+    private Func<(bool Fullscreen, bool Maximized)>? _foregroundProbe;
+    private (bool Fullscreen, bool Maximized) _cachedForeground;
+    private DateTime _lastForegroundCheck = DateTime.MinValue;
+    private static readonly TimeSpan ForegroundCacheDuration = TimeSpan.FromMilliseconds(100);
 
     public bool IsRunning { get; private set; }
     public bool IsScreenLocked => _edges.IsScreenLocked;
     public string? ActivePeerId { get { lock (_lock) return _active?.Id; } }
     public string? ActivePeerName { get { lock (_lock) return _active?.Name; } }
     public KvmOptions Options { get; private set; } = new();
+
+    public Func<(bool Fullscreen, bool Maximized)>? ForegroundProbe
+    {
+        get => _foregroundProbe;
+        set
+        {
+            _foregroundProbe = value;
+            _lastForegroundCheck = DateTime.MinValue;
+        }
+    }
 
     /// <summary>Raised (on the capture or timer thread) when control moves between computers or the lock toggles.</summary>
     public event Action? StateChanged;
@@ -49,6 +64,7 @@ public sealed class KvmController : IDisposable
     {
         _capture = capture;
         _capture.Handler = Handle;
+        _switchPolicy = new SwitchPolicy(Options);
         _edges.CursorTransitionedToRemote += (_, e) => EnterPeer(e);
     }
 
@@ -81,6 +97,7 @@ public sealed class KvmController : IDisposable
             Options = o;
             _edges.EdgeResistanceMs = o.EdgeResistanceMs;
             _edges.EdgePushDistanceThreshold = o.EdgePushPixels;
+            _switchPolicy = new SwitchPolicy(o);
         }
     }
 
@@ -181,10 +198,43 @@ public sealed class KvmController : IDisposable
 
         if (_active == null)
         {
-            // EnterPeer may refuse an unreachable peer, so only swallow when control really moved.
-            return e.Kind == CaptureKind.Move && _peers.Count > 0
-                && _edges.ProcessLocalMotion(e.X, e.Y, ClampShort(e.Dx), ClampShort(e.Dy))
-                && _active != null;
+            if (e.Kind == CaptureKind.Move && _peers.Count > 0 && _local != null)
+            {
+                if (IsNearEdge(e.X, e.Y, _local))
+                {
+                    var now = DateTime.UtcNow;
+                    var (fullscreen, maximized) = GetForegroundInfo(now);
+                    bool ctrl = _physicalKeys.Contains(0x11) || _physicalKeys.Contains(0xA2) || _physicalKeys.Contains(0xA3);
+                    bool alt = _physicalKeys.Contains(0x12) || _physicalKeys.Contains(0xA4) || _physicalKeys.Contains(0xA5);
+                    bool shift = _physicalKeys.Contains(0x10) || _physicalKeys.Contains(0xA0) || _physicalKeys.Contains(0xA1);
+
+                    var ctx = new SwitchContext(
+                        ForegroundFullscreen: fullscreen,
+                        ForegroundMaximized: maximized,
+                        CursorX: e.X,
+                        CursorY: e.Y,
+                        Local: _local,
+                        CtrlDown: ctrl,
+                        AltDown: alt,
+                        ShiftDown: shift,
+                        Now: now);
+
+                    if (!_switchPolicy.Allows(ctx))
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    _switchPolicy.ResetEdgeZone();
+                }
+
+                // EnterPeer may refuse an unreachable peer, so only swallow when control really moved.
+                return _edges.ProcessLocalMotion(e.X, e.Y, ClampShort(e.Dx), ClampShort(e.Dy))
+                    && _active != null;
+            }
+
+            return false;
         }
 
         var link = _active.Link;
@@ -307,6 +357,26 @@ public sealed class KvmController : IDisposable
             _stateDirty = false;
         }
         if (raise) StateChanged?.Invoke();
+    }
+
+    private (bool Fullscreen, bool Maximized) GetForegroundInfo(DateTime now)
+    {
+        if (_foregroundProbe == null) return (false, false);
+        if (now - _lastForegroundCheck >= ForegroundCacheDuration)
+        {
+            _cachedForeground = _foregroundProbe();
+            _lastForegroundCheck = now;
+        }
+        return _cachedForeground;
+    }
+
+    private static bool IsNearEdge(double x, double y, ScreenBounds local)
+    {
+        const double margin = 3.0;
+        return x <= local.X + margin
+            || x >= local.Right - margin
+            || y <= local.Y + margin
+            || y >= local.Bottom - margin;
     }
 
     private static short ClampShort(int v) => (short)Math.Clamp(v, short.MinValue, short.MaxValue);
