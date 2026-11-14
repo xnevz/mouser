@@ -1,0 +1,114 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Mouser.UI.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1140" d:DesignHeight="740"
+             x:Class="Mouser.UI.Views.OnboardingView"
+             x:DataType="vm:OnboardingViewModel">
+
+    <Grid Background="{DynamicResource BgApp}">
+        <Border Classes="glass-card" Width="520" Padding="36,32"
+                HorizontalAlignment="Center" VerticalAlignment="Center">
+            <StackPanel Spacing="24">
+
+                <!-- Step 1: Name this computer -->
+                <StackPanel IsVisible="{Binding IsStep1}" Spacing="20">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="STEP 1 OF 3" Classes="label" FontWeight="Bold" LetterSpacing="1" />
+                        <TextBlock Text="Name this computer" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                        <TextBlock Text="Choose a friendly name so other devices can recognize this computer on your network."
+                                   Classes="hint" FontSize="13" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6" Margin="0,8,0,8">
+                        <TextBlock Text="Computer name" Classes="label" />
+                        <TextBox Text="{Binding DeviceName}" FontSize="15" Padding="12,10" PlaceholderText="e.g. My PC" MaxLength="32" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="12" Margin="0,8,0,0">
+                        <Button Classes="primary-btn" Command="{Binding NextCommand}" Content="Next"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="14" Padding="16,11" />
+                        <Button Classes="nav-button" Command="{Binding SkipCommand}" Content="Skip"
+                                HorizontalAlignment="Center" HorizontalContentAlignment="Center" Foreground="{DynamicResource TextMuted}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Step 2: What will you use? -->
+                <StackPanel IsVisible="{Binding IsStep2}" Spacing="20">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="STEP 2 OF 3" Classes="label" FontWeight="Bold" LetterSpacing="1" />
+                        <TextBlock Text="What will you use?" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                        <TextBlock Text="Choose what you want to share. You can change these anytime in Settings."
+                                   Classes="hint" FontSize="13" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="16" Margin="0,4">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="2">
+                                <TextBlock Classes="section-title" Text="Share clipboard" />
+                                <TextBlock Classes="hint" Text="Send and receive copied text with paired computers." />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding ClipboardSyncEnabled}" OnContent="" OffContent="" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="2">
+                                <TextBlock Classes="section-title" Text="Share mouse and keyboard" />
+                                <TextBlock Classes="hint" Text="Move your mouse cursor seamlessly between screens." />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding KvmEnabled}" OnContent="" OffContent="" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="2">
+                                <TextBlock Classes="section-title" Text="Use my phone as a remote" />
+                                <TextBlock Classes="hint" Text="Control this computer with the Mouser phone app." />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding AcceptRemoteInput}" OnContent="" OffContent="" />
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Spacing="12" Margin="0,8,0,0">
+                        <Button Classes="primary-btn" Command="{Binding NextCommand}" Content="Next"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="14" Padding="16,11" />
+                        <Button Classes="nav-button" Command="{Binding SkipCommand}" Content="Skip"
+                                HorizontalAlignment="Center" HorizontalContentAlignment="Center" Foreground="{DynamicResource TextMuted}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Step 3: Pair a device -->
+                <StackPanel IsVisible="{Binding IsStep3}" Spacing="20">
+                    <StackPanel Spacing="8" HorizontalAlignment="Center">
+                        <TextBlock Text="STEP 3 OF 3" Classes="label" FontWeight="Bold" LetterSpacing="1" HorizontalAlignment="Center" />
+                        <TextBlock Text="Pair a device" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" />
+                        <TextBlock Text="Open Mouser on your other computer or phone on the same Wi-Fi."
+                                   Classes="hint" FontSize="13" HorizontalAlignment="Center" TextAlignment="Center" />
+                    </StackPanel>
+
+                    <Border Background="{DynamicResource BgSunken}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
+                            CornerRadius="12" Padding="24,20" Margin="0,4" HorizontalAlignment="Stretch">
+                        <StackPanel Spacing="6" HorizontalAlignment="Center">
+                            <TextBlock Classes="label" Text="PAIRING PIN" HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding PairingPinText}" FontSize="36" FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentSoft}" LetterSpacing="4" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8" Margin="0,2">
+                        <Ellipse Width="8" Height="8" Fill="{DynamicResource Success}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding DiscoveredDevicesText}" Classes="hint" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="12" Margin="0,8,0,0">
+                        <Button Classes="primary-btn" Command="{Binding DoneCommand}" Content="Done"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="14" Padding="16,11" />
+                        <Button Classes="nav-button" Command="{Binding SkipCommand}" Content="Skip"
+                                HorizontalAlignment="Center" HorizontalContentAlignment="Center" Foreground="{DynamicResource TextMuted}" />
+                    </StackPanel>
+                </StackPanel>
+
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

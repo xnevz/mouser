@@ -28,6 +28,7 @@ public sealed class AppSettings
     public bool PauseSharing { get; set; }
     public bool PauseClipboard { get; set; }
     public bool Notifications { get; set; } = true;
+    public bool FirstRunDone { get; set; }
 
     /// <summary>Send copied text to paired computers and accept theirs.</summary>
     public bool ClipboardSyncEnabled { get; set; } = true;
@@ -81,7 +82,8 @@ public sealed class SettingsStore
         if (!File.Exists(FilePath)) return new AppSettings();
         try
         {
-            var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath), JsonOptions) ?? new AppSettings();
+            var rawJson = File.ReadAllText(FilePath);
+            var settings = JsonSerializer.Deserialize<AppSettings>(rawJson, JsonOptions) ?? new AppSettings();
             settings.Peers ??= new();
             settings.ManualPeers ??= new();
             if (string.IsNullOrWhiteSpace(settings.DeviceName)) settings.DeviceName = Environment.MachineName;
@@ -89,6 +91,11 @@ public sealed class SettingsStore
             if (settings.InputPort is < 1 or > 65535) settings.InputPort = InputInjectionService.DefaultPort;
             if (settings.ClipboardRetentionDays < 1) settings.ClipboardRetentionDays = 30;
             if (!ThemeService.Options.Contains(settings.Theme)) settings.Theme = "System";
+            // Pre-existing settings files from before B13 do not nag existing users.
+            if (!rawJson.Contains(nameof(AppSettings.FirstRunDone)))
+            {
+                settings.FirstRunDone = true;
+            }
             return settings;
         }
         catch (JsonException)

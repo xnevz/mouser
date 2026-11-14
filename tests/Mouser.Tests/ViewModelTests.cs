@@ -686,4 +686,107 @@ public class ViewModelTests
         Assert.Contains("# Mouser Diagnostics", app.Clipboard.Text);
         Assert.Contains("Found peer Desk (192.168.1.50)", app.Clipboard.Text);
     }
+
+    [Fact]
+    public async Task Onboarding_NewStoreShowsWizard_NextAndDoneSavesAndCompletes()
+    {
+        await using var app = new AppFixture();
+        string path = Path.Combine(Path.GetTempPath(), $"mouser_wizard_test_{Guid.NewGuid():N}.json");
+        try
+        {
+            var store = new SettingsStore(path);
+            Assert.False(store.Current.FirstRunDone);
+
+            var main = new MainViewModel(app.Host, store, app.Storage);
+            Assert.NotNull(main.Onboarding);
+            Assert.True(main.IsOnboarding);
+            Assert.Equal(1, main.Onboarding.CurrentStep);
+
+            // Step 1: Machine name -> Next
+            main.Onboarding.DeviceName = "CustomDesk";
+            main.Onboarding.NextCommand.Execute(null);
+            Assert.Equal(2, main.Onboarding.CurrentStep);
+            Assert.Equal("CustomDesk", store.Current.DeviceName);
+
+            // Step 2: Toggles -> Next
+            main.Onboarding.ClipboardSyncEnabled = false;
+            main.Onboarding.KvmEnabled = true;
+            main.Onboarding.AcceptRemoteInput = false;
+            main.Onboarding.NextCommand.Execute(null);
+            Assert.Equal(3, main.Onboarding.CurrentStep);
+            Assert.False(store.Current.ClipboardSyncEnabled);
+            Assert.True(store.Current.KvmEnabled);
+            Assert.False(store.Current.AcceptRemoteInput);
+
+            // Step 3: Pair a device -> Done
+            Assert.NotEmpty(main.Onboarding.PairingPinText);
+            Assert.Equal(0, main.Onboarding.DiscoveredDeviceCount);
+            Assert.Equal("No devices discovered yet", main.Onboarding.DiscoveredDevicesText);
+
+            main.Onboarding.DoneCommand.Execute(null);
+            Assert.True(store.Current.FirstRunDone);
+            Assert.Null(main.Onboarding);
+            Assert.False(main.IsOnboarding);
+
+            // Verify persisted to file
+            var reloaded = new SettingsStore(path);
+            Assert.True(reloaded.Current.FirstRunDone);
+            Assert.Equal("CustomDesk", reloaded.Current.DeviceName);
+            Assert.False(reloaded.Current.ClipboardSyncEnabled);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task Onboarding_ExistingSettingsFile_DoesNotShowWizard()
+    {
+        await using var app = new AppFixture();
+        string path = Path.Combine(Path.GetTempPath(), $"mouser_existing_test_{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, "{\n  \"DeviceName\": \"ExistingPC\"\n}");
+        try
+        {
+            var store = new SettingsStore(path);
+            Assert.True(store.Current.FirstRunDone);
+
+            var main = new MainViewModel(app.Host, store, app.Storage);
+            Assert.Null(main.Onboarding);
+            Assert.False(main.IsOnboarding);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task Onboarding_SkipSetsFirstRunDoneAndDismisses()
+    {
+        await using var app = new AppFixture();
+        string path = Path.Combine(Path.GetTempPath(), $"mouser_skip_test_{Guid.NewGuid():N}.json");
+        try
+        {
+            var store = new SettingsStore(path);
+            Assert.False(store.Current.FirstRunDone);
+
+            var main = new MainViewModel(app.Host, store, app.Storage);
+            Assert.NotNull(main.Onboarding);
+            Assert.True(main.IsOnboarding);
+
+            main.Onboarding.SkipCommand.Execute(null);
+
+            Assert.True(store.Current.FirstRunDone);
+            Assert.Null(main.Onboarding);
+            Assert.False(main.IsOnboarding);
+
+            var reloaded = new SettingsStore(path);
+            Assert.True(reloaded.Current.FirstRunDone);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
 }

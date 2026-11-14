@@ -44,6 +44,12 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _systemStatusText = string.Empty;
     [ObservableProperty] private string _statusColor = "#64748b";
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOnboarding))]
+    private OnboardingViewModel? _onboarding;
+
+    public bool IsOnboarding => Onboarding != null;
+
     public bool IsRemoteTab => CurrentTab == NavigationTab.AndroidRemote;
     public bool IsClipboardTab => CurrentTab == NavigationTab.SmartClipboard;
     public bool IsDisplaysTab => CurrentTab == NavigationTab.DisplayMatrix;
@@ -63,6 +69,10 @@ public partial class MainViewModel : ViewModelBase
         ClipboardHistory.ShareCapturedText = host.ShareClipboardAsync;
         _currentPage = ClipboardHistory;
         _currentTab = NavigationTab.SmartClipboard;
+        if (!_settings.Current.FirstRunDone)
+        {
+            Onboarding = new OnboardingViewModel(_settings, _host, () => Onboarding = null);
+        }
         Refresh();
     }
 
@@ -75,6 +85,7 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>Pulls live state from the network services. Called once a second by the app.</summary>
     public void Refresh()
     {
+        Onboarding?.Refresh();
         AndroidRemote.Refresh();
         RefreshDevices();
         MonitorLayout.SetPeers(_host.Peers);

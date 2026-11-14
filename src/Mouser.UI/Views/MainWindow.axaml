@@ -129,5 +129,10 @@
         </Border>
 
         <ContentControl x:Name="PageContent" Grid.Column="1" Content="{Binding CurrentPage}" />
+
+        <ContentControl Grid.Column="0" Grid.ColumnSpan="2"
+                        Content="{Binding Onboarding}"
+                        IsVisible="{Binding IsOnboarding}"
+                        Background="{DynamicResource BgApp}" />
     </Grid>
 </Window>
