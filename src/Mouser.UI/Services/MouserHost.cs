@@ -35,6 +35,7 @@ public sealed class MouserHost : IDisposable
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _pairedWithUs = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (string Text, DateTime Timestamp)> _failedClips = new();
     private ScreenBounds? _desktop;
+    private IReadOnlyList<Mouser.Core.Geometry.Monitor>? _monitors;
     private bool _locked;
 
     public PairingGate Pairing { get; }
@@ -127,6 +128,7 @@ public sealed class MouserHost : IDisposable
                 Log.Record(ActivityCategory.Discovery, $"Found peer {peer.Hostname} ({peer.Address})");
             };
             if (_desktop is { } d) Discovery.UpdateLocalScreen((int)d.X, (int)d.Y, (int)d.Width, (int)d.Height);
+            if (_monitors is { } m) Discovery.UpdateLocalMonitors(m);
             Discovery.Start();
 
             foreach (var peer in _settings.Current.ManualPeers.ToList())
@@ -368,6 +370,12 @@ public sealed class MouserHost : IDisposable
         _desktop = desktop;
         Kvm?.SetLocalScreen(desktop);
         Discovery?.UpdateLocalScreen((int)desktop.X, (int)desktop.Y, (int)desktop.Width, (int)desktop.Height);
+    }
+
+    public void SetLocalMonitors(IReadOnlyList<Mouser.Core.Geometry.Monitor> monitors)
+    {
+        _monitors = monitors;
+        Discovery?.UpdateLocalMonitors(monitors);
     }
 
     public void RegeneratePin()

@@ -268,6 +268,8 @@ public partial class MonitorLayoutViewModel : ViewModelBase
     {
         _displays = displays;
         if (LocalDesktop is { } desktop) _host?.SetLocalDesktop(desktop);
+        var monitors = displays.Select(d => new Mouser.Core.Geometry.Monitor(d.X, d.Y, d.Width, d.Height)).ToList();
+        _host?.SetLocalMonitors(monitors);
 
         DesktopSummary = displays.Count switch
         {

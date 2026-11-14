@@ -31,6 +31,68 @@ public class PeerDiscoveryTests
     }
 
     [Fact]
+    public void BeaconPayload_Serialization_WithMonitors_RoundTripsAccurately()
+    {
+        var original = new DiscoveredPeer
+        {
+            DeviceId = "test-device-uuid-multi-mon",
+            Hostname = "Dual Screen PC",
+            OperatingSystem = "Windows",
+            MotionPort = 58491,
+            ControlPort = 58492,
+            Monitors = new List<Mouser.Core.Geometry.Monitor>
+            {
+                new Mouser.Core.Geometry.Monitor(0, 0, 1920, 1080),
+                new Mouser.Core.Geometry.Monitor(1920, 0, 1920, 1080)
+            }
+        };
+
+        byte[] payload = PeerDiscoveryService.CreateBeaconPayload(original);
+        Assert.NotEmpty(payload);
+
+        bool success = PeerDiscoveryService.TryParseBeaconPayload(payload, out var parsed);
+        Assert.True(success);
+        Assert.Equal(original.DeviceId, parsed.DeviceId);
+        Assert.Equal(original.Hostname, parsed.Hostname);
+        Assert.Equal(original.OperatingSystem, parsed.OperatingSystem);
+        Assert.Equal(original.MotionPort, parsed.MotionPort);
+        Assert.Equal(original.ControlPort, parsed.ControlPort);
+
+        Assert.Equal(2, parsed.Monitors.Count);
+        Assert.Equal(0, parsed.Monitors[0].X);
+        Assert.Equal(0, parsed.Monitors[0].Y);
+        Assert.Equal(1920, parsed.Monitors[0].Width);
+        Assert.Equal(1080, parsed.Monitors[0].Height);
+
+        Assert.Equal(1920, parsed.Monitors[1].X);
+        Assert.Equal(0, parsed.Monitors[1].Y);
+        Assert.Equal(1920, parsed.Monitors[1].Width);
+        Assert.Equal(1080, parsed.Monitors[1].Height);
+
+        // Bounding box should also be populated for older versions
+        Assert.Equal(0, parsed.ScreenX);
+        Assert.Equal(0, parsed.ScreenY);
+        Assert.Equal(3840, parsed.ScreenWidth);
+        Assert.Equal(1080, parsed.ScreenHeight);
+    }
+
+    [Fact]
+    public void BeaconPayload_WithoutMonField_ParsesSuccessfully_WithEmptyMonitors()
+    {
+        string json = "{\"Id\":\"legacy-peer\",\"Host\":\"OldPC\",\"Os\":\"Windows\",\"MPort\":58491,\"CPort\":58492,\"X\":0,\"Y\":0,\"W\":1920,\"H\":1080}";
+        byte[] payload = System.Text.Encoding.UTF8.GetBytes("MOUS_DISC:" + json);
+
+        bool success = PeerDiscoveryService.TryParseBeaconPayload(payload, out var parsed);
+        Assert.True(success);
+        Assert.Equal("legacy-peer", parsed.DeviceId);
+        Assert.Equal("OldPC", parsed.Hostname);
+        Assert.Equal(1920, parsed.ScreenWidth);
+        Assert.Equal(1080, parsed.ScreenHeight);
+        Assert.NotNull(parsed.Monitors);
+        Assert.Empty(parsed.Monitors);
+    }
+
+    [Fact]
     public void TryParseBeaconPayload_RejectsInvalidPrefix()
     {
         byte[] invalidBytes = System.Text.Encoding.UTF8.GetBytes("INVALID_DATA:{}");

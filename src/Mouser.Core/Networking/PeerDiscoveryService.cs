@@ -63,6 +63,21 @@ public sealed class PeerDiscoveryService : IDisposable
         }
     }
 
+    public void UpdateLocalMonitors(IReadOnlyList<Mouser.Core.Geometry.Monitor> monitors)
+    {
+        lock (_localPeerInfo)
+        {
+            _localPeerInfo.Monitors = monitors.ToList();
+            if (_localPeerInfo.ScreenWidth == 0 && _localPeerInfo.ScreenHeight == 0 && monitors.Count > 0)
+            {
+                _localPeerInfo.ScreenX = (int)monitors.Min(m => m.X);
+                _localPeerInfo.ScreenY = (int)monitors.Min(m => m.Y);
+                _localPeerInfo.ScreenWidth = (int)(monitors.Max(m => m.Right) - monitors.Min(m => m.X));
+                _localPeerInfo.ScreenHeight = (int)(monitors.Max(m => m.Bottom) - monitors.Min(m => m.Y));
+            }
+        }
+    }
+
     public void UpdateHostname(string hostname)
     {
         lock (_localPeerInfo)
@@ -218,6 +233,18 @@ public sealed class PeerDiscoveryService : IDisposable
 
     public static byte[] CreateBeaconPayload(DiscoveredPeer peer)
     {
+        int x = peer.ScreenX;
+        int y = peer.ScreenY;
+        int w = peer.ScreenWidth;
+        int h = peer.ScreenHeight;
+        if (w == 0 && h == 0 && peer.Monitors is { Count: > 0 } mons)
+        {
+            x = (int)mons.Min(m => m.X);
+            y = (int)mons.Min(m => m.Y);
+            w = (int)(mons.Max(m => m.Right) - mons.Min(m => m.X));
+            h = (int)(mons.Max(m => m.Bottom) - mons.Min(m => m.Y));
+        }
+
         var dto = new DiscoveryDto
         {
             Id = peer.DeviceId,
@@ -225,10 +252,11 @@ public sealed class PeerDiscoveryService : IDisposable
             Os = peer.OperatingSystem,
             MPort = peer.MotionPort,
             CPort = peer.ControlPort,
-            X = peer.ScreenX,
-            Y = peer.ScreenY,
-            W = peer.ScreenWidth,
-            H = peer.ScreenHeight
+            X = x,
+            Y = y,
+            W = w,
+            H = h,
+            Mon = peer.Monitors?.Select(m => new int[] { (int)m.X, (int)m.Y, (int)m.Width, (int)m.Height }).ToArray()
         };
         string json = JsonSerializer.Serialize(dto);
         return Encoding.UTF8.GetBytes("MOUS_DISC:" + json);
@@ -255,6 +283,32 @@ public sealed class PeerDiscoveryService : IDisposable
             peer.ScreenY = dto.Y;
             peer.ScreenWidth = dto.W;
             peer.ScreenHeight = dto.H;
+
+            if (dto.Mon != null && dto.Mon.Length > 0)
+            {
+                var list = new List<Mouser.Core.Geometry.Monitor>();
+                foreach (var m in dto.Mon)
+                {
+                    if (m != null && m.Length >= 4)
+                    {
+                        list.Add(new Mouser.Core.Geometry.Monitor(m[0], m[1], m[2], m[3]));
+                    }
+                }
+                peer.Monitors = list;
+            }
+            else
+            {
+                peer.Monitors = Array.Empty<Mouser.Core.Geometry.Monitor>();
+            }
+
+            if (peer.ScreenWidth == 0 && peer.ScreenHeight == 0 && peer.Monitors.Count > 0)
+            {
+                peer.ScreenX = (int)peer.Monitors.Min(m => m.X);
+                peer.ScreenY = (int)peer.Monitors.Min(m => m.Y);
+                peer.ScreenWidth = (int)(peer.Monitors.Max(m => m.Right) - peer.Monitors.Min(m => m.X));
+                peer.ScreenHeight = (int)(peer.Monitors.Max(m => m.Bottom) - peer.Monitors.Min(m => m.Y));
+            }
+
             return true;
         }
         catch
@@ -293,5 +347,6 @@ public sealed class PeerDiscoveryService : IDisposable
         public int Y { get; set; }
         public int W { get; set; }
         public int H { get; set; }
+        public int[][]? Mon { get; set; }
     }
 }

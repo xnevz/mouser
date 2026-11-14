@@ -409,12 +409,15 @@ public partial class App : Application
         return i >= 0 && i + 1 < args.Length ? args[i + 1] : null;
     }
 
-    private static void UpdateDisplays(Window window, MainViewModel vm)
+    private void UpdateDisplays(Window window, MainViewModel vm)
     {
-        var displays = window.Screens.All
+        var screens = window.Screens.All;
+        var displays = screens
             .Select(s => new DisplayInfo(s.DisplayName ?? string.Empty, s.Bounds.X, s.Bounds.Y,
                 s.Bounds.Width, s.Bounds.Height, s.Scaling, s.IsPrimary))
             .ToList();
+        var monitors = screens.Select(s => new Mouser.Core.Geometry.Monitor(s.Bounds.X, s.Bounds.Y, s.Bounds.Width, s.Bounds.Height)).ToList();
+        _host?.SetLocalMonitors(monitors);
         vm.MonitorLayout.SetDisplays(displays);
     }
 

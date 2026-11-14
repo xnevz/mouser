@@ -23,6 +23,8 @@ public sealed class DiscoveredPeer
     public int ScreenWidth { get; set; }
     public int ScreenHeight { get; set; }
 
+    public IReadOnlyList<Mouser.Core.Geometry.Monitor> Monitors { get; set; } = Array.Empty<Mouser.Core.Geometry.Monitor>();
+
     public IPEndPoint MotionEndPoint => new IPEndPoint(IpAddress, MotionPort);
     public IPEndPoint ControlEndPoint => new IPEndPoint(IpAddress, ControlPort);
 
