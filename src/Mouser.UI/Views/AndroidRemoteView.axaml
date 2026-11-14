@@ -21,7 +21,7 @@
 
             <Border Classes="banner-warning" IsVisible="{Binding !CanInject}">
                 <TextBlock Foreground="{DynamicResource BannerWarningText}" FontSize="12" TextWrapping="Wrap"
-                           Text="Mouser can't control the mouse on this operating system yet (Windows and macOS are supported). Phones can pair, but input won't reach the desktop." />
+                           Text="Mouser can't inject input on this session (Windows, macOS, and Linux X11 are supported; Wayland sessions block synthetic input). Phones can pair, but input won't reach the desktop." />
             </Border>
 
             <Grid ColumnDefinitions="*,16,*">

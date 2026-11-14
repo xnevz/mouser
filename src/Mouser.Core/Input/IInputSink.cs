@@ -44,11 +44,11 @@ public sealed class NullInputSink : IInputSink
 
 public static class InputSinks
 {
-    // shortcut: Linux has no backend yet (XTest/uinput), so phones can't control Linux hosts until one is added.
     public static IInputSink CreateForCurrentPlatform()
     {
         if (OperatingSystem.IsWindows()) return new Win32InputSink();
         if (OperatingSystem.IsMacOS()) return new MacInputSink();
+        if (OperatingSystem.IsLinux()) return new X11InputSink();
         return NullInputSink.Instance;
     }
 }
