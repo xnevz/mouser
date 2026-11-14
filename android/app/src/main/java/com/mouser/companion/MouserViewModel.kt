@@ -19,7 +19,8 @@ import kotlinx.coroutines.flow.asStateFlow
 enum class AppNavigationTab {
     TRACKPAD,
     AIR_MOUSE,
-    MACROS
+    MACROS,
+    TYPE
 }
 
 class MouserViewModel(application: Application) : AndroidViewModel(application) {
@@ -150,6 +151,22 @@ class MouserViewModel(application: Application) : AndroidViewModel(application) 
     fun tapKey(virtualKey: Short) {
         if (isLocked.value) return
         connection.tapKey(virtualKey)
+    }
+
+    fun typeText(text: String) {
+        if (isLocked.value) return
+        connection.typeText(text)
+    }
+
+    fun applyTypeDiff(old: String, new: String) {
+        if (isLocked.value) return
+        val actions = com.mouser.companion.model.diffToKeys(old, new)
+        for (action in actions) {
+            when (action) {
+                is com.mouser.companion.model.Action.Backspace -> connection.tapKey(com.mouser.companion.model.VirtualKey.BACK)
+                is com.mouser.companion.model.Action.CharUnit -> connection.typeChar(action.char)
+            }
+        }
     }
 
     fun setTrackpadSensitivity(value: Float) {

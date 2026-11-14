@@ -9,6 +9,7 @@ import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Gamepad
+import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.*
@@ -114,6 +115,20 @@ class MainActivity : FragmentActivity() {
                                         indicatorColor = MaterialTheme.colorScheme.surfaceVariant
                                     )
                                 )
+
+                                NavigationBarItem(
+                                    selected = currentTab == AppNavigationTab.TYPE,
+                                    onClick = { viewModel.selectTab(AppNavigationTab.TYPE) },
+                                    icon = { Icon(Icons.Default.Keyboard, contentDescription = "Type") },
+                                    label = { Text("Type") },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        indicatorColor = MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                )
                             }
                         },
                         containerColor = MaterialTheme.colorScheme.background
@@ -144,6 +159,12 @@ class MainActivity : FragmentActivity() {
                                 )
                                 AppNavigationTab.MACROS -> MediaMacrosView(
                                     isConnected = isConnected,
+                                    onKey = viewModel::tapKey
+                                )
+                                AppNavigationTab.TYPE -> TypeSurface(
+                                    isConnected = isConnected,
+                                    onSendText = viewModel::typeText,
+                                    onLiveDiff = viewModel::applyTypeDiff,
                                     onKey = viewModel::tapKey
                                 )
                             }

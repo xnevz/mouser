@@ -134,6 +134,27 @@ class MouserConnection(
         sendKey(virtualKey, false)
     }
 
+    fun sendChar(codeUnit: Char, isDown: Boolean) {
+        send(InputMotionPacket(
+            packetType = InputMotionPacket.TYPE_CHAR,
+            sequenceId = sequence.next(),
+            deltaX = codeUnit.code.toShort(),
+            deltaY = if (isDown) 1 else 0,
+            buttonFlags = if (isDown) 1 else 0
+        ))
+    }
+
+    fun typeChar(codeUnit: Char) {
+        sendChar(codeUnit, true)
+        sendChar(codeUnit, false)
+    }
+
+    fun typeText(text: String) {
+        for (i in 0 until text.length) {
+            typeChar(text[i])
+        }
+    }
+
     private fun releaseButtons() {
         if (buttons.mask != 0.toByte()) {
             buttons.clear()

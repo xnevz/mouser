@@ -40,4 +40,22 @@ class InputMotionPacketTest {
         val result = InputMotionPacket.fromByteArray(corruptedBytes)
         assertNull(result)
     }
+
+    @Test
+    fun testCharPacketSerialization() {
+        val charPacket = InputMotionPacket(
+            packetType = InputMotionPacket.TYPE_CHAR,
+            sequenceId = 100,
+            deltaX = 'A'.code.toShort(),
+            deltaY = 1,
+            buttonFlags = 1
+        )
+        val bytes = charPacket.toByteArray()
+        val restored = InputMotionPacket.fromByteArray(bytes)
+        assertNotNull(restored)
+        assertEquals(InputMotionPacket.TYPE_CHAR, restored!!.packetType)
+        assertEquals('A'.code.toShort(), restored.deltaX)
+        assertEquals(1.toShort(), restored.deltaY)
+        assertEquals(1.toByte(), restored.buttonFlags)
+    }
 }
