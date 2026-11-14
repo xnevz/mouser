@@ -34,6 +34,26 @@ public partial class DevicesViewModel : ViewModelBase
     public ObservableCollection<DeviceDetailViewModel> Devices { get; } = new();
     [ObservableProperty] private DeviceDetailViewModel? _selectedDevice;
 
+    [ObservableProperty] private string _manualAddress = string.Empty;
+    [ObservableProperty] private string? _manualError;
+
+    [RelayCommand]
+    private async Task AddByAddressAsync()
+    {
+        if (string.IsNullOrWhiteSpace(ManualAddress)) return;
+        ManualError = null;
+        bool ok = await _host.AddManualPeerAsync(ManualAddress);
+        if (ok)
+        {
+            ManualAddress = string.Empty;
+            ManualError = "Added. It appears in the list within a few seconds.";
+        }
+        else
+        {
+            ManualError = "Couldn't find that address. Check the name or IP and that Mouser is running there.";
+        }
+    }
+
     public DevicesViewModel(MouserHost host, MonitorLayoutViewModel layout, AndroidRemoteViewModel remote, SettingsStore settings)
     {
         _host = host;

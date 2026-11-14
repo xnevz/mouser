@@ -37,6 +37,8 @@ public sealed class AppSettings
 
     /// <summary>Other Mouser computers, keyed by device id.</summary>
     public Dictionary<string, PeerSettings> Peers { get; set; } = new();
+
+    public List<string> ManualPeers { get; set; } = new();
 }
 
 public sealed class PeerSettings
@@ -81,6 +83,7 @@ public sealed class SettingsStore
         {
             var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath), JsonOptions) ?? new AppSettings();
             settings.Peers ??= new();
+            settings.ManualPeers ??= new();
             if (string.IsNullOrWhiteSpace(settings.DeviceName)) settings.DeviceName = Environment.MachineName;
             if (settings.PairingPin is < 0 or > 999_999) settings.PairingPin = PairingGate.GeneratePin();
             if (settings.InputPort is < 1 or > 65535) settings.InputPort = InputInjectionService.DefaultPort;

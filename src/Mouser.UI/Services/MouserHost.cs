@@ -110,6 +110,11 @@ public sealed class MouserHost : IDisposable
                 OsName, Input.BoundPort, controlPort: Transfer?.BoundPort ?? 0, _discoveryPort);
             if (_desktop is { } d) Discovery.UpdateLocalScreen((int)d.X, (int)d.Y, (int)d.Width, (int)d.Height);
             Discovery.Start();
+
+            foreach (var peer in _settings.Current.ManualPeers.ToList())
+            {
+                _ = AddManualPeerAsync(peer);
+            }
         }
         catch (SocketException e)
         {
@@ -120,6 +125,45 @@ public sealed class MouserHost : IDisposable
     }
 
     public void RestartDiscovery() => Discovery?.UpdateHostname(_settings.Current.DeviceName);
+
+    public async Task<bool> AddManualPeerAsync(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        text = text.Trim();
+        string hostPart = text;
+        int port = _discoveryPort;
+        int colon = text.LastIndexOf(':');
+        if (colon > 0 && int.TryParse(text[(colon + 1)..], out int customPort))
+        {
+            hostPart = text[..colon];
+            port = customPort;
+        }
+
+        try
+        {
+            IPAddress ip;
+            if (!IPAddress.TryParse(hostPart, out ip!))
+            {
+                var addresses = await Dns.GetHostAddressesAsync(hostPart);
+                ip = addresses.FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                     ?? addresses.FirstOrDefault()!;
+                if (ip == null) return false;
+            }
+
+            Discovery?.AddTarget(ip, port);
+
+            if (!_settings.Current.ManualPeers.Contains(text))
+            {
+                _settings.Current.ManualPeers.Add(text);
+                _settings.Save();
+            }
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     private PeerTransferService? CreateTransfer(int port)
     {

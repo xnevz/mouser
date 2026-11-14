@@ -59,6 +59,19 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <TextBlock Classes="hint" Text="No phones paired" Margin="12,4" IsVisible="{Binding !Remote.Clients.Count}" />
+
+                <!-- Add device manually -->
+                <StackPanel Margin="0,12,0,0" Spacing="6">
+                    <TextBlock Classes="label" Text="ADD DEVICE MANUALLY" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox Grid.Column="0" Text="{Binding ManualAddress}"
+                                 PlaceholderText="IP or hostname" />
+                        <Button Grid.Column="1" Classes="secondary-btn" Content="Add" Margin="6,0,0,0"
+                                Command="{Binding AddByAddressCommand}" />
+                    </Grid>
+                    <TextBlock Classes="hint" FontSize="11" Text="{Binding ManualError}"
+                               IsVisible="{Binding ManualError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
 

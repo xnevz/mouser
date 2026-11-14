@@ -104,4 +104,23 @@ public class PeerDiscoveryTests
 
         Assert.Equal(firstAddress, service.ActivePeers.Single(p => p.DeviceId == "other").IpAddress);
     }
+
+    [Fact]
+    public async Task TwoHosts_WithDifferentDiscoveryPorts_DiscoverEachOtherViaAddTarget()
+    {
+        int portA = Random.Shared.Next(40_000, 45_000);
+        int portB = Random.Shared.Next(45_001, 50_000);
+        using var a = new PeerDiscoveryService("host-a", "Alpha", "Windows", 58491, 0, portA);
+        using var b = new PeerDiscoveryService("host-b", "Beta", "macOS", 59000, 0, portB);
+        a.Start();
+        b.Start();
+
+        a.AddTarget(IPAddress.Loopback, portB);
+
+        await Wait.UntilAsync(() => b.ActivePeers.Any(p => p.DeviceId == "host-a"), timeoutMs: 5000);
+        await Wait.UntilAsync(() => a.ActivePeers.Any(p => p.DeviceId == "host-b"), timeoutMs: 5000);
+
+        Assert.Contains(b.ActivePeers, p => p.DeviceId == "host-a");
+        Assert.Contains(a.ActivePeers, p => p.DeviceId == "host-b");
+    }
 }

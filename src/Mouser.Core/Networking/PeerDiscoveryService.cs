@@ -18,6 +18,9 @@ public sealed class PeerDiscoveryService : IDisposable
     private readonly UdpClient _udpClient;
     private readonly DiscoveredPeer _localPeerInfo;
     private readonly ConcurrentDictionary<string, DiscoveredPeer> _peers = new();
+    private readonly ConcurrentDictionary<IPEndPoint, byte> _manualTargets = new();
+    private readonly HashSet<IPAddress> _learnedSenders = new();
+    private readonly object _learnedLock = new();
     private readonly int _discoveryPort;
     private CancellationTokenSource? _cts;
     private Task? _listenTask;
@@ -68,6 +71,11 @@ public sealed class PeerDiscoveryService : IDisposable
         }
     }
 
+    public void AddTarget(IPAddress address, int port = DefaultDiscoveryPort)
+    {
+        _manualTargets.TryAdd(new IPEndPoint(address, port), 0);
+    }
+
     public void Start()
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
@@ -100,6 +108,20 @@ public sealed class PeerDiscoveryService : IDisposable
                 }
             }
 
+            foreach (var target in _manualTargets.Keys)
+            {
+                try
+                {
+                    await _udpClient.SendAsync(beaconPayload, beaconPayload.Length, target);
+                }
+                catch (SocketException)
+                {
+                }
+                catch
+                {
+                }
+            }
+
             try
             {
                 await Task.Delay(1000, token);
@@ -122,6 +144,21 @@ public sealed class PeerDiscoveryService : IDisposable
                 {
                     // Ignore our own broadcast
                     if (peer.DeviceId == _localPeerInfo.DeviceId) continue;
+
+                    bool isNewSender;
+                    lock (_learnedLock)
+                    {
+                        isNewSender = _learnedSenders.Add(result.RemoteEndPoint.Address);
+                    }
+                    if (isNewSender)
+                    {
+                        int targetPort = result.RemoteEndPoint.Port > 0 ? result.RemoteEndPoint.Port : _discoveryPort;
+                        AddTarget(result.RemoteEndPoint.Address, targetPort);
+                        if (_discoveryPort != targetPort)
+                        {
+                            AddTarget(result.RemoteEndPoint.Address, _discoveryPort);
+                        }
+                    }
 
                     peer.IpAddress = result.RemoteEndPoint.Address;
                     peer.LastSeenUtc = DateTime.UtcNow;
