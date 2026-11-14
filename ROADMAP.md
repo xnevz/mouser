@@ -113,7 +113,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | Status | ID | Task | Needs | Size |
 | :-: | :-: | :--- | :--- | :-: |
 | ✅ | C1 | `AppLockService` (passphrase, recovery key, backoff) + tests | – | M |
-| ⬜ | C2 | Host stops services while locked | C1 | M |
+| ✅ | C2 | Host stops services while locked | C1 | M |
 | ⬜ | C3 | Lock screen and setup UI | C2, B11 | L |
 | ⬜ | C4 | Ctrl+L, tray Lock, idle lock, Windows-lock, quit blocked | C3 | M |
 | ⬜ | C5 | Encrypt `clipboard.db` (SQLCipher spike first) | C3 | L |
@@ -282,3 +282,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - B12: Implemented ActivityLog service (200-event capacity, categorised events) and ActivityViewModel with CopyDiagnosticsCommand; wired key discovery, pairing, clip, file, and KVM events in MouserHost; created ActivityView with theme tokens; added Activity navigation tab and sidebar button in MainWindow; added unit tests ActivityLog_CapsAt200 and CopyDiagnostics_ContainsVersionAndRecentEvents (153 passing).
 - B13: Implemented 3-step first-run onboarding wizard (computer name, feature toggles, device pairing with large PIN and live peer count) overlaid on MainWindow; added FirstRunDone setting in SettingsStore with auto-migration for existing installs; added 3 unit tests (156 passing).
 - C1: Implemented AppLockService in Core with PBKDF2/AES-GCM encryption, Base32 recovery key, progressive backoff (0s, 5s, 15s, 60s, 300s), corrupt file detection, and atomic persistence; added 8 unit tests in AppLockTests (164 passing).
+- C2: Added IsLocked state and SetLocked to MouserHost stopping Kvm and services, guarded Restart and SyncPeers while locked, added IsLocked guard to ClipboardHistoryViewModel Poll/ApplyRemoteClip; 166 tests pass.
