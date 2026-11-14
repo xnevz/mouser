@@ -178,7 +178,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | F6 | Keys at rest (DPAPI); stop storing PINs | F3 | M |
 | ✅ | F7 | Incoming-file safety (prompt, limits, sanitising) | B9 | M |
 | ⬜ | F8 | Remove v1 PIN trust | F4, F5, F6 | M |
-| ⬜ | F9 | Fuzz tests, SECURITY.md, threat model | F4 | M |
+| ✅ | F9 | Fuzz tests, SECURITY.md, threat model | F4 | M |
 | ⬜ | F10 | Local-network-only, adapter picker, separate ports | B11 | S |
 
 ### Track G: Phone companion v2 ([F-security-and-phone.md](roadmap/tasks/F-security-and-phone.md))
@@ -310,3 +310,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - F4: Implemented SecureInputPacket (51 bytes, Version 2, 4-byte FNV-1a sender ID hash, 8-byte session ID, 8-byte counter, 30-byte ciphertext+tag); updated PeerLink to seal/open datagrams with SessionCrypto; updated InputInjectionService to authenticate/decrypt secure datagrams, dispatch to existing input handling, remove IP-trust for v2, and guard v1 behind AllowOlderDevices; added 9 unit and integration tests in SecureInputChannelTests (683 passing).
 - F6: Implemented SecretStore with Windows DPAPI (CurrentUser) Protect and Unprotect; routed PairKeyProtected storage and retrieval through SecretStore; handled unprotect failure across MouserHost and DevicesView/DevicesViewModel by treating as unpaired with 'Pair again' status and action; added 8 unit and integration tests in SecretStoreTests (691 passing).
 - F7: Implemented incoming-file safety in PeerTransferService with SafeFileName (ADS, traversal, reserved names, dots/spaces, 150-char cap), size limits (MaxIncomingFileMB), blocked extensions, early refusal ack (2), Mark-of-the-web Zone.Identifier, AutoAcceptFiles per peer, and main window prompt modal; added 23 tests across PeerTransferTests (41 passing).
+- F9: Implemented FuzzTests with deterministic Random(1234) running 2000 iterations across InputMotionPacket.TryRead, SecureInputPacket.TryRead, PeerDiscoveryService.TryParseBeaconPayload, PeerTransferService.ReadFrameAsync with MemoryStream, ClipboardPayload.Deserialize, and SearchQuery.Parse; hardened ClipboardPayload.Deserialize to throw only EndOfStreamException, InvalidDataException, or FormatException; implemented beacon spoofing protection in MouserHost.EnsureLink requiring cryptographic datagram authentication before switching endpoints for paired peers; created SECURITY.md and docs/threat-model.md; added 7 tests in FuzzTests (19 passing across FuzzTests & PeerDiscoveryTests).
