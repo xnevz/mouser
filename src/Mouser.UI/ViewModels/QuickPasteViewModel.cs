@@ -19,6 +19,7 @@ public partial class QuickPasteViewModel : ViewModelBase
 
     [ObservableProperty] private string _query = string.Empty;
     [ObservableProperty] private ClipboardItemViewModel? _selected;
+    [ObservableProperty] private string? _activeTransformName;
 
     public ObservableCollection<ClipboardItemViewModel> Items { get; } = new();
     public bool IsEmpty => Items.Count == 0;
@@ -90,6 +91,21 @@ public partial class QuickPasteViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsEmpty));
     }
 
+    public void CycleTransform(int delta = 1)
+    {
+        if (TextTransforms.All.Count == 0) return;
+        int currentIndex = ActiveTransformName == null
+            ? -1
+            : TextTransforms.All.ToList().FindIndex(t => string.Equals(t.Name, ActiveTransformName, StringComparison.OrdinalIgnoreCase));
+        int total = TextTransforms.All.Count + 1;
+        int nextIndex = (currentIndex + 1 + delta) % total;
+        if (nextIndex < 0) nextIndex += total;
+        int transformIndex = nextIndex - 1;
+        ActiveTransformName = transformIndex >= 0 ? TextTransforms.All[transformIndex].Name : null;
+    }
+
+    public void ApplyNextTransform() => CycleTransform(1);
+
     public void MoveSelection(int delta)
     {
         if (Items.Count == 0) return;
@@ -114,13 +130,27 @@ public partial class QuickPasteViewModel : ViewModelBase
         {
             var (expanded, cursorOffset) = SnippetExpander.Expand(snippetVm.Snippet.Body, CurrentClipboard);
             LastCursorOffset = cursorOffset;
-            PasteRequested?.Invoke(expanded, rich);
+            PasteRequested?.Invoke(ApplyActiveTransform(expanded), rich);
         }
         else
         {
             LastCursorOffset = null;
-            PasteRequested?.Invoke(clip.Content, rich);
+            PasteRequested?.Invoke(ApplyActiveTransform(clip.Content), rich);
         }
+    }
+
+    public string ApplyActiveTransform(string text)
+    {
+        if (string.IsNullOrEmpty(ActiveTransformName) || string.IsNullOrEmpty(text))
+        {
+            return text;
+        }
+        var transform = TextTransforms.All.FirstOrDefault(t =>
+            string.Equals(t.Name, ActiveTransformName, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(t.Name.Replace(" ", ""), ActiveTransformName.Replace(" ", ""), StringComparison.OrdinalIgnoreCase) ||
+            (ActiveTransformName.Equals("Uppercase", StringComparison.OrdinalIgnoreCase) && t.Name == "Upper") ||
+            (ActiveTransformName.Equals("Lowercase", StringComparison.OrdinalIgnoreCase) && t.Name == "Lower"));
+        return transform.Apply != null ? transform.Apply(text) : text;
     }
 
     [RelayCommand]

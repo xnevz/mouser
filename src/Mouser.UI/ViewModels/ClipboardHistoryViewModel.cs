@@ -45,6 +45,14 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     [ObservableProperty] private int _starredCount;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTransformResult))]
+    private string? _transformResult;
+
+    public bool HasTransformResult => !string.IsNullOrEmpty(TransformResult);
+
+    public static IReadOnlyList<string> AvailableTransforms => TextTransforms.All.Select(t => t.Name).ToList();
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ImageStretch))]
     private bool _isImageFitToWindow = true;
 
@@ -327,6 +335,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
 
     partial void OnSelectedClipChanged(ClipboardItemViewModel? value)
     {
+        TransformResult = null;
         _ = LoadDeliveriesForSelectedClipAsync();
     }
 
@@ -406,6 +415,40 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
         clip.IsPinned = await _storage.ToggleFavoriteAsync(clip.Id);
         StatusMessage = clip.IsPinned ? "Starred. Starred clips are kept forever." : "Removed star.";
         await ReloadAsync();
+    }
+
+    [RelayCommand]
+    private void ApplyTransform(string? transformName)
+    {
+        if (string.IsNullOrWhiteSpace(transformName) || SelectedClip == null || !SelectedClip.IsTextClip || string.IsNullOrEmpty(SelectedClip.Content))
+        {
+            return;
+        }
+
+        var transform = TextTransforms.All.FirstOrDefault(t =>
+            string.Equals(t.Name, transformName, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(t.Name.Replace(" ", ""), transformName.Replace(" ", ""), StringComparison.OrdinalIgnoreCase) ||
+            (transformName.Equals("Uppercase", StringComparison.OrdinalIgnoreCase) && t.Name == "Upper") ||
+            (transformName.Equals("Lowercase", StringComparison.OrdinalIgnoreCase) && t.Name == "Lower"));
+
+        if (transform.Apply != null)
+        {
+            TransformResult = transform.Apply(SelectedClip.Content);
+        }
+    }
+
+    [RelayCommand]
+    private void ClearTransform()
+    {
+        TransformResult = null;
+    }
+
+    [RelayCommand]
+    private async Task CopyTransformResultAsync()
+    {
+        if (string.IsNullOrEmpty(TransformResult)) return;
+        await CopyTextAsync(TransformResult);
+        StatusMessage = "Transformed text copied to clipboard.";
     }
 
     [RelayCommand]

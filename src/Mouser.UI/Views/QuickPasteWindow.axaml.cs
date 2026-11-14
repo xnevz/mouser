@@ -29,6 +29,10 @@ public partial class QuickPasteWindow : Window
                 break;
             case Key.Down: vm.MoveSelection(1); break;
             case Key.Up: vm.MoveSelection(-1); break;
+            case Key.Tab:
+                bool reverse = (e.KeyModifiers & KeyModifiers.Shift) != 0;
+                vm.CycleTransform(reverse ? -1 : 1);
+                break;
             default: return;
         }
         e.Handled = true;

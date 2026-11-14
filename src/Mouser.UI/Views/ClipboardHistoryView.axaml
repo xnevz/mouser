@@ -160,6 +160,19 @@
                         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"
                                     IsVisible="{Binding SelectedClip.IsTextClip}">
                             <Button Classes="primary-btn" Content="Copy" Command="{Binding CopyClipCommand}" CommandParameter="{Binding SelectedClip}" />
+                            <Button Classes="secondary-btn" Content="Transform ▾">
+                                <Button.Flyout>
+                                    <MenuFlyout ItemsSource="{Binding AvailableTransforms}">
+                                        <MenuFlyout.ItemTemplate>
+                                            <DataTemplate x:DataType="x:String">
+                                                <MenuItem Header="{Binding}"
+                                                          Command="{Binding #Root.((vm:ClipboardHistoryViewModel)DataContext).ApplyTransformCommand}"
+                                                          CommandParameter="{Binding}" />
+                                            </DataTemplate>
+                                        </MenuFlyout.ItemTemplate>
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                            </Button>
                             <Button Classes="secondary-btn" Content="Send to ▾">
                                 <Button.Flyout>
                                     <MenuFlyout ItemsSource="{Binding SendablePeers}">
@@ -254,11 +267,38 @@
                         </WrapPanel>
 
                         <!-- Preview for Text -->
-                        <TextBox Grid.Row="2" Text="{Binding SelectedClip.Content, Mode=OneWay, FallbackValue=''}"
-                                 IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
-                                 FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12"
-                                 VerticalContentAlignment="Top"
-                                 IsVisible="{Binding SelectedClip.IsTextClip}" />
+                        <Grid Grid.Row="2" RowDefinitions="*,Auto" IsVisible="{Binding SelectedClip.IsTextClip}">
+                            <TextBox Grid.Row="0" Text="{Binding SelectedClip.Content, Mode=OneWay, FallbackValue=''}"
+                                     IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
+                                     FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12"
+                                     VerticalContentAlignment="Top" />
+
+                            <!-- Transform Result Section -->
+                            <Border Grid.Row="1" Margin="0,10,0,0" Padding="12,10"
+                                    Background="{DynamicResource BgSurface}"
+                                    BorderBrush="{DynamicResource AccentSoft}"
+                                    BorderThickness="1" CornerRadius="8"
+                                    IsVisible="{Binding HasTransformResult}">
+                                <StackPanel Spacing="8">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="Transformed Result" FontSize="11" FontWeight="Bold"
+                                                   Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                                        <Button Grid.Column="1" Classes="link" Content="✕" Padding="4,2" FontSize="11"
+                                                Foreground="{DynamicResource TextMuted}"
+                                                ToolTip.Tip="Close"
+                                                Command="{Binding ClearTransformCommand}" />
+                                    </Grid>
+                                    <ScrollViewer MaxHeight="140" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                        <TextBlock Text="{Binding TransformResult}" TextWrapping="Wrap"
+                                                   FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12"
+                                                   Foreground="{DynamicResource TextPrimary}" />
+                                    </ScrollViewer>
+                                    <Button Classes="primary-btn" Content="Copy result"
+                                            HorizontalAlignment="Right"
+                                            Command="{Binding CopyTransformResultCommand}" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
 
                         <!-- Preview for Image -->
                         <Border Grid.Row="2" Background="{DynamicResource BgSunken}" CornerRadius="8" Padding="12"
