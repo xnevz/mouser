@@ -173,7 +173,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | F1 | Protocol v2 design note (needs user approval) | – | S |
 | ✅ | F2 | Pairing + session crypto in Core | F1 | M |
 | ✅ | F3 | Pairing over TCP + "Allow this device?" | F2, B9 | L |
-| ⬜ | F4 | Encrypted, authenticated input channel | F3 | XL |
+| ✅ | F4 | Encrypted, authenticated input channel | F3 | XL |
 | ⬜ | F5 | Android crypto and pairing | F2, F3 | XL |
 | ⬜ | F6 | Keys at rest (DPAPI); stop storing PINs | F3 | M |
 | ⬜ | F7 | Incoming-file safety (prompt, limits, sanitising) | B9 | M |
@@ -307,3 +307,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - F1: Created comprehensive docs/protocol-v2.md design specification covering all 9 sections (goals, P-256 ECDH + SAS confirmation code, directional session keys, 51-byte AES-256-GCM UDP datagrams, MCH2 TCP framing, Android integration, 3-phase migration, threat model table, and architectural decisions); pre-approved by user on 2026-11-14.
 - F2: Implemented PairingCrypto with P-256 ECDH, 65-byte uncompressed ANSI X9.62 public keys, HKDF-SHA256 PairKey (32 bytes) and 6-digit confirmation code (ddd ddd), and SessionCrypto with directional session keys (kA2B, kB2A), 12-byte nonces, AES-256-GCM Seal/TryOpen, and 64-bit sliding window replay protection; added 15 unit tests in PairingCryptoTests (667 passing).
 - F3: Implemented TCP pairing protocol (PairRequest=8, PairResponse=9, PairRefused=10, PairConfirm=11) in PeerTransferService with PairingRateLimiter (3 requests/min, 5 min lockout after 3 denials), 2-minute pairing countdown window, mutual confirmation code prompt UI in DevicesView, PairKeyProtected in PeerSettings, and 7 unit/integration tests in TcpPairingTests (674 passing).
+- F4: Implemented SecureInputPacket (51 bytes, Version 2, 4-byte FNV-1a sender ID hash, 8-byte session ID, 8-byte counter, 30-byte ciphertext+tag); updated PeerLink to seal/open datagrams with SessionCrypto; updated InputInjectionService to authenticate/decrypt secure datagrams, dispatch to existing input handling, remove IP-trust for v2, and guard v1 behind AllowOlderDevices; added 9 unit and integration tests in SecureInputChannelTests (683 passing).
