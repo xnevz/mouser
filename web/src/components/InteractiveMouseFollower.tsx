@@ -5,7 +5,7 @@ import { motion, useSpring, useMotionValue } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
 
 export const InteractiveMouseFollower = () => {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const [isVisible, setIsVisible] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [isClicking, setIsClicking] = useState(false);
@@ -81,7 +81,7 @@ export const InteractiveMouseFollower = () => {
           y: ambientY,
         }}
         className={`absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] rounded-full blur-[80px] transition-colors duration-300 ${
-          theme === 'dark'
+          resolvedTheme === 'dark'
             ? 'bg-gradient-to-tr from-cyan-500/18 via-indigo-500/12 to-fuchsia-500/10'
             : 'bg-gradient-to-tr from-cyan-500/10 via-indigo-500/8 to-fuchsia-500/6'
         }`}

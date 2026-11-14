@@ -2,20 +2,22 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light';
+export type Theme = 'system' | 'light' | 'dark';
+export type ResolvedTheme = 'light' | 'dark';
 
 interface ThemeContextType {
   theme: Theme;
+  resolvedTheme: ResolvedTheme;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-function applyDomTheme(newTheme: Theme) {
+function applyDomTheme(resolvedTheme: ResolvedTheme) {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
-  if (newTheme === 'dark') {
+  if (resolvedTheme === 'dark') {
     root.classList.add('dark');
     root.classList.remove('light');
     root.setAttribute('data-theme', 'dark');
@@ -29,36 +31,66 @@ function applyDomTheme(newTheme: Theme) {
 }
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [theme, setThemeState] = useState<Theme>('dark');
+  const [theme, setThemeState] = useState<Theme>('system');
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('dark');
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
     requestAnimationFrame(() => {
       const savedTheme = localStorage.getItem('mouser-theme') as Theme | null;
       if (savedTheme === 'light' || savedTheme === 'dark') {
         setThemeState(savedTheme);
+        setResolvedTheme(savedTheme);
         applyDomTheme(savedTheme);
       } else {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const initial = prefersDark ? 'dark' : 'light';
-        setThemeState(initial);
-        applyDomTheme(initial);
+        setThemeState('system');
+        const res: ResolvedTheme = mediaQuery.matches ? 'dark' : 'light';
+        setResolvedTheme(res);
+        applyDomTheme(res);
       }
     });
+
+    const handleSystemChange = (e: MediaQueryListEvent) => {
+      const currentStored = localStorage.getItem('mouser-theme');
+      if (!currentStored || currentStored === 'system') {
+        const nextResolved: ResolvedTheme = e.matches ? 'dark' : 'light';
+        setResolvedTheme(nextResolved);
+        applyDomTheme(nextResolved);
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleSystemChange);
+    return () => mediaQuery.removeEventListener('change', handleSystemChange);
   }, []);
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem('mouser-theme', newTheme);
-    applyDomTheme(newTheme);
+    if (newTheme === 'system') {
+      localStorage.removeItem('mouser-theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const res: ResolvedTheme = prefersDark ? 'dark' : 'light';
+      setResolvedTheme(res);
+      applyDomTheme(res);
+    } else {
+      localStorage.setItem('mouser-theme', newTheme);
+      setResolvedTheme(newTheme);
+      applyDomTheme(newTheme);
+    }
   };
 
   const toggleTheme = () => {
-    const nextTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(nextTheme);
+    if (theme === 'system') {
+      setTheme('light');
+    } else if (theme === 'light') {
+      setTheme('dark');
+    } else {
+      setTheme('system');
+    }
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, toggleTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

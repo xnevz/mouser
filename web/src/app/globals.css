@@ -3,13 +3,89 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --bg-app: #f5f6fa;
+  --bg-sidebar: #eceef5;
+  --bg-surface: #ffffff;
+  --bg-raised: #f3f4f9;
+  --bg-input: #ffffff;
+  --bg-list-item: #ffffff;
+  --bg-sunken: #eef0f6;
+  --bg-hover: #e6e9f2;
+  --bg-active: #dfe3f0;
+  --bg-pressed: #d5daea;
+  --border-subtle: #dde1ec;
+  --border-strong: #c5cbdc;
+  --text-primary: #14151f;
+  --text-secondary: #384056;
+  --text-muted: #5b6478;
+  --text-faint: #6b7389;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-pressed: #3730a3;
+  --accent-soft: #6366f1;
+  --on-accent: #ffffff;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #e11d48;
+  --banner-error-bg: #fdecef;
+  --banner-error-text: #9f1239;
+  --banner-warning-bg: #fef3e2;
+  --banner-warning-text: #92400e;
+  --banner-info-bg: #eaf0ff;
+  --banner-info-border: #9db4f0;
+  --banner-info-text: #3730a3;
+  --peer-bg: #e3f6ee;
+  --peer-border: #6fbf9f;
+  --pill-bg: #e3f6ee;
+  --badge-bg: #e6e9f2;
+  --badge-violet: #7c3aed;
+
+  /* Legacy mappings for backward compatibility */
+  --background: var(--bg-app);
+  --foreground: var(--text-primary);
 }
 
 :root.dark, [data-theme="dark"] {
-  --background: #060911;
-  --foreground: #f1f5f9;
+  --bg-app: #0c0d12;
+  --bg-sidebar: #12131b;
+  --bg-surface: #13141d;
+  --bg-raised: #181922;
+  --bg-input: #161722;
+  --bg-list-item: #15161f;
+  --bg-sunken: #0f1018;
+  --bg-hover: #1c1d28;
+  --bg-active: #1f2133;
+  --bg-pressed: #14151e;
+  --border-subtle: #262938;
+  --border-strong: #2e3248;
+  --text-primary: #f4f4f5;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-faint: #64748b;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-pressed: #3730a3;
+  --accent-soft: #6366f1;
+  --on-accent: #ffffff;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #f43f5e;
+  --banner-error-bg: #2a1218;
+  --banner-error-text: #fecdd3;
+  --banner-warning-bg: #2a2112;
+  --banner-warning-text: #fde68a;
+  --banner-info-bg: #141a2e;
+  --banner-info-border: #3b4a7a;
+  --banner-info-text: #c7d2fe;
+  --peer-bg: #112a22;
+  --peer-border: #1f6b53;
+  --pill-bg: #11261d;
+  --badge-bg: #1c2030;
+  --badge-violet: #a78bfa;
+
+  /* Legacy mappings for backward compatibility */
+  --background: var(--bg-app);
+  --foreground: var(--text-primary);
 }
 
 body {
