@@ -872,7 +872,8 @@ public sealed class MouserHost : IDisposable
             Kvm?.SetPeer(id, peer.Hostname, link, bounds, link.IsPaired ? saved.Placement : PeerPlacement.None,
                 saved.MouseSpeed, saved.ScrollSpeed, saved.InvertScroll,
                 saved.OffsetX, saved.OffsetY,
-                peer.Monitors);
+                peer.Monitors,
+                saved.AnchorId);
         }
 
         UpdateKvmRunning();

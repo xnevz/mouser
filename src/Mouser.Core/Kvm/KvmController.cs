@@ -19,6 +19,8 @@ public sealed class KvmController : IDisposable
     public static readonly TimeSpan WatchdogInterval = TimeSpan.FromMilliseconds(250);
 
 
+    public const string LocalScreenId = "local";
+
     private sealed record Peer(
         string Id,
         string Name,
@@ -32,11 +34,15 @@ public sealed class KvmController : IDisposable
         MotionScaler HScrollScaler,
         IReadOnlyList<Monitor> RemoteMonitors,
         int OffsetX = 0,
-        int OffsetY = 0);
+        int OffsetY = 0,
+        string? AnchorId = null);
 
     private readonly IInputCapture _capture;
     private readonly VirtualKvmManager _edges = new();
+    private readonly VirtualPlane _plane = new();
     private readonly object _lock = new();
+
+    public VirtualPlane Plane => _plane;
     private readonly Dictionary<string, Peer> _peers = new();
     private readonly Dictionary<string, (double MouseSpeed, double ScrollSpeed, bool InvertScroll)> _peerMotions = new();
     private readonly HashSet<ushort> _physicalKeys = new();
@@ -144,7 +150,7 @@ public sealed class KvmController : IDisposable
             foreach (var peer in peers)
             {
                 _edges.RemoveRemoteScreen(peer.Id);
-                SetPeerLocked(peer.Id, peer.Name, peer.Link, peer.Remote, peer.Placement, peer.OffsetX, peer.OffsetY, peer.RemoteMonitors);
+                SetPeerLocked(peer.Id, peer.Name, peer.Link, peer.Remote, peer.Placement, peer.OffsetX, peer.OffsetY, peer.RemoteMonitors, peer.AnchorId);
             }
         }
     }
@@ -180,7 +186,7 @@ public sealed class KvmController : IDisposable
                 foreach (var peer in peers)
                 {
                     _edges.RemoveRemoteScreen(peer.Id);
-                    SetPeerLocked(peer.Id, peer.Name, peer.Link, peer.Remote, peer.Placement, peer.OffsetX, peer.OffsetY, peer.RemoteMonitors);
+                    SetPeerLocked(peer.Id, peer.Name, peer.Link, peer.Remote, peer.Placement, peer.OffsetX, peer.OffsetY, peer.RemoteMonitors, peer.AnchorId);
                 }
             }
         }
@@ -198,7 +204,16 @@ public sealed class KvmController : IDisposable
         int offsetX, int offsetY,
         IReadOnlyList<Monitor>? monitors = null)
     {
-        lock (_lock) SetPeerLocked(id, name, link, remoteDesktop, placement, offsetX, offsetY, monitors);
+        lock (_lock) SetPeerLocked(id, name, link, remoteDesktop, placement, offsetX, offsetY, monitors, null);
+        RaiseIfDirty();
+    }
+
+    public void SetPeer(string id, string name, PeerLink link, ScreenBounds remoteDesktop, PeerPlacement placement,
+        int offsetX, int offsetY,
+        IReadOnlyList<Monitor>? monitors,
+        string? anchorId)
+    {
+        lock (_lock) SetPeerLocked(id, name, link, remoteDesktop, placement, offsetX, offsetY, monitors, anchorId);
         RaiseIfDirty();
     }
 
@@ -222,7 +237,21 @@ public sealed class KvmController : IDisposable
         lock (_lock)
         {
             _peerMotions[id] = (mouseSpeed, scrollSpeed, invertScroll);
-            SetPeerLocked(id, name, link, remoteDesktop, placement, offsetX, offsetY, monitors);
+            SetPeerLocked(id, name, link, remoteDesktop, placement, offsetX, offsetY, monitors, null);
+        }
+        RaiseIfDirty();
+    }
+
+    public void SetPeer(string id, string name, PeerLink link, ScreenBounds remoteDesktop, PeerPlacement placement,
+        double mouseSpeed, double scrollSpeed, bool invertScroll,
+        int offsetX, int offsetY,
+        IReadOnlyList<Monitor>? monitors,
+        string? anchorId)
+    {
+        lock (_lock)
+        {
+            _peerMotions[id] = (mouseSpeed, scrollSpeed, invertScroll);
+            SetPeerLocked(id, name, link, remoteDesktop, placement, offsetX, offsetY, monitors, anchorId);
         }
         RaiseIfDirty();
     }
@@ -331,7 +360,8 @@ public sealed class KvmController : IDisposable
 
     private void SetPeerLocked(string id, string name, PeerLink link, ScreenBounds remote, PeerPlacement placement,
         int offsetX, int offsetY,
-        IReadOnlyList<Monitor>? monitors = null)
+        IReadOnlyList<Monitor>? monitors = null,
+        string? anchorId = null)
     {
         var peerMonitors = (monitors == null || monitors.Count == 0)
             ? (IReadOnlyList<Monitor>)new[] { new Monitor(remote.X, remote.Y, remote.Width, remote.Height) }
@@ -340,6 +370,7 @@ public sealed class KvmController : IDisposable
         if (_peers.TryGetValue(id, out var existing) && existing.Link == link && existing.Remote == remote
             && existing.Placement == placement && existing.Name == name
             && existing.OffsetX == offsetX && existing.OffsetY == offsetY
+            && existing.AnchorId == anchorId
             && existing.RemoteMonitors.SequenceEqual(peerMonitors))
             return; // called every second by the app; nothing changed
 
@@ -348,9 +379,19 @@ public sealed class KvmController : IDisposable
         if (_active?.Id == id && (_active.Link != link || placement == PeerPlacement.None)) ReturnToLocal(null);
         _edges.RemoveRemoteScreen(id);
         _peers.Remove(id);
-        if (placement == PeerPlacement.None || _local == null || remote.Width <= 0 || remote.Height <= 0) return;
+        if (placement == PeerPlacement.None || _local == null || remote.Width <= 0 || remote.Height <= 0)
+        {
+            RebuildPlaneLocked();
+            return;
+        }
 
-        var placed = Place(_local, remote, placement, offsetX, offsetY) with { HostId = id, Hostname = name };
+        ScreenBounds anchor = _local;
+        if (!string.IsNullOrEmpty(anchorId) && _peers.TryGetValue(anchorId, out var anchorPeer))
+        {
+            anchor = anchorPeer.Placed;
+        }
+
+        var placed = Place(anchor, remote, placement, offsetX, offsetY) with { HostId = id, Hostname = name };
         double shiftX = placed.X - remote.X;
         double shiftY = placed.Y - remote.Y;
         var placedMonitors = peerMonitors.Select(m => new Monitor(m.X + shiftX, m.Y + shiftY, m.Width, m.Height)).ToList();
@@ -368,10 +409,27 @@ public sealed class KvmController : IDisposable
             hscroll.Speed = motion.ScrollSpeed;
             hscroll.Invert = motion.InvertScroll;
         }
-        var updated = new Peer(id, name, link, remote, placement, placed, mouseX, mouseY, vscroll, hscroll, peerMonitors, offsetX, offsetY);
+        var updated = new Peer(id, name, link, remote, placement, placed, mouseX, mouseY, vscroll, hscroll, peerMonitors, offsetX, offsetY, anchorId);
         _peers[id] = updated;
         _edges.AddRemoteScreen(placed, placedMonitors);
+        RebuildPlaneLocked();
         if (_active?.Id == id) _active = updated;
+    }
+
+    private void RebuildPlaneLocked()
+    {
+        _plane.Clear();
+        if (_local == null) return;
+        try { _plane.Add(LocalScreenId, _local); } catch { }
+
+        foreach (var peer in _peers.Values)
+        {
+            try
+            {
+                _plane.Add(peer.Id, peer.Placed);
+            }
+            catch { }
+        }
     }
 
     /// <summary>Puts the peer's desktop next to ours in our coordinate space, aligned to our top/left edge, plus offset.</summary>
@@ -574,16 +632,51 @@ public sealed class KvmController : IDisposable
         switch (e.Kind)
         {
             case CaptureKind.Move:
-                _virtualX += _active.MouseXScaler.Apply(e.Dx);
-                _virtualY += _active.MouseYScaler.Apply(e.Dy);
-                if (LeftThroughReturnEdge(out int localX, out int localY))
+                int scaledDx = _active.MouseXScaler.Apply(e.Dx);
+                int scaledDy = _active.MouseYScaler.Apply(e.Dy);
+
+                if (_plane.Screens.Count > 1 && _plane.TryGet(_active.Id, out _))
                 {
-                    ReturnToLocal((localX, localY));
+                    double curLocalX = _virtualX - _active.Remote.X;
+                    double curLocalY = _virtualY - _active.Remote.Y;
+                    var (nextId, newLocalX, newLocalY) = _plane.Move(_active.Id, curLocalX, curLocalY, scaledDx, scaledDy);
+
+                    if (nextId == LocalScreenId)
+                    {
+                        _virtualX += scaledDx;
+                        _virtualY += scaledDy;
+                        LeftThroughReturnEdge(out int localX, out int localY);
+                        ReturnToLocal((localX, localY));
+                        return true;
+                    }
+                    else if (!nextId.Equals(_active.Id, StringComparison.OrdinalIgnoreCase)
+                        && _peers.TryGetValue(nextId, out var nextPeer) && nextPeer.Link.IsAlive)
+                    {
+                        SwitchPeerLocked(nextPeer, (int)(nextPeer.Remote.X + newLocalX), (int)(nextPeer.Remote.Y + newLocalY));
+                        return true;
+                    }
+                    else
+                    {
+                        _virtualX = (int)(_active.Remote.X + newLocalX);
+                        _virtualY = (int)(_active.Remote.Y + newLocalY);
+                        (_virtualX, _virtualY) = ClampToMonitors(_virtualX, _virtualY, _active.RemoteMonitors, _active.Remote);
+                        _coalescer?.Post(ClampShort(_virtualX), ClampShort(_virtualY));
+                        return true;
+                    }
+                }
+                else
+                {
+                    _virtualX += scaledDx;
+                    _virtualY += scaledDy;
+                    if (LeftThroughReturnEdge(out int localX, out int localY))
+                    {
+                        ReturnToLocal((localX, localY));
+                        return true;
+                    }
+                    (_virtualX, _virtualY) = ClampToMonitors(_virtualX, _virtualY, _active.RemoteMonitors, _active.Remote);
+                    _coalescer?.Post(ClampShort(_virtualX), ClampShort(_virtualY));
                     return true;
                 }
-                (_virtualX, _virtualY) = ClampToMonitors(_virtualX, _virtualY, _active.RemoteMonitors, _active.Remote);
-                _coalescer?.Post(ClampShort(_virtualX), ClampShort(_virtualY));
-                return true;
 
             case CaptureKind.Button:
             {
@@ -700,12 +793,8 @@ public sealed class KvmController : IDisposable
         _stateDirty = true;
     }
 
-    private void ReturnToLocal((int X, int Y)? cursor)
+    private void ReleasePeerInput(Peer peer)
     {
-        var peer = _active;
-        if (peer == null) return;
-        _lastPeerName = peer.Name;
-
         _coalesceTimer?.Dispose();
         _coalesceTimer = null;
         _coalescer?.Flush();
@@ -722,6 +811,40 @@ public sealed class KvmController : IDisposable
         peer.MouseYScaler.Reset();
         peer.VScrollScaler.Reset();
         peer.HScrollScaler.Reset();
+    }
+
+    private void SwitchPeerLocked(Peer newPeer, int targetX, int targetY)
+    {
+        var oldPeer = _active;
+        if (oldPeer != null)
+        {
+            ReleasePeerInput(oldPeer);
+        }
+
+        _active = newPeer;
+        _lastPeerName = newPeer.Name;
+        newPeer.MouseXScaler.Reset();
+        newPeer.MouseYScaler.Reset();
+        newPeer.VScrollScaler.Reset();
+        newPeer.HScrollScaler.Reset();
+        _coalesceTimer?.Dispose();
+        _coalescer = new MoveCoalescer((x, y) => _active?.Link.Send(InputMotionPacket.TypeMoveAbsolute, x, y), minIntervalMs: 2);
+        _coalesceTimer = new Timer(_ => { lock (_lock) { _coalescer?.Flush(); } }, null, 4, 4);
+
+        _virtualX = (int)Math.Clamp(targetX, newPeer.Remote.X, newPeer.Remote.Right - 1);
+        _virtualY = (int)Math.Clamp(targetY, newPeer.Remote.Y, newPeer.Remote.Bottom - 1);
+        (_virtualX, _virtualY) = ClampToMonitors(_virtualX, _virtualY, newPeer.RemoteMonitors, newPeer.Remote);
+        newPeer.Link.Send(InputMotionPacket.TypeMoveAbsolute, ClampShort(_virtualX), ClampShort(_virtualY));
+        _stateDirty = true;
+    }
+
+    private void ReturnToLocal((int X, int Y)? cursor)
+    {
+        var peer = _active;
+        if (peer == null) return;
+        _lastPeerName = peer.Name;
+
+        ReleasePeerInput(peer);
         _active = null;
         _edges.SwitchBackToLocal();
         if (cursor is { } c) _capture.WarpCursor(c.X, c.Y);

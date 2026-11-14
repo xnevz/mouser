@@ -51,6 +51,7 @@ public partial class PeerViewModel : ViewModelBase
     [ObservableProperty] private bool _syncLock;
     [ObservableProperty] private bool _syncSleep;
     [ObservableProperty] private bool _syncDisplayOff;
+    [ObservableProperty] private string? _anchorId;
 
     public bool IsPaired => Status is PeerLinkStatus.Paired;
     public bool NeedsPin => Status is PeerLinkStatus.NotPaired;
@@ -126,6 +127,18 @@ public partial class PeerViewModel : ViewModelBase
             SyncLock = s.SyncLock;
             SyncSleep = s.SyncSleep;
             SyncDisplayOff = s.SyncDisplayOff;
+            AnchorId = s.AnchorId;
+        }
+    }
+
+    partial void OnAnchorIdChanged(string? value)
+    {
+        if (_updating || _owner.Settings == null) return;
+        var s = GetOrCreatePeerSettings();
+        if (s.AnchorId != value)
+        {
+            s.AnchorId = value;
+            _owner.Settings.Save();
         }
     }
 

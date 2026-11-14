@@ -42,6 +42,7 @@ public partial class DeviceDetailViewModel : ViewModelBase
     [ObservableProperty] private bool _syncLock;
     [ObservableProperty] private bool _syncSleep;
     [ObservableProperty] private bool _syncDisplayOff;
+    [ObservableProperty] private string? _anchorId;
 
     public bool IsComputer => Kind == DeviceKind.Computer;
     public bool IsPhone => Kind == DeviceKind.Phone;
@@ -70,6 +71,18 @@ public partial class DeviceDetailViewModel : ViewModelBase
             _syncLock = s.SyncLock;
             _syncSleep = s.SyncSleep;
             _syncDisplayOff = s.SyncDisplayOff;
+            _anchorId = s.AnchorId;
+        }
+    }
+
+    partial void OnAnchorIdChanged(string? value)
+    {
+        if (_settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (peer.AnchorId != value)
+        {
+            peer.AnchorId = value;
+            _settings.Save();
         }
     }
 

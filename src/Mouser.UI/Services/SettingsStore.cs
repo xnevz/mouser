@@ -128,6 +128,8 @@ public sealed class PeerSettings
 {
     public string Name { get; set; } = string.Empty;
     public PeerPlacement Placement { get; set; }
+    /// <summary>Anchor computer ID (null or empty = this local PC).</summary>
+    public string? AnchorId { get; set; }
     public int OffsetX { get; set; }
     public int OffsetY { get; set; }
     /// <summary>The peer's PIN, kept so pairing survives restarts (like the phone app does).</summary>
