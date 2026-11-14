@@ -23,7 +23,7 @@ public sealed class FakeCapture : IInputCapture
 
     public bool Move(int x, int y, int dx, int dy) => Handler!(new CapturedInput(CaptureKind.Move, x, y, dx, dy));
     public bool Button(MouseButton b, bool down) => Handler!(new CapturedInput(CaptureKind.Button, Button: b, IsDown: down));
-    public bool Key(ushort vk, bool down) => Handler!(new CapturedInput(CaptureKind.Key, Key: vk, IsDown: down));
+    public bool Key(ushort vk, bool down, char? text = null) => Handler!(new CapturedInput(CaptureKind.Key, Key: vk, IsDown: down, Text: text));
     public bool Wheel(int dx, int dy) => Handler!(new CapturedInput(CaptureKind.Wheel, Dx: dx, Dy: dy));
 }
 
@@ -797,5 +797,57 @@ public class KvmControllerTests
         // 2. Cursor at y=250 (inside offset peer) crosses
         Assert.True(rig.Capture.Move(1925, 250, 30, 0));
         Assert.Equal("peer", rig.Kvm.ActivePeerId);
+    }
+
+    [Fact]
+    public async Task KeyWithText_SendsTypeChar_AndUpMatchesDown()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        rig.CrossRight();
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+
+        // Key down with Text sends TypeChar
+        Assert.True(rig.Capture.Key(0x45, true, text: 'é'));
+        // Key up without Text still releases as TypeChar
+        Assert.True(rig.Capture.Key(0x45, false));
+
+        var events = await rig.PeerEventsAsync(3);
+        Assert.Contains("char 0x00E9 down", events);
+        Assert.Contains("char 0x00E9 up", events);
+    }
+
+    [Fact]
+    public async Task KeyWithoutText_SendsTypeKey()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        rig.CrossRight();
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+
+        // Shortcut key (e.g. Ctrl+C: C has text = null)
+        Assert.True(rig.Capture.Key(0x43, true, text: null));
+        Assert.True(rig.Capture.Key(0x43, false));
+
+        var events = await rig.PeerEventsAsync(3);
+        Assert.Contains("key 0x43 down", events);
+        Assert.Contains("key 0x43 up", events);
+    }
+
+    [Fact]
+    public async Task ReturnToLocal_ReleasesHeldCharKeys()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        rig.CrossRight();
+        Assert.Equal("peer", rig.Kvm.ActivePeerId);
+
+        // Press char key down, but don't release it before returning
+        Assert.True(rig.Capture.Key(0x45, true, text: 'é'));
+
+        // Scroll Lock returns control to local screen
+        Assert.True(rig.Capture.Key(0x91, true));
+        Assert.Null(rig.Kvm.ActivePeerId);
+
+        var events = await rig.PeerEventsAsync(3);
+        Assert.Contains("char 0x00E9 down", events);
+        Assert.Contains("char 0x00E9 up", events);
     }
 }

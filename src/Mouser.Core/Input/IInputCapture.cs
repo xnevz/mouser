@@ -15,7 +15,8 @@ public readonly record struct CapturedInput(
     int Dy = 0,
     MouseButton Button = 0,
     ushort Key = 0,
-    bool IsDown = false);
+    bool IsDown = false,
+    char? Text = null);
 
 /// <summary>Global capture of the local mouse and keyboard, with the ability to swallow events.</summary>
 public interface IInputCapture : IDisposable

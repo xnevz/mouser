@@ -159,7 +159,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | E9d | Layout view draws every monitor | E9c | S |
 | ✅ | E10 | Draggable layout with offsets | E9d | L |
 | ⬜ | E11 | Several computers per side and chains (design review first) | E10 | XL |
-| ⬜ | E12 | Layout-aware typing (Unicode path) | – | L |
+| ✅ | E12 | Layout-aware typing (Unicode path) | – | L |
 | ⬜ | E13 | Lock/sleep/display-off sync | C4, B9 | M |
 | ⬜ | E14 | Wake-on-LAN | B9 | M |
 | ⬜ | E15 | Paste from the other computer hotkey | D15, E3 | S |

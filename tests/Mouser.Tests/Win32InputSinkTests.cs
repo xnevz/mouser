@@ -71,4 +71,23 @@ public partial class Win32InputSinkTests
         capture.Start(); // can be restarted after a stop
         capture.Stop();
     }
+
+    [Fact]
+    public void BuildCharInput_ConstructsKeyboardInputWithUnicodeFlags()
+    {
+        ushort unit = 0x00E9; // 'é'
+        var down = Win32InputSink.BuildCharInput(unit, isDown: true);
+        Assert.Equal(1u, down.type);
+        Assert.Equal(0, down.u.ki.wVk);
+        Assert.Equal(unit, down.u.ki.wScan);
+        Assert.Equal(0x0004u, down.u.ki.dwFlags);
+        Assert.Equal(0u, down.u.ki.time);
+        Assert.Equal(0, down.u.ki.dwExtraInfo);
+
+        var up = Win32InputSink.BuildCharInput(unit, isDown: false);
+        Assert.Equal(1u, up.type);
+        Assert.Equal(0, up.u.ki.wVk);
+        Assert.Equal(unit, up.u.ki.wScan);
+        Assert.Equal(0x0004u | 0x0002u, up.u.ki.dwFlags);
+    }
 }

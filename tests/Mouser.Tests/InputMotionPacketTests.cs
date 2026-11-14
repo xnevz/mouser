@@ -63,4 +63,18 @@ public class InputMotionPacketTests
         bool readSuccess = InputMotionPacket.TryRead(truncated, out _);
         Assert.False(readSuccess);
     }
+
+    [Fact]
+    public void TypeChar_Packet_RoundTripsUtf16CodeUnitAndState()
+    {
+        ushort codeUnit = 0x00E9; // 'é'
+        var packet = InputMotionPacket.Create(InputMotionPacket.TypeChar, 123, (short)codeUnit, 1, 1);
+        Span<byte> buffer = stackalloc byte[InputMotionPacket.PacketSize];
+        Assert.True(packet.TryWrite(buffer));
+        Assert.True(InputMotionPacket.TryRead(buffer, out var parsed));
+        Assert.Equal(InputMotionPacket.TypeChar, parsed.PacketType);
+        Assert.Equal((short)codeUnit, parsed.DeltaX);
+        Assert.Equal(1, parsed.DeltaY);
+        Assert.Equal(1, parsed.ButtonFlags);
+    }
 }

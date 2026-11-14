@@ -103,7 +103,40 @@ public sealed class Win32InputCapture : IInputCapture
             {
                 uint msg = (uint)wParam;
                 bool isDown = msg is 0x0100 or 0x0104; // WM_KEYDOWN, WM_SYSKEYDOWN
-                if (SafeInvoke(handler, new CapturedInput(CaptureKind.Key, Key: (ushort)info.vkCode, IsDown: isDown)))
+                char? text = null;
+                if (isDown)
+                {
+                    bool ctrlDown = (GetKeyState(0x11) & 0x8000) != 0;
+                    bool altDown = (GetKeyState(0x12) & 0x8000) != 0;
+                    bool winDown = ((GetKeyState(0x5B) | GetKeyState(0x5C)) & 0x8000) != 0;
+                    bool isAltGr = ctrlDown && altDown;
+
+                    if (!winDown && (isAltGr || (!ctrlDown && !altDown)))
+                    {
+                        nint foreground = GetForegroundWindow();
+                        uint threadId = GetWindowThreadProcessId(foreground, out _);
+                        nint hkl = GetKeyboardLayout(threadId);
+
+                        byte* keyState = stackalloc byte[256];
+                        GetKeyboardState(keyState);
+                        if ((GetKeyState(0x10) & 0x8000) != 0) keyState[0x10] |= 0x80;
+                        if ((GetKeyState(0x14) & 0x0001) != 0) keyState[0x14] |= 0x01;
+                        if (isAltGr)
+                        {
+                            keyState[0x11] |= 0x80;
+                            keyState[0x12] |= 0x80;
+                        }
+
+                        char* buf = stackalloc char[8];
+                        int res = ToUnicodeEx(info.vkCode, info.scanCode, keyState, buf, 8, 0x04, hkl);
+                        if (res == 1 && !char.IsControl(buf[0]))
+                        {
+                            text = buf[0];
+                        }
+                    }
+                }
+
+                if (SafeInvoke(handler, new CapturedInput(CaptureKind.Key, Key: (ushort)info.vkCode, IsDown: isDown, Text: text)))
                     return 1;
             }
         }
@@ -192,4 +225,29 @@ public sealed class Win32InputCapture : IInputCapture
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
     private static extern nint GetModuleHandleW(string? name);
+
+    [DllImport("user32.dll")]
+    private static extern nint GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(nint hWnd, out uint lpdwProcessId);
+
+    [DllImport("user32.dll")]
+    private static extern nint GetKeyboardLayout(uint idThread);
+
+    [DllImport("user32.dll")]
+    private static extern short GetKeyState(int nVirtKey);
+
+    [DllImport("user32.dll")]
+    private static extern unsafe bool GetKeyboardState(byte* lpKeyState);
+
+    [DllImport("user32.dll", ExactSpelling = true)]
+    private static extern unsafe int ToUnicodeEx(
+        uint wVirtKey,
+        uint wScanCode,
+        byte* lpKeyState,
+        char* pwszBuff,
+        int cchBuff,
+        uint wFlags,
+        nint dwhkl);
 }

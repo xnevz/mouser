@@ -41,6 +41,7 @@ public sealed class KvmController : IDisposable
     private readonly Dictionary<string, (double MouseSpeed, double ScrollSpeed, bool InvertScroll)> _peerMotions = new();
     private readonly HashSet<ushort> _physicalKeys = new();
     private readonly HashSet<ushort> _remoteKeys = new();
+    private readonly Dictionary<ushort, ushort> _charKeys = new();
     private byte _remoteButtons;
     private Peer? _active;
     private int _virtualX, _virtualY;
@@ -601,10 +602,40 @@ public sealed class KvmController : IDisposable
 
             case CaptureKind.Key:
                 _coalescer?.Flush();
-                if (e.IsDown) _remoteKeys.Add(e.Key);
-                else if (!_remoteKeys.Remove(e.Key)) return false; // same rule as buttons
-                link.Send(InputMotionPacket.TypeKey, (short)e.Key, (short)(e.IsDown ? 1 : 0));
-                return true;
+                if (e.IsDown)
+                {
+                    if (e.Text.HasValue)
+                    {
+                        ushort unit = (ushort)e.Text.Value;
+                        _charKeys[e.Key] = unit;
+                        link.Send(InputMotionPacket.TypeChar, (short)unit, 1, 1);
+                        return true;
+                    }
+                    else
+                    {
+                        _charKeys.Remove(e.Key);
+                        _remoteKeys.Add(e.Key);
+                        link.Send(InputMotionPacket.TypeKey, (short)e.Key, 1);
+                        return true;
+                    }
+                }
+                else
+                {
+                    if (_charKeys.Remove(e.Key, out ushort charUnit))
+                    {
+                        link.Send(InputMotionPacket.TypeChar, (short)charUnit, 0, 0);
+                        return true;
+                    }
+                    else if (_remoteKeys.Remove(e.Key))
+                    {
+                        link.Send(InputMotionPacket.TypeKey, (short)e.Key, 0);
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
         }
         return false;
     }
@@ -677,8 +708,10 @@ public sealed class KvmController : IDisposable
 
         if (_remoteButtons != 0) peer.Link.Send(InputMotionPacket.TypeButton, buttons: 0);
         foreach (var key in _remoteKeys) peer.Link.Send(InputMotionPacket.TypeKey, (short)key, 0);
-        _remoteButtons = 0;
         _remoteKeys.Clear();
+        foreach (var charUnit in _charKeys.Values) peer.Link.Send(InputMotionPacket.TypeChar, (short)charUnit, 0, 0);
+        _charKeys.Clear();
+        _remoteButtons = 0;
 
         peer.MouseXScaler.Reset();
         peer.MouseYScaler.Reset();

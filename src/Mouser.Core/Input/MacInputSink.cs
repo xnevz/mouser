@@ -60,5 +60,10 @@ public sealed class MacInputSink : IInputSink
         NativeDriver.InjectKey(macKey, 0, isDown);
     }
 
+    public void Char(ushort utf16Unit, bool isDown)
+    {
+        // backlog-macos: needs CGEventKeyboardSetUnicodeString
+    }
+
     private static short ClampShort(int v) => (short)Math.Clamp(v, short.MinValue, short.MaxValue);
 }

@@ -23,6 +23,7 @@ public struct InputMotionPacket : IEquatable<InputMotionPacket>
     //  PairAck: host -> client, ButtonFlags = 1 accepted / 0 rejected
     //  Pong:    host -> client, ButtonFlags = 1 if the sender is paired
     //  MoveAbsolute: DeltaX/DeltaY = cursor position in the receiver's own desktop pixels (desktop-to-desktop KVM)
+    //  Char:    DeltaX = UTF-16 code unit, DeltaY = 1 down / 0 up, ButtonFlags bit 0 = 1 down / 0 up
     public const byte TypeMotion = 0x01;
     public const byte TypeButton = 0x02;
     public const byte TypeKey = 0x03;
@@ -32,6 +33,7 @@ public struct InputMotionPacket : IEquatable<InputMotionPacket>
     public const byte TypePairAck = 0x07;
     public const byte TypePong = 0x08;
     public const byte TypeMoveAbsolute = 0x09;
+    public const byte TypeChar = 0x0A;
 
     public uint Magic;
     public byte Version;

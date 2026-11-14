@@ -34,6 +34,7 @@ public sealed class InputInjectionService : IDisposable
     private readonly ConcurrentDictionary<IPAddress, RemoteClient> _clients = new();
     private readonly object _stateLock = new();
     private readonly HashSet<ushort> _heldKeys = new();
+    private readonly HashSet<ushort> _heldChars = new();
     private byte _buttonState;
     private DateTime _lastInputUtc;
     private Timer? _watchdog;
@@ -45,6 +46,7 @@ public sealed class InputInjectionService : IDisposable
     public long MotionEventsProcessed { get; private set; }
     public long ButtonEventsProcessed { get; private set; }
     public long KeyEventsProcessed { get; private set; }
+    public long CharEventsProcessed { get; private set; }
     public long ScrollEventsProcessed { get; private set; }
     public long RejectedPackets { get; private set; }
     public long DroppedOutOfOrderPackets { get; private set; }
@@ -163,6 +165,18 @@ public sealed class InputInjectionService : IDisposable
                     break;
                 }
 
+                case InputMotionPacket.TypeChar:
+                {
+                    CharEventsProcessed++;
+                    ushort unit = (ushort)packet.DeltaX;
+                    bool isDown = packet.DeltaY == 1 || (packet.ButtonFlags & 0x01) != 0;
+                    if (isDown) _heldChars.Add(unit);
+                    else _heldChars.Remove(unit);
+                    _sink.Char(unit, isDown);
+                    description = isDown ? $"Char 0x{unit:X4}" : null;
+                    break;
+                }
+
                 case InputMotionPacket.TypeScroll:
                     ScrollEventsProcessed++;
                     _sink.Scroll(packet.DeltaX, packet.DeltaY);
@@ -185,7 +199,7 @@ public sealed class InputInjectionService : IDisposable
     {
         lock (_stateLock)
         {
-            if (_buttonState == 0 && _heldKeys.Count == 0) return false;
+            if (_buttonState == 0 && _heldKeys.Count == 0 && _heldChars.Count == 0) return false;
             if (_clock() - _lastInputUtc < StuckInputTimeout) return false;
             ReleaseAllHeldInput();
             return true;
@@ -199,6 +213,8 @@ public sealed class InputInjectionService : IDisposable
             ApplyButtonState(0);
             foreach (var vk in _heldKeys) _sink.Key(vk, false);
             _heldKeys.Clear();
+            foreach (var unit in _heldChars) _sink.Char(unit, false);
+            _heldChars.Clear();
         }
     }
 

@@ -5,6 +5,8 @@ import org.json.JSONException
 import org.json.JSONObject
 import kotlin.math.roundToInt
 
+const val TypeChar: Byte = 0x0A
+
 /** Parses the desktop's discovery beacon: `MOUS_DISC:{"Id":..,"Host":..,"Os":..,"MPort":..,"CPort":..}`. */
 object BeaconParser {
     const val PREFIX = "MOUS_DISC:"

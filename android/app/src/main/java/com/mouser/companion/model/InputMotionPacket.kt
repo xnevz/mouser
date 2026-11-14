@@ -53,6 +53,8 @@ data class InputMotionPacket(
         const val TYPE_PAIR: Byte = 0x06
         const val TYPE_PAIR_ACK: Byte = 0x07
         const val TYPE_PONG: Byte = 0x08
+        const val TYPE_MOVE_ABSOLUTE: Byte = 0x09
+        const val TYPE_CHAR: Byte = 0x0A
 
         const val BUTTON_LEFT: Byte = 0x01
         const val BUTTON_RIGHT: Byte = 0x02

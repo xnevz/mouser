@@ -85,6 +85,30 @@ public class InputInjectionServiceTests
     }
 
     [Fact]
+    public void CharPackets_AreInjectedAndHeldReleasedOnIdle()
+    {
+        var now = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        var (service, sink, gate) = Create(() => now);
+        using var _s = service;
+        gate.TryPair(Phone.Address, Pin);
+
+        // TypeChar down
+        service.HandlePacket(P(InputMotionPacket.TypeChar, 1, dx: 0x00E9, dy: 1, buttons: 1), Phone);
+        Assert.Equal(new[] { "char 0x00E9 down" }, sink.Snapshot());
+        Assert.Equal(1, service.CharEventsProcessed);
+
+        // TypeChar up
+        service.HandlePacket(P(InputMotionPacket.TypeChar, 2, dx: 0x00E9, dy: 0, buttons: 0), Phone);
+        Assert.Equal(new[] { "char 0x00E9 down", "char 0x00E9 up" }, sink.Snapshot());
+
+        // Stuck char down released on idle timeout
+        service.HandlePacket(P(InputMotionPacket.TypeChar, 3, dx: 0x0627, dy: 1, buttons: 1), Phone);
+        now += InputInjectionService.StuckInputTimeout + TimeSpan.FromSeconds(1);
+        Assert.True(service.ReleaseHeldInputIfIdle());
+        Assert.Contains("char 0x0627 up", sink.Snapshot());
+    }
+
+    [Fact]
     public void DuplicateAndReorderedPackets_AreDropped()
     {
         var (service, sink, gate) = Create();

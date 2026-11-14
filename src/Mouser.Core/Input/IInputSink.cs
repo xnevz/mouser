@@ -26,6 +26,8 @@ public interface IInputSink
     void Scroll(int horizontal, int vertical);
 
     void Key(ushort virtualKey, bool isDown);
+
+    void Char(ushort utf16Unit, bool isDown);
 }
 
 public sealed class NullInputSink : IInputSink
@@ -37,6 +39,7 @@ public sealed class NullInputSink : IInputSink
     public void SetButton(MouseButton button, bool isDown) { }
     public void Scroll(int horizontal, int vertical) { }
     public void Key(ushort virtualKey, bool isDown) { }
+    public void Char(ushort utf16Unit, bool isDown) { }
 }
 
 public static class InputSinks

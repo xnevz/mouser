@@ -79,6 +79,32 @@ public sealed partial class Win32InputSink : IInputSink
         Send(input);
     }
 
+    public void Char(ushort utf16Unit, bool isDown)
+    {
+        Send(BuildCharInput(utf16Unit, isDown));
+    }
+
+    public static INPUT BuildCharInput(ushort unit, bool isDown)
+    {
+        const uint KEYEVENTF_UNICODE = 0x0004;
+        const uint KEYEVENTF_KEYUP = 0x0002;
+        return new INPUT
+        {
+            type = INPUT_KEYBOARD,
+            u = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = 0,
+                    wScan = unit,
+                    dwFlags = KEYEVENTF_UNICODE | (isDown ? 0 : KEYEVENTF_KEYUP),
+                    time = 0,
+                    dwExtraInfo = 0
+                }
+            }
+        };
+    }
+
     public static bool IsExtendedKey(ushort vk) => vk switch
     {
         >= 0x21 and <= 0x28 => true, // PageUp, PageDown, End, Home, arrows
@@ -110,21 +136,21 @@ public sealed partial class Win32InputSink : IInputSink
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct INPUT
+    public struct INPUT
     {
         public uint type;
         public InputUnion u;
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    private struct InputUnion
+    public struct InputUnion
     {
         [FieldOffset(0)] public MOUSEINPUT mi;
         [FieldOffset(0)] public KEYBDINPUT ki;
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct MOUSEINPUT
+    public struct MOUSEINPUT
     {
         public int dx;
         public int dy;
@@ -135,7 +161,7 @@ public sealed partial class Win32InputSink : IInputSink
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct KEYBDINPUT
+    public struct KEYBDINPUT
     {
         public ushort wVk;
         public ushort wScan;

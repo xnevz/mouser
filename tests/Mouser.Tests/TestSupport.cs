@@ -16,6 +16,7 @@ public sealed class RecordingSink : IInputSink
     public void SetButton(MouseButton button, bool isDown) { lock (Events) Events.Add($"{button} {(isDown ? "down" : "up")}"); }
     public void Scroll(int horizontal, int vertical) { lock (Events) Events.Add($"scroll {horizontal},{vertical}"); }
     public void Key(ushort virtualKey, bool isDown) { lock (Events) Events.Add($"key 0x{virtualKey:X2} {(isDown ? "down" : "up")}"); }
+    public void Char(ushort utf16Unit, bool isDown) { lock (Events) Events.Add($"char 0x{utf16Unit:X4} {(isDown ? "down" : "up")}"); }
 
     public string[] Snapshot() { lock (Events) return Events.ToArray(); }
 }
