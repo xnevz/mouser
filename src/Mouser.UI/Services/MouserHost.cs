@@ -132,7 +132,11 @@ public sealed class MouserHost : IDisposable
             {
                 if (!string.IsNullOrEmpty(saved.PairKeyProtected))
                 {
-                    try { Input.RegisterPeer(id, Convert.FromBase64String(saved.PairKeyProtected)); } catch { }
+                    byte[]? pairKey = SecretStore.Unprotect(saved.PairKeyProtected);
+                    if (pairKey != null)
+                    {
+                        try { Input.RegisterPeer(id, pairKey); } catch { }
+                    }
                 }
             }
             Input.Start();
@@ -314,7 +318,7 @@ public sealed class MouserHost : IDisposable
                     saved = new PeerSettings { Name = peerName };
                     _settings.Current.Peers[senderId] = saved;
                 }
-                saved.PairKeyProtected = Convert.ToBase64String(pairKey);
+                saved.PairKeyProtected = SecretStore.Protect(pairKey);
                 Input?.RegisterPeer(senderId, pairKey);
                 if (_links.TryGetValue(senderId, out var link))
                 {
@@ -345,7 +349,8 @@ public sealed class MouserHost : IDisposable
             if (s.Pin is int pin) keys.Add(PeerTransferService.DeriveKey(pin, senderId));
             if (!string.IsNullOrEmpty(s.PairKeyProtected))
             {
-                try { keys.Add(Convert.FromBase64String(s.PairKeyProtected)); } catch { }
+                byte[]? key = SecretStore.Unprotect(s.PairKeyProtected);
+                if (key != null) keys.Add(key);
             }
         }
         return keys;
@@ -357,7 +362,8 @@ public sealed class MouserHost : IDisposable
         {
             if (!string.IsNullOrEmpty(s.PairKeyProtected))
             {
-                try { return Convert.FromBase64String(s.PairKeyProtected); } catch { }
+                byte[]? key = SecretStore.Unprotect(s.PairKeyProtected);
+                if (key != null) return key;
             }
             if (s.Pin is int pin)
                 return PeerTransferService.DeriveKey(pin, peer.DeviceId);
@@ -586,7 +592,7 @@ public sealed class MouserHost : IDisposable
         if (_pairing.Contains(deviceId)) return PeerLinkStatus.Pairing;
         if (!_links.TryGetValue(deviceId, out var link)) return PeerLinkStatus.NotPaired;
         if (link.IsAlive) return PeerLinkStatus.Paired;
-        return _settings.Current.Peers.TryGetValue(deviceId, out var s) && (s.Pin != null || !string.IsNullOrEmpty(s.PairKeyProtected))
+        return _settings.Current.Peers.TryGetValue(deviceId, out var s) && (s.Pin != null || (!string.IsNullOrEmpty(s.PairKeyProtected) && SecretStore.Unprotect(s.PairKeyProtected) != null))
             ? PeerLinkStatus.Unreachable
             : PeerLinkStatus.NotPaired;
     }
@@ -600,7 +606,7 @@ public sealed class MouserHost : IDisposable
         if (result.IsSuccess && result.PairKey != null)
         {
             var saved = PeerSettingsFor(peer);
-            saved.PairKeyProtected = Convert.ToBase64String(result.PairKey);
+            saved.PairKeyProtected = SecretStore.Protect(result.PairKey);
             Input?.RegisterPeer(peer.DeviceId, result.PairKey);
             if (_links.TryGetValue(peer.DeviceId, out var link))
             {
@@ -883,12 +889,11 @@ public sealed class MouserHost : IDisposable
         link.AllowOlderDevices = _settings.Current.AllowOlderDevices;
         if (!link.IsSecure && _settings.Current.Peers.TryGetValue(peerDeviceId, out var s) && !string.IsNullOrEmpty(s.PairKeyProtected))
         {
-            try
+            byte[]? pairKey = SecretStore.Unprotect(s.PairKeyProtected);
+            if (pairKey != null)
             {
-                byte[] pairKey = Convert.FromBase64String(s.PairKeyProtected);
                 link.SetSecurity(pairKey, _settings.Current.DeviceId, peerDeviceId);
             }
-            catch { }
         }
     }
 

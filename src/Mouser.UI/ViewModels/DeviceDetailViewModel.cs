@@ -21,7 +21,11 @@ public partial class DeviceDetailViewModel : ViewModelBase
     private bool _isOnline;
     [ObservableProperty] private string _ipAddress = string.Empty;
     [ObservableProperty] private string _operatingSystem = string.Empty;
-    [ObservableProperty] private string _statusText = string.Empty;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PairButtonText))]
+    private string _statusText = string.Empty;
+
+    public string PairButtonText => StatusText == "Pair again" ? "Pair again" : "Connect & Pair";
     [ObservableProperty] private PeerPlacement _placement = PeerPlacement.None;
     [ObservableProperty] private bool _isPaired;
     [ObservableProperty] private string _pinText = string.Empty;

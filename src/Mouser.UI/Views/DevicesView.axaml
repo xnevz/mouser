@@ -210,7 +210,7 @@
                                     <StackPanel Spacing="12" IsVisible="{Binding NeedsPin}">
                                         <TextBlock Classes="hint" Text="Pair with confirmation code or enter PIN." />
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <Button Classes="primary-btn" Content="Connect &amp; Pair"
+                                            <Button Classes="primary-btn" Content="{Binding PairButtonText}"
                                                     Command="{Binding $parent[UserControl].((vm:DevicesViewModel)DataContext).PairComputerV2Command}"
                                                     CommandParameter="{Binding}"
                                                     ToolTip.Tip="Connect and verify confirmation code" />

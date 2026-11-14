@@ -32,7 +32,7 @@ public partial class PeerViewModel : ViewModelBase
         new[] { PeerPlacement.Right, PeerPlacement.Left, PeerPlacement.Above, PeerPlacement.Below, PeerPlacement.None };
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsPaired), nameof(StatusText), nameof(StatusColor), nameof(NeedsPin), nameof(IsOnline), nameof(CanWake))]
+    [NotifyPropertyChangedFor(nameof(IsPaired), nameof(StatusText), nameof(StatusColor), nameof(NeedsPin), nameof(IsOnline), nameof(CanWake), nameof(PairButtonText))]
     private PeerLinkStatus _status;
 
     [ObservableProperty] private PeerPlacement _placement;
@@ -72,13 +72,26 @@ public partial class PeerViewModel : ViewModelBase
         }
     }
 
-    public string StatusText => Status switch
+    public string StatusText
     {
-        PeerLinkStatus.Paired => "Paired",
-        PeerLinkStatus.Pairing => "Pairing…",
-        PeerLinkStatus.Unreachable => "Not responding",
-        _ => "Not paired"
-    };
+        get
+        {
+            if (_owner.Settings?.Current.Peers.TryGetValue(Id, out var s) == true)
+            {
+                if (!string.IsNullOrEmpty(s.PairKeyProtected) && SecretStore.Unprotect(s.PairKeyProtected) == null)
+                    return "Pair again";
+            }
+            return Status switch
+            {
+                PeerLinkStatus.Paired => "Paired",
+                PeerLinkStatus.Pairing => "Pairing…",
+                PeerLinkStatus.Unreachable => "Not responding",
+                _ => "Not paired"
+            };
+        }
+    }
+
+    public string PairButtonText => StatusText == "Pair again" ? "Pair again" : "Connect & Pair";
 
     public string StatusColor => Status switch
     {

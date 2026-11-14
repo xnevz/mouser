@@ -81,6 +81,11 @@ public partial class DevicesViewModel : ViewModelBase
         Refresh();
     }
 
+    public DevicesViewModel(MouserHost host, SettingsStore settings)
+        : this(host, settings, new AndroidRemoteViewModel(host, settings))
+    {
+    }
+
     public DevicesViewModel(MouserHost host, SettingsStore settings, AndroidRemoteViewModel remote)
         : this(host, new MonitorLayoutViewModel(host, settings), remote, settings)
     {
@@ -98,8 +103,11 @@ public partial class DevicesViewModel : ViewModelBase
         {
             currentIds.Add(peer.DeviceId);
             var existing = Devices.FirstOrDefault(d => d.Id == peer.DeviceId && d.Kind == DeviceKind.Computer);
-            bool isPaired = _settings.Current.Peers.TryGetValue(peer.DeviceId, out var saved)
-                && (saved.Pin != null || !string.IsNullOrEmpty(saved.PairKeyProtected));
+            _settings.Current.Peers.TryGetValue(peer.DeviceId, out var saved);
+            bool pairKeyValid = !string.IsNullOrEmpty(saved?.PairKeyProtected) && SecretStore.Unprotect(saved.PairKeyProtected) != null;
+            bool unprotectFailed = !string.IsNullOrEmpty(saved?.PairKeyProtected) && !pairKeyValid;
+            bool isPaired = saved != null && (saved.Pin != null || pairKeyValid);
+            string status = isPaired ? "Connected" : (unprotectFailed ? "Pair again" : "Not paired");
             var placement = saved?.Placement ?? PeerPlacement.None;
             if (existing == null)
             {
@@ -111,7 +119,7 @@ public partial class DevicesViewModel : ViewModelBase
                     IsOnline = true,
                     IsPaired = isPaired,
                     Placement = placement,
-                    StatusText = isPaired ? "Connected" : "Not paired"
+                    StatusText = status
                 };
                 Devices.Add(existing);
             }
@@ -123,7 +131,7 @@ public partial class DevicesViewModel : ViewModelBase
                 existing.IsOnline = true;
                 existing.IsPaired = isPaired;
                 existing.Placement = placement;
-                existing.StatusText = isPaired ? "Connected" : "Not paired";
+                existing.StatusText = status;
                 if (saved != null)
                 {
                     existing.SendClipboard = saved.SendClipboard;
@@ -144,15 +152,19 @@ public partial class DevicesViewModel : ViewModelBase
                 currentIds.Add(id);
                 var existing = Devices.FirstOrDefault(d => d.Id == id && d.Kind == DeviceKind.Computer);
                 string name = string.IsNullOrEmpty(peerSettings.Name) ? id : peerSettings.Name;
+                bool pairKeyValid = !string.IsNullOrEmpty(peerSettings.PairKeyProtected) && SecretStore.Unprotect(peerSettings.PairKeyProtected) != null;
+                bool unprotectFailed = !string.IsNullOrEmpty(peerSettings.PairKeyProtected) && !pairKeyValid;
+                bool isPaired = peerSettings.Pin != null || pairKeyValid;
+                string status = unprotectFailed ? "Pair again" : "Offline";
                 if (existing == null)
                 {
                     existing = new DeviceDetailViewModel(id, DeviceKind.Computer, _settings, _host)
                     {
                         Name = name,
                         IsOnline = false,
-                        IsPaired = peerSettings.Pin != null || !string.IsNullOrEmpty(peerSettings.PairKeyProtected),
+                        IsPaired = isPaired,
                         Placement = peerSettings.Placement,
-                        StatusText = "Offline",
+                        StatusText = status,
                         SendClipboard = peerSettings.SendClipboard,
                         ReceiveClipboard = peerSettings.ReceiveClipboard,
                         SendFiles = peerSettings.SendFiles,
@@ -166,9 +178,9 @@ public partial class DevicesViewModel : ViewModelBase
                 {
                     existing.Name = name;
                     existing.IsOnline = false;
-                    existing.IsPaired = peerSettings.Pin != null || !string.IsNullOrEmpty(peerSettings.PairKeyProtected);
+                    existing.IsPaired = isPaired;
                     existing.Placement = peerSettings.Placement;
-                    existing.StatusText = "Offline";
+                    existing.StatusText = status;
                     existing.SendClipboard = peerSettings.SendClipboard;
                     existing.ReceiveClipboard = peerSettings.ReceiveClipboard;
                     existing.SendFiles = peerSettings.SendFiles;
