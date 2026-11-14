@@ -107,7 +107,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | B10 | Add computer by IP/name (unicast beacons) | B9 | L |
 | ✅ | B11 | Simple Settings (5 cards, Advanced collapsed) | A10, A12, B7 | M |
 | ✅ | B12 | Activity page, log, "Copy diagnostics" | B9 | M |
-| ⬜ | B13 | First-run wizard | B9, B11 | M |
+| ✅ | B13 | First-run wizard | B9, B11 | M |
 
 ### Track C: App lock ([C-lock.md](roadmap/tasks/C-lock.md))
 | Status | ID | Task | Needs | Size |
@@ -280,3 +280,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - B10: Added manual peer target unicast discovery across subnets/VPNs with automatic sender learning, persisted ManualPeers in SettingsStore, added AddManualPeerAsync in MouserHost, added manual entry UI in DevicesView and DevicesViewModel, added unit test TwoHosts_WithDifferentDiscoveryPorts_DiscoverEachOtherViaAddTarget (150 passing).
 - B11: Reorganized SettingsView into 5 clean cards (Appearance, General, Clipboard, Sharing, This device) with collapsible Advanced expanders for port and retention; added AcceptRemoteInput observable property and change handler to SettingsViewModel; added unit test Settings_AcceptRemoteInput_TogglesAndPersists (151 passing).
 - B12: Implemented ActivityLog service (200-event capacity, categorised events) and ActivityViewModel with CopyDiagnosticsCommand; wired key discovery, pairing, clip, file, and KVM events in MouserHost; created ActivityView with theme tokens; added Activity navigation tab and sidebar button in MainWindow; added unit tests ActivityLog_CapsAt200 and CopyDiagnostics_ContainsVersionAndRecentEvents (153 passing).
+- B13: Implemented 3-step first-run onboarding wizard (computer name, feature toggles, device pairing with large PIN and live peer count) overlaid on MainWindow; added FirstRunDone setting in SettingsStore with auto-migration for existing installs; added 3 unit tests (156 passing).
