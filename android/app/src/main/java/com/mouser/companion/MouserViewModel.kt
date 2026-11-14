@@ -167,10 +167,60 @@ class MouserViewModel(application: Application) : AndroidViewModel(application) 
 
     val hasGyroscope: Boolean get() = gyroAirMouse.isAvailable
 
+    private val _batteryLevel = MutableStateFlow<Int?>(com.mouser.companion.util.BatteryHelper.getBatteryPercentage(application))
+    val batteryLevel: StateFlow<Int?> = _batteryLevel.asStateFlow()
+
     init {
         gyroAirMouse.sensitivity = _airMouseSensitivity.value
         discoveryClient.startDiscovery()
         lastHost()?.let { connect(it) }
+
+        com.mouser.companion.service.ConnectionService.onDisconnectRequested = {
+            disconnect()
+        }
+        com.mouser.companion.service.ConnectionService.onNetworkChanged = {
+            onNetworkChanged()
+        }
+
+        viewModelScope.launch {
+            connection.state.collect { state ->
+                when (state) {
+                    is HostConnectionState.Connected -> {
+                        rememberHost(state.target)
+                        com.mouser.companion.service.ConnectionService.start(application, state.target.hostName)
+                    }
+                    is HostConnectionState.Disconnected -> {
+                        com.mouser.companion.service.ConnectionService.stop(application)
+                    }
+                    else -> {}
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            while (kotlinx.coroutines.isActive) {
+                _batteryLevel.value = com.mouser.companion.util.BatteryHelper.getBatteryPercentage(application)
+                kotlinx.coroutines.delay(15_000L)
+            }
+        }
+    }
+
+    fun onNetworkChanged() {
+        val current = connection.state.value
+        if (current is HostConnectionState.Unreachable || current is HostConnectionState.Connected) {
+            connection.reconnect()
+        } else if (current is HostConnectionState.Disconnected) {
+            lastHost()?.let { connect(it) }
+        }
+    }
+
+    private fun rememberHost(target: HostTarget) {
+        prefs.edit()
+            .putString("last.address", target.address)
+            .putInt("last.port", target.port)
+            .putString("last.name", target.hostName)
+            .putString("last.deviceId", target.deviceId)
+            .apply()
     }
 
     fun selectTab(tab: AppNavigationTab) {
@@ -410,6 +460,7 @@ class MouserViewModel(application: Application) : AndroidViewModel(application) 
 
     override fun onCleared() {
         super.onCleared()
+        com.mouser.companion.service.ConnectionService.stop(getApplication())
         gyroAirMouse.stop()
         discoveryClient.stopDiscovery()
         connection.disconnect()

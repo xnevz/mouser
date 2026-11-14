@@ -28,6 +28,13 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+
         setContent {
             val themeMode by viewModel.themeMode.collectAsState()
             val isLocked by viewModel.isLocked.collectAsState()
@@ -61,6 +68,7 @@ class MainActivity : FragmentActivity() {
                     val airMouseSensitivity by viewModel.airMouseSensitivity.collectAsState()
                     val isAirMouseTriggerHeld by viewModel.isAirMouseTriggerHeld.collectAsState()
                     val macros by viewModel.macros.collectAsState()
+                    val batteryLevel by viewModel.batteryLevel.collectAsState()
                     val isConnected = connectionState is HostConnectionState.Connected
 
                     Scaffold(
@@ -73,6 +81,7 @@ class MainActivity : FragmentActivity() {
                                 onThemeModeChanged = viewModel::setThemeMode,
                                 isAppLockEnabled = isAppLockEnabled,
                                 onToggleAppLock = viewModel::setAppLockEnabled,
+                                phoneBatteryPercent = batteryLevel,
                                 onConnect = viewModel::connect,
                                 onDisconnect = viewModel::disconnect,
                                 onSendClipboard = {

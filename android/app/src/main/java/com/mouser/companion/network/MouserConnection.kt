@@ -27,9 +27,9 @@ class MouserConnection(
     private val scope: CoroutineScope
 ) {
     companion object {
-        const val PING_INTERVAL_MS = 1_000L
+        const val PING_INTERVAL_MS = 2_000L
         /** No pong for this long means the host is unreachable. */
-        const val PONG_TIMEOUT_MS = 3_500L
+        const val PONG_TIMEOUT_MS = 6_000L
     }
 
     private val _state = MutableStateFlow<HostConnectionState>(HostConnectionState.Disconnected)
@@ -38,6 +38,7 @@ class MouserConnection(
     private val sequence = SequenceCounter()
     private val buttons = ButtonState()
     private val pingSentAt = ConcurrentHashMap<Short, Long>()
+    val backoff = Backoff(1000L, 8000L, 2.0)
 
     // A single thread keeps packets in order; per-packet coroutines could reorder them and the host drops late ones.
     private var sender: ExecutorService? = null
@@ -98,6 +99,7 @@ class MouserConnection(
         socket = null
         target = null
         paired = false
+        backoff.reset()
         pingSentAt.clear()
         _state.value = HostConnectionState.Disconnected
     }
@@ -208,6 +210,7 @@ class MouserConnection(
             val waitingOnHost = current is HostConnectionState.Connected || current is HostConnectionState.Connecting
             if (t != null && waitingOnHost && System.currentTimeMillis() - lastPongAt > PONG_TIMEOUT_MS) {
                 _state.value = HostConnectionState.Unreachable(t)
+                reconnect()
             }
             delay(PING_INTERVAL_MS)
         }
@@ -231,11 +234,33 @@ class MouserConnection(
         }
     }
 
+    fun reconnect() {
+        val t = target ?: return
+        scope.launch(Dispatchers.IO) {
+            val delayMs = backoff.nextDelayMs()
+            delay(delayMs)
+            try {
+                socket?.close()
+                val newSocket = DatagramSocket().apply {
+                    soTimeout = 1000
+                    connect(InetAddress.getByName(t.address), t.port)
+                }
+                socket = newSocket
+                lastPongAt = System.currentTimeMillis()
+                val seq = sequence.next()
+                pingSentAt[seq] = System.currentTimeMillis()
+                send(InputMotionPacket(packetType = InputMotionPacket.TYPE_PING, sequenceId = seq), force = true)
+            } catch (_: Exception) {
+            }
+        }
+    }
+
     internal fun handleReply(packet: InputMotionPacket) {
         val t = target ?: return
         when (packet.packetType) {
             InputMotionPacket.TYPE_PONG -> {
                 lastPongAt = System.currentTimeMillis()
+                backoff.reset()
                 val sentAt = pingSentAt.remove(packet.sequenceId)
                 if (paired) {
                     _state.value = HostConnectionState.Connected(t, sentAt?.let { System.currentTimeMillis() - it })

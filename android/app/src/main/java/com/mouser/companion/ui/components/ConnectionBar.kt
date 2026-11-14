@@ -40,6 +40,7 @@ fun ConnectionBar(
     onConnect: (HostTarget) -> Unit,
     onDisconnect: () -> Unit,
     onConfirmCode: () -> Unit = {},
+    phoneBatteryPercent: Int? = null,
     onSendClipboard: (() -> Unit)? = null,
     onGetClipboard: (() -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -47,10 +48,27 @@ fun ConnectionBar(
     var showHosts by remember { mutableStateOf(connectionState is HostConnectionState.Disconnected) }
 
     val defaultMutedColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val qualityDotColor = when (connectionState) {
+        is HostConnectionState.Connected -> when {
+            connectionState.latencyMs == null -> EmeraldAccent
+            connectionState.latencyMs < 50 -> EmeraldAccent
+            connectionState.latencyMs < 150 -> AmberAccent
+            else -> RoseAccent
+        }
+        is HostConnectionState.Connecting -> AmberAccent
+        is HostConnectionState.ConfirmPairingCode -> AmberAccent
+        is HostConnectionState.Unreachable -> RoseAccent
+        is HostConnectionState.Error -> RoseAccent
+        is HostConnectionState.Disconnected -> defaultMutedColor
+    }
+
     val (statusColor, statusText) = when (connectionState) {
         is HostConnectionState.Connected -> EmeraldAccent to buildString {
             append(connectionState.target.hostName)
             connectionState.latencyMs?.let { append(" • $it ms") }
+            if (phoneBatteryPercent != null && phoneBatteryPercent in 0..100) {
+                append(" • 🔋 $phoneBatteryPercent%")
+            }
         }
         is HostConnectionState.Connecting -> AmberAccent to "Connecting to ${connectionState.target.hostName}…"
         is HostConnectionState.ConfirmPairingCode -> AmberAccent to "Confirm code: ${connectionState.code}"
@@ -75,8 +93,8 @@ fun ConnectionBar(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text("Mouser", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-                Box(modifier = Modifier.size(8.dp).background(statusColor, CircleShape))
-                Text(statusText, style = MaterialTheme.typography.labelSmall, color = statusColor, maxLines = 1)
+                Box(modifier = Modifier.size(8.dp).background(qualityDotColor, CircleShape))
+                Text(statusText, style = MaterialTheme.typography.labelSmall, color = qualityDotColor, maxLines = 1)
             }
             if (connectionState is HostConnectionState.Connected) {
                 IconButton(onClick = { onSendClipboard?.invoke() }) {
