@@ -1,6 +1,8 @@
 using System.Net;
 using Mouser.Core.Clipboard;
+using Mouser.Core.Geometry;
 using Mouser.Core.Input;
+using Mouser.Core.Kvm;
 using Mouser.Core.Networking;
 using Mouser.Core.Security;
 using Mouser.Core.Services;
@@ -8,6 +10,7 @@ using Mouser.UI;
 using Mouser.UI.Services;
 using Mouser.UI.ViewModels;
 using Mouser.UI.Views;
+using Monitor = Mouser.Core.Geometry.Monitor;
 
 namespace Mouser.Tests;
 
@@ -386,6 +389,42 @@ public class ViewModelTests
         var peer = Assert.Single(vm.Peers);
         Assert.Equal("192.168.1.9:58491", peer.Address);
         Assert.True(vm.HasPeers);
+    }
+
+    [Fact]
+    public void MonitorLayout_PeerWithTwoMonitors_DrawsTwoPeerNodes()
+    {
+        var vm = new MonitorLayoutViewModel();
+        vm.SetDisplays(new[]
+        {
+            new DisplayInfo("Laptop", 0, 0, 1920, 1080, 1.0, true)
+        });
+
+        var peer = new DiscoveredPeer
+        {
+            DeviceId = "peer1",
+            Hostname = "studio-pc",
+            OperatingSystem = "Windows",
+            ScreenWidth = 3840,
+            ScreenHeight = 1080,
+            Monitors = new[]
+            {
+                new Monitor(0, 0, 1920, 1080),
+                new Monitor(1920, 0, 1920, 1080)
+            }
+        };
+
+        vm.SetPeers(new[] { peer });
+        var peerVm = Assert.Single(vm.Peers);
+        peerVm.Status = PeerLinkStatus.Paired;
+        peerVm.Placement = PeerPlacement.Right;
+
+        Assert.Equal(2, vm.Screens.Count(s => s.IsPeer));
+        var peerNodes = vm.Screens.Where(s => s.IsPeer).ToList();
+        Assert.All(peerNodes, s => Assert.Equal("1920 × 1080", s.Resolution));
+        Assert.Equal("studio-pc (1)", peerNodes[0].Name);
+        Assert.Equal("studio-pc (2)", peerNodes[1].Name);
+        Assert.True(peerNodes[1].PositionX > peerNodes[0].PositionX);
     }
 
     [Fact]

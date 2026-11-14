@@ -387,7 +387,7 @@ public partial class MonitorLayoutViewModel : ViewModelBase
     private void Relayout()
     {
         string key = string.Join(";", _displays) + "|" + string.Join(";", Peers.Select(p =>
-            $"{p.Id},{p.IsPaired},{p.Placement},{p.Peer.ScreenWidth}x{p.Peer.ScreenHeight},{p.Hostname}"));
+            $"{p.Id},{p.IsPaired},{p.Placement},{p.Peer.ScreenWidth}x{p.Peer.ScreenHeight},{p.Hostname},{(p.Peer.Monitors is { } mons ? string.Join(";", mons.Select(m => $"{m.X},{m.Y},{m.Width}x{m.Height}")) : "")}"));
         if (key == _layoutKey) return; // refreshed every second; only redraw on change
         _layoutKey = key;
 
@@ -410,7 +410,28 @@ public partial class MonitorLayoutViewModel : ViewModelBase
                 PeerPlacement.Below => r with { X = local.X, Y = local.Bottom },
                 _ => r with { X = local.X, Y = local.Y - r.Height }
             };
-            rects.Add((placed, null!, peer, 0));
+
+            if (peer.Peer.Monitors is { Count: > 0 } monitors)
+            {
+                double originX = peer.Peer.ScreenX;
+                double originY = peer.Peer.ScreenY;
+                for (int mIdx = 0; mIdx < monitors.Count; mIdx++)
+                {
+                    var m = monitors[mIdx];
+                    var mRect = new ScreenBounds
+                    {
+                        X = placed.X + (m.X - originX),
+                        Y = placed.Y + (m.Y - originY),
+                        Width = m.Width,
+                        Height = m.Height
+                    };
+                    rects.Add((mRect, null!, peer, monitors.Count > 1 ? mIdx + 1 : 0));
+                }
+            }
+            else
+            {
+                rects.Add((placed, null!, peer, 0));
+            }
         }
 
         double minX = rects.Min(r => r.Rect.X), minY = rects.Min(r => r.Rect.Y);
@@ -424,7 +445,9 @@ public partial class MonitorLayoutViewModel : ViewModelBase
             {
                 Number = number,
                 IsPeer = peer != null,
-                Name = peer?.Hostname ?? (string.IsNullOrWhiteSpace(display.Name) ? $"Display {number}" : display.Name),
+                Name = peer != null
+                    ? (number > 0 ? $"{peer.Hostname} ({number})" : peer.Hostname)
+                    : (string.IsNullOrWhiteSpace(display.Name) ? $"Display {number}" : display.Name),
                 Resolution = $"{rect.Width} × {rect.Height}",
                 ScalingText = peer != null ? "-" : $"{display.Scaling * 100:0}%",
                 PositionText = peer != null ? $"{peer.Placement} of this computer" : $"{display.X}, {display.Y}",
