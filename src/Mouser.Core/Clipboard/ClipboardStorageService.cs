@@ -55,7 +55,8 @@ public sealed class ClipboardStorageService : IAsyncDisposable
                 text_content TEXT NOT NULL,
                 html_content TEXT,
                 source_device TEXT NOT NULL,
-                is_favorite INTEGER DEFAULT 0
+                is_favorite INTEGER DEFAULT 0,
+                source_app TEXT NOT NULL DEFAULT ''
             );
 
             CREATE INDEX IF NOT EXISTS idx_clips_timestamp ON clips(timestamp DESC);
@@ -70,6 +71,30 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = schemaSql;
         await cmd.ExecuteNonQueryAsync();
+
+        // Migration: ensure source_app column exists in older databases
+        bool hasSourceApp = false;
+        using (var pragmaCmd = _connection.CreateCommand())
+        {
+            pragmaCmd.CommandText = "PRAGMA table_info(clips);";
+            using var pragmaReader = await pragmaCmd.ExecuteReaderAsync();
+            while (await pragmaReader.ReadAsync())
+            {
+                var colName = pragmaReader.GetString(1);
+                if (string.Equals(colName, "source_app", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasSourceApp = true;
+                    break;
+                }
+            }
+        }
+
+        if (!hasSourceApp)
+        {
+            using var alterCmd = _connection.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE clips ADD COLUMN source_app TEXT NOT NULL DEFAULT '';";
+            await alterCmd.ExecuteNonQueryAsync();
+        }
     }
 
     public async Task<bool> SaveClipAsync(ClipboardPayload payload)
@@ -85,11 +110,12 @@ public sealed class ClipboardStorageService : IAsyncDisposable
 
         if (!string.IsNullOrEmpty(existingId))
         {
-            const string updateSql = "UPDATE clips SET timestamp = @time, source_device = @source WHERE id = @id;";
+            const string updateSql = "UPDATE clips SET timestamp = @time, source_device = @source, source_app = @source_app WHERE id = @id;";
             using var updateCmd = _connection.CreateCommand();
             updateCmd.CommandText = updateSql;
             updateCmd.Parameters.AddWithValue("@time", payload.TimestampUtc);
             updateCmd.Parameters.AddWithValue("@source", payload.SourceDevice);
+            updateCmd.Parameters.AddWithValue("@source_app", payload.SourceApp ?? string.Empty);
             updateCmd.Parameters.AddWithValue("@id", existingId);
             await updateCmd.ExecuteNonQueryAsync();
             return false;
@@ -99,8 +125,8 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         try
         {
             const string insertClip = @"
-                INSERT INTO clips (id, timestamp, content_type, text_content, html_content, source_device, is_favorite)
-                VALUES (@id, @timestamp, @content_type, @text_content, @html_content, @source_device, @is_favorite);";
+                INSERT INTO clips (id, timestamp, content_type, text_content, html_content, source_device, is_favorite, source_app)
+                VALUES (@id, @timestamp, @content_type, @text_content, @html_content, @source_device, @is_favorite, @source_app);";
 
             using var insertCmd = _connection.CreateCommand();
             insertCmd.Transaction = transaction;
@@ -112,6 +138,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             insertCmd.Parameters.AddWithValue("@html_content", (object?)payload.HtmlContent ?? DBNull.Value);
             insertCmd.Parameters.AddWithValue("@source_device", payload.SourceDevice);
             insertCmd.Parameters.AddWithValue("@is_favorite", payload.IsFavorite ? 1 : 0);
+            insertCmd.Parameters.AddWithValue("@source_app", payload.SourceApp ?? string.Empty);
             await insertCmd.ExecuteNonQueryAsync();
 
             const string insertFts = @"
@@ -142,7 +169,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
 
         var list = new List<ClipboardPayload>();
         string sql = $@"
-            SELECT id, timestamp, content_type, text_content, html_content, source_device, is_favorite
+            SELECT id, timestamp, content_type, text_content, html_content, source_device, is_favorite, source_app
             FROM clips
             {(favoritesOnly ? "WHERE is_favorite = 1" : "")}
             ORDER BY timestamp DESC
@@ -175,7 +202,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         string sanitizedQuery = query.Trim().Replace("\"", "\"\"") + "*";
 
         const string sql = @"
-            SELECT c.id, c.timestamp, c.content_type, c.text_content, c.html_content, c.source_device, c.is_favorite
+            SELECT c.id, c.timestamp, c.content_type, c.text_content, c.html_content, c.source_device, c.is_favorite, c.source_app
             FROM clips c
             JOIN clips_fts f ON c.id = f.id
             WHERE f MATCH @query
@@ -199,7 +226,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         {
             // Fallback to LIKE if query has special syntax
             const string fallbackSql = @"
-                SELECT id, timestamp, content_type, text_content, html_content, source_device, is_favorite
+                SELECT id, timestamp, content_type, text_content, html_content, source_device, is_favorite, source_app
                 FROM clips
                 WHERE text_content LIKE @likeQuery
                 ORDER BY timestamp DESC
@@ -351,7 +378,8 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             TextContent = reader.GetString(3),
             HtmlContent = reader.IsDBNull(4) ? null : reader.GetString(4),
             SourceDevice = reader.GetString(5),
-            IsFavorite = reader.GetInt64(6) == 1
+            IsFavorite = reader.GetInt64(6) == 1,
+            SourceApp = reader.FieldCount > 7 && !reader.IsDBNull(7) ? reader.GetString(7) : string.Empty
         };
     }
 

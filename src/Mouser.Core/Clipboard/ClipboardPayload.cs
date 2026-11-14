@@ -15,6 +15,7 @@ public sealed class ClipboardPayload
     public string TextContent { get; set; } = string.Empty;
     public string? HtmlContent { get; set; }
     public string SourceDevice { get; set; } = Environment.MachineName;
+    public string SourceApp { get; set; } = string.Empty;
     public bool IsFavorite { get; set; }
     public DateTime CreatedTime => DateTimeOffset.FromUnixTimeMilliseconds(TimestampUtc).LocalDateTime;
 
@@ -30,6 +31,7 @@ public sealed class ClipboardPayload
         writer.Write(HtmlContent ?? string.Empty);
         writer.Write(SourceDevice ?? string.Empty);
         writer.Write(IsFavorite);
+        writer.Write(SourceApp ?? string.Empty);
 
         writer.Flush();
         return ms.ToArray();
@@ -40,7 +42,7 @@ public sealed class ClipboardPayload
         using var ms = new MemoryStream(bytes.ToArray());
         using var reader = new BinaryReader(ms, Encoding.UTF8, leaveOpen: true);
 
-        return new ClipboardPayload
+        var payload = new ClipboardPayload
         {
             Id = reader.ReadString(),
             TimestampUtc = reader.ReadInt64(),
@@ -50,5 +52,12 @@ public sealed class ClipboardPayload
             SourceDevice = reader.ReadString(),
             IsFavorite = reader.ReadBoolean()
         };
+
+        if (ms.Position < ms.Length)
+        {
+            payload.SourceApp = reader.ReadString();
+        }
+
+        return payload;
     }
 }

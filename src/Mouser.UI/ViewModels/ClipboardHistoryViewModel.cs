@@ -35,6 +35,9 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     /// <summary>Shown when the global quick-paste hotkey is available.</summary>
     [ObservableProperty] private string? _quickPasteHint;
 
+    /// <summary>Probes the foreground application and window title.</summary>
+    public Func<(string App, string Title)> AppProbe { get; set; } = ForegroundApp.Get;
+
     public static string[] TypeOptions { get; } = { "All types", "Text", "Link", "Code" };
     public static string[] TimeOptions { get; } = { "Any time", "Today", "Yesterday", "Last 7 days", "Last 30 days" };
     public ObservableCollection<string> DeviceOptions { get; } = new() { "All devices" };
@@ -76,7 +79,8 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
             string? text = await _clipboard.GetTextAsync();
             if (text == null || text == _lastSeenText) return false;
             _lastSeenText = text;
-            bool captured = await CaptureAsync(text);
+            var (app, _) = AppProbe?.Invoke() ?? ("", "");
+            bool captured = await CaptureAsync(text, app);
             if (ShareCapturedText != null && IsShareable(text)) _ = ShareCapturedText(text);
             return captured;
         }
@@ -123,7 +127,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
         await _clipboard.SetTextAsync(text);
     }
 
-    public async Task<bool> CaptureAsync(string text)
+    public async Task<bool> CaptureAsync(string text, string? sourceApp = null)
     {
         OnPropertyChanged(nameof(IsCaptureEnabled));
         if (!_settings.Current.ClipboardHistoryEnabled || string.IsNullOrWhiteSpace(text)) return false;
@@ -140,11 +144,14 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
             return false;
         }
 
+        sourceApp ??= AppProbe?.Invoke().App ?? string.Empty;
+
         await _storage.SaveClipAsync(new ClipboardPayload
         {
             ContentType = ClipboardClassifier.Classify(text),
             TextContent = text,
-            SourceDevice = Environment.MachineName
+            SourceDevice = Environment.MachineName,
+            SourceApp = sourceApp ?? string.Empty
         });
         await ReloadAsync();
         return true;

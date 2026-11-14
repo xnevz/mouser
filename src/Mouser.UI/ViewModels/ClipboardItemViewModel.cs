@@ -6,12 +6,16 @@ namespace Mouser.UI.ViewModels;
 
 public partial class ClipboardItemViewModel : ViewModelBase
 {
+    private readonly ClipboardPayload _payload;
+
     public string Id { get; }
     public ClipboardContentType Kind { get; }
     public string Content { get; }
     public string PreviewTitle { get; }
     public string SourceDevice { get; }
     public DateTime Timestamp { get; }
+    public string SourceApp => _payload.SourceApp;
+    public bool HasSourceApp => !string.IsNullOrWhiteSpace(SourceApp);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StarIcon), nameof(StarColor))]
@@ -22,6 +26,7 @@ public partial class ClipboardItemViewModel : ViewModelBase
 
     public ClipboardItemViewModel(ClipboardPayload payload)
     {
+        _payload = payload;
         Id = payload.Id;
         Kind = payload.ContentType;
         Content = payload.TextContent;

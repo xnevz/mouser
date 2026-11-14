@@ -129,6 +129,10 @@
                                 <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextSecondary}">
                                     <Run Text="Type: " /><Run Text="{Binding SelectedClip.ContentType}" /><Run Text=" · Source: " /><Run Text="{Binding SelectedClip.SourceDevice}" /><Run Text=" · Copied: " /><Run Text="{Binding SelectedClip.FormattedTime}" />
                                 </TextBlock>
+                                <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextSecondary}"
+                                           IsVisible="{Binding SelectedClip.HasSourceApp}">
+                                    <Run Text="App: " /><Run Text="{Binding SelectedClip.SourceApp}" />
+                                </TextBlock>
                                 <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextMuted}">
                                     <Run Text="{Binding SelectedClip.LineCount}" /><Run Text=" lines · " /><Run Text="{Binding SelectedClip.WordCount}" /><Run Text=" words · " /><Run Text="{Binding SelectedClip.CharCount, StringFormat='{}{0:N0}'}" /><Run Text=" characters" />
                                 </TextBlock>
