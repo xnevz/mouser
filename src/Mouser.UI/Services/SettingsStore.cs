@@ -18,6 +18,7 @@ public sealed class AppSettings
     public int InputPort { get; set; } = InputInjectionService.DefaultPort;
     public bool AcceptRemoteInput { get; set; } = true;
     public bool ClipboardHistoryEnabled { get; set; } = true;
+    public bool SaveImages { get; set; } = true;
     public bool SkipSensitiveClips { get; set; } = true;
     public int ClipboardRetentionDays { get; set; } = 30;
     public bool StartAtLogin { get; set; }
@@ -100,6 +101,7 @@ public sealed class SettingsStore
             if (settings.PairingPin is < 0 or > 999_999) settings.PairingPin = PairingGate.GeneratePin();
             if (settings.InputPort is < 1 or > 65535) settings.InputPort = InputInjectionService.DefaultPort;
             if (settings.ClipboardRetentionDays < 1) settings.ClipboardRetentionDays = 30;
+            // SaveImages default is true
             if (settings.AutoLockMinutes < 0) settings.AutoLockMinutes = 0;
             if (!ThemeService.Options.Contains(settings.Theme)) settings.Theme = "System";
             // Pre-existing settings files from before B13 do not nag existing users.

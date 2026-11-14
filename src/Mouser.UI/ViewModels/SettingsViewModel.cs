@@ -17,6 +17,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private int _inputPort;
     [ObservableProperty] private bool _acceptRemoteInput;
     [ObservableProperty] private bool _clipboardHistoryEnabled;
+    [ObservableProperty] private bool _saveImages;
     [ObservableProperty] private bool _skipSensitiveClips;
     [ObservableProperty] private bool _clipboardSyncEnabled;
     [ObservableProperty] private int _clipboardRetentionDays;
@@ -63,6 +64,7 @@ public partial class SettingsViewModel : ViewModelBase
         _inputPort = s.InputPort;
         _acceptRemoteInput = s.AcceptRemoteInput;
         _clipboardHistoryEnabled = s.ClipboardHistoryEnabled;
+        _saveImages = s.SaveImages;
         _skipSensitiveClips = s.SkipSensitiveClips;
         _clipboardSyncEnabled = s.ClipboardSyncEnabled;
         _clipboardRetentionDays = s.ClipboardRetentionDays;
@@ -104,6 +106,7 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     partial void OnClipboardHistoryEnabledChanged(bool value) => Save(s => s.ClipboardHistoryEnabled = value);
+    partial void OnSaveImagesChanged(bool value) => Save(s => s.SaveImages = value);
     partial void OnSkipSensitiveClipsChanged(bool value) => Save(s => s.SkipSensitiveClips = value);
     partial void OnClipboardSyncEnabledChanged(bool value) => Save(s => s.ClipboardSyncEnabled = value);
     partial void OnAcceptRemoteInputChanged(bool value)

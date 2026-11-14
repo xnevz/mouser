@@ -73,6 +73,13 @@
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto" Margin="0,4">
                         <StackPanel Spacing="2">
+                            <TextBlock Classes="section-title" FontSize="13" Text="Save images" />
+                            <TextBlock Classes="hint" Text="Store copied screenshots and images in your local history." />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding SaveImages}" OnContent="" OffContent="" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                        <StackPanel Spacing="2">
                             <TextBlock Classes="section-title" FontSize="13" Text="Share with other computers" />
                             <TextBlock Classes="hint" Text="Send and receive copied clips with paired computers." />
                         </StackPanel>

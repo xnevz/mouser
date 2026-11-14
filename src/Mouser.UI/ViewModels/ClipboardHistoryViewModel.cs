@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -21,6 +23,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     private readonly SettingsStore _settings;
     private IClipboardAccess? _clipboard;
     private string? _lastSeenText;
+    private string? _lastSeenImageHash;
     private bool _isPolling;
 
     [ObservableProperty] private string _searchQuery = string.Empty;
@@ -41,7 +44,7 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     /// <summary>Probes whether the clipboard content is marked to be excluded by its owner (e.g. password manager).</summary>
     public Func<bool> ExcludedByOwnerProbe { get; set; } = ClipboardFormats.IsExcludedByOwner;
 
-    public static string[] TypeOptions { get; } = { "All types", "Text", "Link", "Code" };
+    public static string[] TypeOptions { get; } = { "All types", "Text", "Link", "Code", "Image" };
     public static string[] TimeOptions { get; } = { "Any time", "Today", "Yesterday", "Last 7 days", "Last 30 days" };
     public ObservableCollection<string> DeviceOptions { get; } = new() { "All devices" };
     [ObservableProperty] private string _selectedDevice = "All devices";
@@ -72,16 +75,64 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
         await ReloadAsync();
     }
 
-    /// <summary>Reads the system clipboard and records new text. Returns true when a clip was added.</summary>
+    /// <summary>Reads the system clipboard and records new text or image. Returns true when a clip was added.</summary>
     public async Task<bool> PollClipboardAsync()
     {
         if (IsLocked || IsPaused || _clipboard == null || _isPolling) return false;
         _isPolling = true;
         try
         {
-            string? text = await _clipboard.GetTextAsync();
+            var snapshot = await _clipboard.GetSnapshotAsync();
+
+            if (_settings.Current.SaveImages && snapshot.ImagePng is { Length: > 0 } && string.IsNullOrEmpty(snapshot.Text))
+            {
+                if (snapshot.ImagePng.Length > 20 * 1024 * 1024)
+                {
+                    StatusMessage = "Skipped a very large image.";
+                    return false;
+                }
+
+                var hash = Convert.ToHexString(SHA256.HashData(snapshot.ImagePng)).ToLowerInvariant();
+                if (hash == _lastSeenImageHash) return false;
+
+                _lastSeenImageHash = hash;
+                _lastSeenText = null;
+
+                var (imgApp, _) = AppProbe?.Invoke() ?? ("", "");
+                if ((ExcludedByOwnerProbe?.Invoke() ?? false) || ClipboardPrivacyFilter.IsIgnoredApp(imgApp, _settings.Current.IgnoredApps))
+                {
+                    StatusMessage = "Skipped a copy from a password manager.";
+                    return false;
+                }
+
+                var mediaDir = Path.Combine(_settings.DataDirectory, "media");
+                Directory.CreateDirectory(mediaDir);
+                var mediaPath = Path.Combine(mediaDir, $"{Guid.NewGuid():N}.png");
+                await File.WriteAllBytesAsync(mediaPath, snapshot.ImagePng);
+
+                var (w, h) = PngHelper.GetDimensions(snapshot.ImagePng);
+                var payload = new ClipboardPayload
+                {
+                    ContentType = ClipboardContentType.Image,
+                    TextContent = $"Image {w}×{h}",
+                    MediaPath = mediaPath,
+                    MediaHash = hash,
+                    Width = w,
+                    Height = h,
+                    MediaBytes = snapshot.ImagePng.Length,
+                    SourceDevice = Environment.MachineName,
+                    SourceApp = imgApp ?? string.Empty
+                };
+
+                await _storage.SaveClipAsync(payload);
+                await ReloadAsync();
+                return true;
+            }
+
+            string? text = snapshot.Text;
             if (text == null || text == _lastSeenText) return false;
             _lastSeenText = text;
+            _lastSeenImageHash = null;
             var (app, _) = AppProbe?.Invoke() ?? ("", "");
             if ((ExcludedByOwnerProbe?.Invoke() ?? false) || ClipboardPrivacyFilter.IsIgnoredApp(app, _settings.Current.IgnoredApps))
             {
@@ -185,6 +236,18 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     private async Task CopyClipAsync(ClipboardItemViewModel? clip)
     {
         if (clip == null) return;
+        if (clip.IsImage && !string.IsNullOrEmpty(clip.MediaPath) && File.Exists(clip.MediaPath))
+        {
+            var bytes = await File.ReadAllBytesAsync(clip.MediaPath);
+            _lastSeenImageHash = clip.MediaHash;
+            _lastSeenText = null;
+            if (_clipboard != null)
+            {
+                await _clipboard.SetSnapshotAsync(new ClipboardSnapshot(null, null, bytes, null));
+            }
+            StatusMessage = "Copied to clipboard.";
+            return;
+        }
         await CopyTextAsync(clip.Content);
         StatusMessage = "Copied to clipboard.";
     }

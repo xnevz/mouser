@@ -16,6 +16,12 @@ public partial class ClipboardItemViewModel : ViewModelBase
     public DateTime Timestamp { get; }
     public string SourceApp => _payload.SourceApp;
     public bool HasSourceApp => !string.IsNullOrWhiteSpace(SourceApp);
+    public string? MediaPath => _payload.MediaPath;
+    public string? MediaHash => _payload.MediaHash;
+    public int? Width => _payload.Width;
+    public int? Height => _payload.Height;
+    public long? MediaBytes => _payload.MediaBytes;
+    public bool IsImage => _payload.ContentType == ClipboardContentType.Image;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StarIcon), nameof(StarColor))]
@@ -66,6 +72,7 @@ public partial class ClipboardItemViewModel : ViewModelBase
     {
         ClipboardContentType.Code => "</>",
         ClipboardContentType.Link => "🔗",
+        ClipboardContentType.Image => "🖼️",
         _ => "¶"
     };
 
@@ -73,6 +80,7 @@ public partial class ClipboardItemViewModel : ViewModelBase
     {
         ClipboardContentType.Code => "#8b5cf6",
         ClipboardContentType.Link => "#06b6d4",
+        ClipboardContentType.Image => "#10b981",
         _ => "#3b82f6"
     };
 

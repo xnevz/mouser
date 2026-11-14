@@ -56,7 +56,12 @@ public sealed class ClipboardStorageService : IAsyncDisposable
                 html_content TEXT,
                 source_device TEXT NOT NULL,
                 is_favorite INTEGER DEFAULT 0,
-                source_app TEXT NOT NULL DEFAULT ''
+                source_app TEXT NOT NULL DEFAULT '',
+                media_path TEXT,
+                media_hash TEXT,
+                width INTEGER,
+                height INTEGER,
+                bytes INTEGER
             );
 
             CREATE INDEX IF NOT EXISTS idx_clips_timestamp ON clips(timestamp DESC);
@@ -72,28 +77,64 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         cmd.CommandText = schemaSql;
         await cmd.ExecuteNonQueryAsync();
 
-        // Migration: ensure source_app column exists in older databases
-        bool hasSourceApp = false;
+        // Migration: ensure columns exist in older databases
+        var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         using (var pragmaCmd = _connection.CreateCommand())
         {
             pragmaCmd.CommandText = "PRAGMA table_info(clips);";
             using var pragmaReader = await pragmaCmd.ExecuteReaderAsync();
             while (await pragmaReader.ReadAsync())
             {
-                var colName = pragmaReader.GetString(1);
-                if (string.Equals(colName, "source_app", StringComparison.OrdinalIgnoreCase))
-                {
-                    hasSourceApp = true;
-                    break;
-                }
+                existingColumns.Add(pragmaReader.GetString(1));
             }
         }
 
-        if (!hasSourceApp)
+        if (!existingColumns.Contains("source_app"))
         {
             using var alterCmd = _connection.CreateCommand();
             alterCmd.CommandText = "ALTER TABLE clips ADD COLUMN source_app TEXT NOT NULL DEFAULT '';";
             await alterCmd.ExecuteNonQueryAsync();
+        }
+
+        if (!existingColumns.Contains("media_path"))
+        {
+            using var alterCmd = _connection.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE clips ADD COLUMN media_path TEXT;";
+            await alterCmd.ExecuteNonQueryAsync();
+        }
+
+        if (!existingColumns.Contains("media_hash"))
+        {
+            using var alterCmd = _connection.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE clips ADD COLUMN media_hash TEXT;";
+            await alterCmd.ExecuteNonQueryAsync();
+        }
+
+        if (!existingColumns.Contains("width"))
+        {
+            using var alterCmd = _connection.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE clips ADD COLUMN width INTEGER;";
+            await alterCmd.ExecuteNonQueryAsync();
+        }
+
+        if (!existingColumns.Contains("height"))
+        {
+            using var alterCmd = _connection.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE clips ADD COLUMN height INTEGER;";
+            await alterCmd.ExecuteNonQueryAsync();
+        }
+
+        if (!existingColumns.Contains("bytes"))
+        {
+            using var alterCmd = _connection.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE clips ADD COLUMN bytes INTEGER;";
+            await alterCmd.ExecuteNonQueryAsync();
+        }
+
+        using (var idxCmd = _connection.CreateCommand())
+        {
+            idxCmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_clips_media_hash ON clips(media_hash) WHERE media_hash IS NOT NULL;";
+            await idxCmd.ExecuteNonQueryAsync();
         }
     }
 
@@ -101,32 +142,76 @@ public sealed class ClipboardStorageService : IAsyncDisposable
     {
         if (_connection == null) await InitializeAsync();
 
-        // If duplicate text was recently copied, update timestamp instead of bloating database
-        const string checkSql = "SELECT id FROM clips WHERE text_content = @text LIMIT 1;";
-        using var checkCmd = _connection!.CreateCommand();
-        checkCmd.CommandText = checkSql;
-        checkCmd.Parameters.AddWithValue("@text", payload.TextContent);
-        var existingId = await checkCmd.ExecuteScalarAsync() as string;
-
-        if (!string.IsNullOrEmpty(existingId))
+        if (payload.ContentType == ClipboardContentType.Image && !string.IsNullOrEmpty(payload.MediaHash))
         {
-            const string updateSql = "UPDATE clips SET timestamp = @time, source_device = @source, source_app = @source_app WHERE id = @id;";
-            using var updateCmd = _connection.CreateCommand();
-            updateCmd.CommandText = updateSql;
-            updateCmd.Parameters.AddWithValue("@time", payload.TimestampUtc);
-            updateCmd.Parameters.AddWithValue("@source", payload.SourceDevice);
-            updateCmd.Parameters.AddWithValue("@source_app", payload.SourceApp ?? string.Empty);
-            updateCmd.Parameters.AddWithValue("@id", existingId);
-            await updateCmd.ExecuteNonQueryAsync();
-            return false;
+            const string checkImgSql = "SELECT id, media_path FROM clips WHERE media_hash = @hash LIMIT 1;";
+            string? existingId = null;
+            string? existingMediaPath = null;
+
+            using (var checkImgCmd = _connection!.CreateCommand())
+            {
+                checkImgCmd.CommandText = checkImgSql;
+                checkImgCmd.Parameters.AddWithValue("@hash", payload.MediaHash);
+                using var reader = await checkImgCmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    existingId = reader.GetString(0);
+                    existingMediaPath = reader.IsDBNull(1) ? null : reader.GetString(1);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(existingId))
+            {
+                const string updateSql = "UPDATE clips SET timestamp = @time, source_device = @source, source_app = @source_app WHERE id = @id;";
+                using var updateCmd = _connection.CreateCommand();
+                updateCmd.CommandText = updateSql;
+                updateCmd.Parameters.AddWithValue("@time", payload.TimestampUtc);
+                updateCmd.Parameters.AddWithValue("@source", payload.SourceDevice);
+                updateCmd.Parameters.AddWithValue("@source_app", payload.SourceApp ?? string.Empty);
+                updateCmd.Parameters.AddWithValue("@id", existingId);
+                await updateCmd.ExecuteNonQueryAsync();
+
+                if (payload.MediaPath != null && payload.MediaPath != existingMediaPath && File.Exists(payload.MediaPath))
+                {
+                    try
+                    {
+                        File.Delete(payload.MediaPath);
+                    }
+                    catch (Exception) { }
+                }
+
+                return false;
+            }
+        }
+        else
+        {
+            // If duplicate text was recently copied, update timestamp instead of bloating database
+            const string checkSql = "SELECT id FROM clips WHERE text_content = @text LIMIT 1;";
+            using var checkCmd = _connection!.CreateCommand();
+            checkCmd.CommandText = checkSql;
+            checkCmd.Parameters.AddWithValue("@text", payload.TextContent);
+            var existingId = await checkCmd.ExecuteScalarAsync() as string;
+
+            if (!string.IsNullOrEmpty(existingId))
+            {
+                const string updateSql = "UPDATE clips SET timestamp = @time, source_device = @source, source_app = @source_app WHERE id = @id;";
+                using var updateCmd = _connection.CreateCommand();
+                updateCmd.CommandText = updateSql;
+                updateCmd.Parameters.AddWithValue("@time", payload.TimestampUtc);
+                updateCmd.Parameters.AddWithValue("@source", payload.SourceDevice);
+                updateCmd.Parameters.AddWithValue("@source_app", payload.SourceApp ?? string.Empty);
+                updateCmd.Parameters.AddWithValue("@id", existingId);
+                await updateCmd.ExecuteNonQueryAsync();
+                return false;
+            }
         }
 
-        using var transaction = _connection.BeginTransaction();
+        using var transaction = _connection!.BeginTransaction();
         try
         {
             const string insertClip = @"
-                INSERT INTO clips (id, timestamp, content_type, text_content, html_content, source_device, is_favorite, source_app)
-                VALUES (@id, @timestamp, @content_type, @text_content, @html_content, @source_device, @is_favorite, @source_app);";
+                INSERT INTO clips (id, timestamp, content_type, text_content, html_content, source_device, is_favorite, source_app, media_path, media_hash, width, height, bytes)
+                VALUES (@id, @timestamp, @content_type, @text_content, @html_content, @source_device, @is_favorite, @source_app, @media_path, @media_hash, @width, @height, @bytes);";
 
             using var insertCmd = _connection.CreateCommand();
             insertCmd.Transaction = transaction;
@@ -139,6 +224,11 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             insertCmd.Parameters.AddWithValue("@source_device", payload.SourceDevice);
             insertCmd.Parameters.AddWithValue("@is_favorite", payload.IsFavorite ? 1 : 0);
             insertCmd.Parameters.AddWithValue("@source_app", payload.SourceApp ?? string.Empty);
+            insertCmd.Parameters.AddWithValue("@media_path", (object?)payload.MediaPath ?? DBNull.Value);
+            insertCmd.Parameters.AddWithValue("@media_hash", (object?)payload.MediaHash ?? DBNull.Value);
+            insertCmd.Parameters.AddWithValue("@width", (object?)payload.Width ?? DBNull.Value);
+            insertCmd.Parameters.AddWithValue("@height", (object?)payload.Height ?? DBNull.Value);
+            insertCmd.Parameters.AddWithValue("@bytes", (object?)payload.MediaBytes ?? DBNull.Value);
             await insertCmd.ExecuteNonQueryAsync();
 
             const string insertFts = @"
@@ -169,7 +259,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
 
         var list = new List<ClipboardPayload>();
         string sql = $@"
-            SELECT id, timestamp, content_type, text_content, html_content, source_device, is_favorite, source_app
+            SELECT id, timestamp, content_type, text_content, html_content, source_device, is_favorite, source_app, media_path, media_hash, width, height, bytes
             FROM clips
             {(favoritesOnly ? "WHERE is_favorite = 1" : "")}
             ORDER BY timestamp DESC
@@ -202,7 +292,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         string sanitizedQuery = query.Trim().Replace("\"", "\"\"") + "*";
 
         const string sql = @"
-            SELECT c.id, c.timestamp, c.content_type, c.text_content, c.html_content, c.source_device, c.is_favorite, c.source_app
+            SELECT c.id, c.timestamp, c.content_type, c.text_content, c.html_content, c.source_device, c.is_favorite, c.source_app, c.media_path, c.media_hash, c.width, c.height, c.bytes
             FROM clips c
             JOIN clips_fts f ON c.id = f.id
             WHERE f MATCH @query
@@ -226,7 +316,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         {
             // Fallback to LIKE if query has special syntax
             const string fallbackSql = @"
-                SELECT id, timestamp, content_type, text_content, html_content, source_device, is_favorite, source_app
+                SELECT id, timestamp, content_type, text_content, html_content, source_device, is_favorite, source_app, media_path, media_hash, width, height, bytes
                 FROM clips
                 WHERE text_content LIKE @likeQuery
                 ORDER BY timestamp DESC
@@ -282,7 +372,19 @@ public sealed class ClipboardStorageService : IAsyncDisposable
     {
         if (_connection == null) await InitializeAsync();
 
-        using var transaction = _connection!.BeginTransaction();
+        string? mediaPath = null;
+        using (var selectCmd = _connection!.CreateCommand())
+        {
+            selectCmd.CommandText = "SELECT media_path FROM clips WHERE id = @id LIMIT 1;";
+            selectCmd.Parameters.AddWithValue("@id", clipId);
+            var result = await selectCmd.ExecuteScalarAsync();
+            if (result != null && result != DBNull.Value)
+            {
+                mediaPath = result as string;
+            }
+        }
+
+        using var transaction = _connection.BeginTransaction();
         foreach (var sql in new[] { "DELETE FROM clips WHERE id = @id;", "DELETE FROM clips_fts WHERE id = @id;" })
         {
             using var cmd = _connection.CreateCommand();
@@ -292,6 +394,15 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             await cmd.ExecuteNonQueryAsync();
         }
         await transaction.CommitAsync();
+
+        if (!string.IsNullOrEmpty(mediaPath) && File.Exists(mediaPath))
+        {
+            try
+            {
+                File.Delete(mediaPath);
+            }
+            catch (Exception) { }
+        }
     }
 
     /// <summary>Deletes history. Starred clips survive unless <paramref name="includeFavorites"/> is set.</summary>
@@ -300,6 +411,22 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         if (_connection == null) await InitializeAsync();
 
         string filter = includeFavorites ? "" : " WHERE is_favorite = 0";
+        var mediaPathsToDelete = new List<string>();
+
+        using (var selectCmd = _connection!.CreateCommand())
+        {
+            selectCmd.CommandText = $"SELECT media_path FROM clips{filter};";
+            using var reader = await selectCmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                if (!reader.IsDBNull(0))
+                {
+                    var p = reader.GetString(0);
+                    if (!string.IsNullOrEmpty(p)) mediaPathsToDelete.Add(p);
+                }
+            }
+        }
+
         using var transaction = _connection!.BeginTransaction();
 
         using var ftsCmd = _connection.CreateCommand();
@@ -313,20 +440,35 @@ public sealed class ClipboardStorageService : IAsyncDisposable
         int count = await cmd.ExecuteNonQueryAsync();
 
         await transaction.CommitAsync();
+
+        foreach (var path in mediaPathsToDelete)
+        {
+            if (File.Exists(path))
+            {
+                try
+                {
+                    File.Delete(path);
+                }
+                catch (Exception) { }
+            }
+        }
+
         return count;
     }
 
-    public async Task<int> PurgeClipsOlderThanAsync(int daysToKeep)
+    public Task<int> PurgeClipsOlderThanAsync(int daysToKeep) =>
+        PurgeClipsOlderThanAsync(DateTimeOffset.UtcNow.AddDays(-daysToKeep).ToUnixTimeMilliseconds());
+
+    public async Task<int> PurgeClipsOlderThanAsync(long threshold)
     {
         if (_connection == null) await InitializeAsync();
-
-        long threshold = DateTimeOffset.UtcNow.AddDays(-daysToKeep).ToUnixTimeMilliseconds();
 
         using var transaction = _connection!.BeginTransaction();
         try
         {
-            const string selectOld = "SELECT id FROM clips WHERE timestamp < @threshold AND is_favorite = 0;";
+            const string selectOld = "SELECT id, media_path FROM clips WHERE timestamp < @threshold AND is_favorite = 0;";
             var idsToDelete = new List<string>();
+            var mediaPathsToDelete = new List<string>();
 
             using (var selectCmd = _connection.CreateCommand())
             {
@@ -337,6 +479,11 @@ public sealed class ClipboardStorageService : IAsyncDisposable
                 while (await reader.ReadAsync())
                 {
                     idsToDelete.Add(reader.GetString(0));
+                    if (!reader.IsDBNull(1))
+                    {
+                        var p = reader.GetString(1);
+                        if (!string.IsNullOrEmpty(p)) mediaPathsToDelete.Add(p);
+                    }
                 }
             }
 
@@ -359,6 +506,19 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             }
 
             await transaction.CommitAsync();
+
+            foreach (var path in mediaPathsToDelete)
+            {
+                if (File.Exists(path))
+                {
+                    try
+                    {
+                        File.Delete(path);
+                    }
+                    catch (Exception) { }
+                }
+            }
+
             return count;
         }
         catch
@@ -370,7 +530,7 @@ public sealed class ClipboardStorageService : IAsyncDisposable
 
     private static ClipboardPayload ReadPayload(SqliteDataReader reader)
     {
-        return new ClipboardPayload
+        var payload = new ClipboardPayload
         {
             Id = reader.GetString(0),
             TimestampUtc = reader.GetInt64(1),
@@ -381,6 +541,14 @@ public sealed class ClipboardStorageService : IAsyncDisposable
             IsFavorite = reader.GetInt64(6) == 1,
             SourceApp = reader.FieldCount > 7 && !reader.IsDBNull(7) ? reader.GetString(7) : string.Empty
         };
+
+        if (reader.FieldCount > 8 && !reader.IsDBNull(8)) payload.MediaPath = reader.GetString(8);
+        if (reader.FieldCount > 9 && !reader.IsDBNull(9)) payload.MediaHash = reader.GetString(9);
+        if (reader.FieldCount > 10 && !reader.IsDBNull(10)) payload.Width = reader.GetInt32(10);
+        if (reader.FieldCount > 11 && !reader.IsDBNull(11)) payload.Height = reader.GetInt32(11);
+        if (reader.FieldCount > 12 && !reader.IsDBNull(12)) payload.MediaBytes = reader.GetInt64(12);
+
+        return payload;
     }
 
     public async ValueTask DisposeAsync()
