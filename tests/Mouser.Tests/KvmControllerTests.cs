@@ -5,6 +5,7 @@ using Mouser.Core.Kvm;
 using Mouser.Core.Networking;
 using Mouser.Core.Services;
 using Mouser.UI.Services;
+using Mouser.UI.ViewModels;
 
 namespace Mouser.Tests;
 
@@ -560,5 +561,96 @@ public class KvmControllerTests
         using var host = new MouserHost(new SettingsStore(), new RecordingSink(), capture);
         Assert.False(host.JumpTo("nonexistent"));
         Assert.False(host.JumpNext());
+    }
+
+    [Fact]
+    public async Task MotionScaler_ScalesMouseMovements_AccordingToPeerMouseSpeed()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        rig.Kvm.SetPeerMotion("peer", mouseSpeed: 2.0, scrollSpeed: 1.0, invertScroll: false);
+        rig.CrossRight();
+
+        // Entered at -1280, 720
+        Assert.Equal(new[] { "at -1280,720" }, await rig.PeerEventsAsync(1));
+
+        // Move 50, 20 with speed 2.0 -> dx: 100, dy: 40 -> -1280 + 100 = -1180, 720 + 40 = 760
+        Assert.True(rig.Capture.Move(960, 540, 50, 20));
+
+        var events = await rig.PeerEventsAsync(2);
+        Assert.Equal("at -1180,760", events[1]);
+    }
+
+    [Fact]
+    public async Task MotionScaler_ScalesScrollAndInvertsScroll_AccordingToPeerSettings()
+    {
+        await using var rig = await KvmRig.CreateAsync();
+        rig.Kvm.SetPeerMotion("peer", mouseSpeed: 1.0, scrollSpeed: 0.5, invertScroll: true);
+        rig.CrossRight();
+
+        Assert.Equal(new[] { "at -1280,720" }, await rig.PeerEventsAsync(1));
+
+        // Wheel 0, -120 with scroll speed 0.5 and invert -> dy: -60 -> inverted: +60
+        Assert.True(rig.Capture.Wheel(0, -120));
+
+        var events = await rig.PeerEventsAsync(2);
+        Assert.Equal("scroll 0,60", events[1]);
+    }
+
+    [Fact]
+    public void SettingsStore_ClampsPeerMotionSettings()
+    {
+        string tmp = Path.Combine(Path.GetTempPath(), $"mouser_peer_motion_{Guid.NewGuid():N}.json");
+        try
+        {
+            var store = new SettingsStore(tmp);
+            store.Current.Peers["test"] = new PeerSettings
+            {
+                MouseSpeed = 10.0,
+                ScrollSpeed = 0.05,
+                InvertScroll = true
+            };
+            store.Save();
+
+            var loaded = new SettingsStore(tmp);
+            Assert.True(loaded.Current.Peers.TryGetValue("test", out var peer));
+            Assert.Equal(4.0, peer.MouseSpeed);
+            Assert.Equal(0.25, peer.ScrollSpeed);
+            Assert.True(peer.InvertScroll);
+        }
+        finally
+        {
+            if (File.Exists(tmp)) File.Delete(tmp);
+        }
+    }
+
+    [Fact]
+    public void DeviceDetailViewModel_UpdatesMotionSettings_AndNotifiesHost()
+    {
+        string tmp = Path.Combine(Path.GetTempPath(), $"mouser_device_detail_{Guid.NewGuid():N}.json");
+        try
+        {
+            var store = new SettingsStore(tmp);
+            using var capture = new FakeCapture();
+            using var host = new MouserHost(store, new RecordingSink(), capture);
+
+            var vm = new DeviceDetailViewModel("dev1", DeviceKind.Computer, store, host);
+            Assert.Equal(1.0, vm.MouseSpeed);
+            Assert.Equal(1.0, vm.ScrollSpeed);
+            Assert.False(vm.InvertScroll);
+
+            vm.MouseSpeed = 1.75;
+            vm.ScrollSpeed = 2.5;
+            vm.InvertScroll = true;
+
+            var reloaded = new SettingsStore(tmp);
+            Assert.True(reloaded.Current.Peers.TryGetValue("dev1", out var peer));
+            Assert.Equal(1.75, peer.MouseSpeed);
+            Assert.Equal(2.5, peer.ScrollSpeed);
+            Assert.True(peer.InvertScroll);
+        }
+        finally
+        {
+            if (File.Exists(tmp)) File.Delete(tmp);
+        }
     }
 }

@@ -102,6 +102,9 @@ public sealed class PeerSettings
     public bool SendClipboard { get; set; } = true;
     public bool ReceiveClipboard { get; set; } = true;
     public bool SendFiles { get; set; } = true;
+    public double MouseSpeed { get; set; } = 1.0;
+    public double ScrollSpeed { get; set; } = 1.0;
+    public bool InvertScroll { get; set; }
 }
 
 /// <summary>Loads and saves <see cref="AppSettings"/> as JSON in the per-user data folder.</summary>
@@ -139,6 +142,11 @@ public sealed class SettingsStore
             var rawJson = File.ReadAllText(FilePath);
             var settings = JsonSerializer.Deserialize<AppSettings>(rawJson, JsonOptions) ?? new AppSettings();
             settings.Peers ??= new();
+            foreach (var peer in settings.Peers.Values)
+            {
+                peer.MouseSpeed = Math.Clamp(peer.MouseSpeed, 0.25, 4.0);
+                peer.ScrollSpeed = Math.Clamp(peer.ScrollSpeed, 0.25, 4.0);
+            }
             settings.ManualPeers ??= new();
             settings.IgnoredApps ??= new() { "keepass", "keepassxc", "1password", "bitwarden", "lastpass", "dashlane", "enpass" };
             if (string.IsNullOrWhiteSpace(settings.DeviceName)) settings.DeviceName = Environment.MachineName;

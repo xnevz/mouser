@@ -83,7 +83,7 @@ public partial class DevicesViewModel : ViewModelBase
             var placement = saved?.Placement ?? PeerPlacement.None;
             if (existing == null)
             {
-                existing = new DeviceDetailViewModel(peer.DeviceId, DeviceKind.Computer, _settings)
+                existing = new DeviceDetailViewModel(peer.DeviceId, DeviceKind.Computer, _settings, _host)
                 {
                     Name = peer.Hostname,
                     IpAddress = peer.IpAddress.ToString(),
@@ -109,6 +109,9 @@ public partial class DevicesViewModel : ViewModelBase
                     existing.SendClipboard = saved.SendClipboard;
                     existing.ReceiveClipboard = saved.ReceiveClipboard;
                     existing.SendFiles = saved.SendFiles;
+                    existing.MouseSpeed = saved.MouseSpeed;
+                    existing.ScrollSpeed = saved.ScrollSpeed;
+                    existing.InvertScroll = saved.InvertScroll;
                 }
             }
         }
@@ -123,7 +126,7 @@ public partial class DevicesViewModel : ViewModelBase
                 string name = string.IsNullOrEmpty(peerSettings.Name) ? id : peerSettings.Name;
                 if (existing == null)
                 {
-                    existing = new DeviceDetailViewModel(id, DeviceKind.Computer, _settings)
+                    existing = new DeviceDetailViewModel(id, DeviceKind.Computer, _settings, _host)
                     {
                         Name = name,
                         IsOnline = false,
@@ -132,7 +135,10 @@ public partial class DevicesViewModel : ViewModelBase
                         StatusText = "Offline",
                         SendClipboard = peerSettings.SendClipboard,
                         ReceiveClipboard = peerSettings.ReceiveClipboard,
-                        SendFiles = peerSettings.SendFiles
+                        SendFiles = peerSettings.SendFiles,
+                        MouseSpeed = peerSettings.MouseSpeed,
+                        ScrollSpeed = peerSettings.ScrollSpeed,
+                        InvertScroll = peerSettings.InvertScroll
                     };
                     Devices.Add(existing);
                 }
@@ -146,6 +152,9 @@ public partial class DevicesViewModel : ViewModelBase
                     existing.SendClipboard = peerSettings.SendClipboard;
                     existing.ReceiveClipboard = peerSettings.ReceiveClipboard;
                     existing.SendFiles = peerSettings.SendFiles;
+                    existing.MouseSpeed = peerSettings.MouseSpeed;
+                    existing.ScrollSpeed = peerSettings.ScrollSpeed;
+                    existing.InvertScroll = peerSettings.InvertScroll;
                 }
             }
         }

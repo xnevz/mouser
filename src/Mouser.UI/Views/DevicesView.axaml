@@ -244,7 +244,45 @@
 
                                         <!-- Advanced Expander -->
                                         <Expander Header="Advanced" IsExpanded="False" Margin="0,8,0,0">
-                                            <StackPanel Spacing="8" Margin="0,8,0,0">
+                                            <StackPanel Spacing="12" Margin="0,8,0,0">
+                                                <!-- Mouse speed -->
+                                                <StackPanel Spacing="4">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <TextBlock Classes="section-title" FontSize="13" Text="Mouse speed" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding MouseSpeed, StringFormat='{}{0:0.00}x'}"
+                                                                   Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" FontSize="13" />
+                                                    </Grid>
+                                                    <Slider Minimum="0.25" Maximum="4.0" TickFrequency="0.25" IsSnapToTickEnabled="True"
+                                                            Value="{Binding MouseSpeed}"
+                                                            ToolTip.Tip="Mouse pointer speed on this computer" />
+                                                </StackPanel>
+
+                                                <!-- Scroll speed -->
+                                                <StackPanel Spacing="4">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <TextBlock Classes="section-title" FontSize="13" Text="Scroll speed" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding ScrollSpeed, StringFormat='{}{0:0.00}x'}"
+                                                                   Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" FontSize="13" />
+                                                    </Grid>
+                                                    <Slider Minimum="0.25" Maximum="4.0" TickFrequency="0.25" IsSnapToTickEnabled="True"
+                                                            Value="{Binding ScrollSpeed}"
+                                                            ToolTip.Tip="Scroll wheel speed on this computer" />
+                                                </StackPanel>
+
+                                                <!-- Reverse scroll direction -->
+                                                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock Classes="section-title" FontSize="13" Text="Reverse scroll direction" />
+                                                        <TextBlock Classes="hint" Text="Invert the scroll wheel direction for this computer." />
+                                                    </StackPanel>
+                                                    <ToggleSwitch Grid.Column="1"
+                                                                  IsChecked="{Binding InvertScroll}"
+                                                                  OnContent="" OffContent=""
+                                                                  ToolTip.Tip="Reverse scroll direction on this computer" />
+                                                </Grid>
+
+                                                <Separator Background="{DynamicResource BorderSubtle}" />
+
                                                 <StackPanel Spacing="2">
                                                     <TextBlock Classes="label" Text="SCREEN RESOLUTION" />
                                                     <TextBlock Text="{Binding ScreenText}" Foreground="{DynamicResource TextPrimary}" />

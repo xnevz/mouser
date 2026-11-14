@@ -18,12 +18,23 @@ public sealed class KvmController : IDisposable
     public static readonly TimeSpan WatchdogInterval = TimeSpan.FromMilliseconds(250);
 
 
-    private sealed record Peer(string Id, string Name, PeerLink Link, ScreenBounds Remote, PeerPlacement Placement, ScreenBounds Placed);
+    private sealed record Peer(
+        string Id,
+        string Name,
+        PeerLink Link,
+        ScreenBounds Remote,
+        PeerPlacement Placement,
+        ScreenBounds Placed,
+        MotionScaler MouseXScaler,
+        MotionScaler MouseYScaler,
+        MotionScaler VScrollScaler,
+        MotionScaler HScrollScaler);
 
     private readonly IInputCapture _capture;
     private readonly VirtualKvmManager _edges = new();
     private readonly object _lock = new();
     private readonly Dictionary<string, Peer> _peers = new();
+    private readonly Dictionary<string, (double MouseSpeed, double ScrollSpeed, bool InvertScroll)> _peerMotions = new();
     private readonly HashSet<ushort> _physicalKeys = new();
     private readonly HashSet<ushort> _remoteKeys = new();
     private byte _remoteButtons;
@@ -127,12 +138,40 @@ public sealed class KvmController : IDisposable
         RaiseIfDirty();
     }
 
+    public void SetPeer(string id, string name, PeerLink link, ScreenBounds remoteDesktop, PeerPlacement placement, double mouseSpeed, double scrollSpeed, bool invertScroll)
+    {
+        lock (_lock)
+        {
+            _peerMotions[id] = (mouseSpeed, scrollSpeed, invertScroll);
+            SetPeerLocked(id, name, link, remoteDesktop, placement);
+        }
+        RaiseIfDirty();
+    }
+
+    public void SetPeerMotion(string peerId, double mouseSpeed, double scrollSpeed, bool invertScroll)
+    {
+        lock (_lock)
+        {
+            _peerMotions[peerId] = (mouseSpeed, scrollSpeed, invertScroll);
+            if (_peers.TryGetValue(peerId, out var peer))
+            {
+                peer.MouseXScaler.Speed = mouseSpeed;
+                peer.MouseYScaler.Speed = mouseSpeed;
+                peer.VScrollScaler.Speed = scrollSpeed;
+                peer.VScrollScaler.Invert = invertScroll;
+                peer.HScrollScaler.Speed = scrollSpeed;
+                peer.HScrollScaler.Invert = invertScroll;
+            }
+        }
+    }
+
     public void RemovePeer(string id)
     {
         lock (_lock)
         {
             if (_active?.Id == id) ReturnToLocal(null);
             _peers.Remove(id);
+            _peerMotions.Remove(id);
             _edges.RemoveRemoteScreen(id);
         }
         RaiseIfDirty();
@@ -156,6 +195,10 @@ public sealed class KvmController : IDisposable
             if (_active?.Id == peerId) return true;
             if (_active != null) ReturnToLocal(null);
             _active = peer;
+            peer.MouseXScaler.Reset();
+            peer.MouseYScaler.Reset();
+            peer.VScrollScaler.Reset();
+            peer.HScrollScaler.Reset();
             _virtualX = (int)(peer.Remote.X + peer.Remote.Width / 2);
             _virtualY = (int)(peer.Remote.Y + peer.Remote.Height / 2);
             peer.Link.Send(InputMotionPacket.TypeMoveAbsolute, ClampShort(_virtualX), ClampShort(_virtualY));
@@ -217,7 +260,20 @@ public sealed class KvmController : IDisposable
         if (placement == PeerPlacement.None || _local == null || remote.Width <= 0 || remote.Height <= 0) return;
 
         var placed = Place(_local, remote, placement) with { HostId = id, Hostname = name };
-        var updated = new Peer(id, name, link, remote, placement, placed);
+        var mouseX = existing?.MouseXScaler ?? new MotionScaler();
+        var mouseY = existing?.MouseYScaler ?? new MotionScaler();
+        var vscroll = existing?.VScrollScaler ?? new MotionScaler();
+        var hscroll = existing?.HScrollScaler ?? new MotionScaler();
+        if (_peerMotions.TryGetValue(id, out var motion))
+        {
+            mouseX.Speed = motion.MouseSpeed;
+            mouseY.Speed = motion.MouseSpeed;
+            vscroll.Speed = motion.ScrollSpeed;
+            vscroll.Invert = motion.InvertScroll;
+            hscroll.Speed = motion.ScrollSpeed;
+            hscroll.Invert = motion.InvertScroll;
+        }
+        var updated = new Peer(id, name, link, remote, placement, placed, mouseX, mouseY, vscroll, hscroll);
         _peers[id] = updated;
         _edges.AddRemoteScreen(placed);
         if (_active?.Id == id) _active = updated;
@@ -369,8 +425,8 @@ public sealed class KvmController : IDisposable
         switch (e.Kind)
         {
             case CaptureKind.Move:
-                _virtualX += e.Dx;
-                _virtualY += e.Dy;
+                _virtualX += _active.MouseXScaler.Apply(e.Dx);
+                _virtualY += _active.MouseYScaler.Apply(e.Dy);
                 if (LeftThroughReturnEdge(out int localX, out int localY))
                 {
                     ReturnToLocal((localX, localY));
@@ -393,7 +449,9 @@ public sealed class KvmController : IDisposable
             }
 
             case CaptureKind.Wheel:
-                link.Send(InputMotionPacket.TypeScroll, ClampShort(e.Dx), ClampShort(e.Dy));
+                int dy = _active.VScrollScaler.Apply(e.Dy);
+                int dx = _active.HScrollScaler.Apply(e.Dx);
+                link.Send(InputMotionPacket.TypeScroll, ClampShort(dx), ClampShort(dy));
                 return true;
 
             case CaptureKind.Key:
@@ -435,6 +493,10 @@ public sealed class KvmController : IDisposable
         }
 
         _active = peer;
+        peer.MouseXScaler.Reset();
+        peer.MouseYScaler.Reset();
+        peer.VScrollScaler.Reset();
+        peer.HScrollScaler.Reset();
         _virtualX = (int)Math.Clamp(e.EntryX - peer.Placed.X + peer.Remote.X, peer.Remote.X, peer.Remote.Right - 1);
         _virtualY = (int)Math.Clamp(e.EntryY - peer.Placed.Y + peer.Remote.Y, peer.Remote.Y, peer.Remote.Bottom - 1);
         peer.Link.Send(InputMotionPacket.TypeMoveAbsolute, ClampShort(_virtualX), ClampShort(_virtualY));
@@ -453,6 +515,10 @@ public sealed class KvmController : IDisposable
         _remoteButtons = 0;
         _remoteKeys.Clear();
 
+        peer.MouseXScaler.Reset();
+        peer.MouseYScaler.Reset();
+        peer.VScrollScaler.Reset();
+        peer.HScrollScaler.Reset();
         _active = null;
         _edges.SwitchBackToLocal();
         if (cursor is { } c) _capture.WarpCursor(c.X, c.Y);

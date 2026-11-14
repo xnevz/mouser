@@ -424,6 +424,21 @@ public sealed class MouserHost : IDisposable
         SyncPeers();
     }
 
+    public void SetPeerMotion(string peerId, double mouseSpeed, double scrollSpeed, bool invert)
+    {
+        if (!_settings.Current.Peers.TryGetValue(peerId, out var saved))
+        {
+            var p = Peers.FirstOrDefault(x => x.DeviceId == peerId);
+            saved = new PeerSettings { Name = p?.Hostname ?? peerId };
+            _settings.Current.Peers[peerId] = saved;
+        }
+        saved.MouseSpeed = mouseSpeed;
+        saved.ScrollSpeed = scrollSpeed;
+        saved.InvertScroll = invert;
+        _settings.Save();
+        Kvm?.SetPeerMotion(peerId, mouseSpeed, scrollSpeed, invert);
+    }
+
     public void ForgetPeer(string deviceId)
     {
         _settings.Current.Peers.Remove(deviceId);
@@ -516,7 +531,8 @@ public sealed class MouserHost : IDisposable
             }
 
             var bounds = new ScreenBounds { X = peer.ScreenX, Y = peer.ScreenY, Width = peer.ScreenWidth, Height = peer.ScreenHeight };
-            Kvm?.SetPeer(id, peer.Hostname, link, bounds, link.IsPaired ? saved.Placement : PeerPlacement.None);
+            Kvm?.SetPeer(id, peer.Hostname, link, bounds, link.IsPaired ? saved.Placement : PeerPlacement.None,
+                saved.MouseSpeed, saved.ScrollSpeed, saved.InvertScroll);
         }
 
         UpdateKvmRunning();

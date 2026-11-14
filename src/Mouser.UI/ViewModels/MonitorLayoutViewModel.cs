@@ -43,6 +43,10 @@ public partial class PeerViewModel : ViewModelBase
     [ObservableProperty] private bool _receiveClipboard = true;
     [ObservableProperty] private bool _sendFiles = true;
 
+    [ObservableProperty] private double _mouseSpeed = 1.0;
+    [ObservableProperty] private double _scrollSpeed = 1.0;
+    [ObservableProperty] private bool _invertScroll;
+
     public bool IsPaired => Status is PeerLinkStatus.Paired;
     public bool NeedsPin => Status is PeerLinkStatus.NotPaired;
 
@@ -91,6 +95,9 @@ public partial class PeerViewModel : ViewModelBase
             SendClipboard = s.SendClipboard;
             ReceiveClipboard = s.ReceiveClipboard;
             SendFiles = s.SendFiles;
+            MouseSpeed = s.MouseSpeed;
+            ScrollSpeed = s.ScrollSpeed;
+            InvertScroll = s.InvertScroll;
         }
     }
 
@@ -108,6 +115,9 @@ public partial class PeerViewModel : ViewModelBase
         OnPropertyChanged(nameof(SendClipboard));
         OnPropertyChanged(nameof(ReceiveClipboard));
         OnPropertyChanged(nameof(SendFiles));
+        OnPropertyChanged(nameof(MouseSpeed));
+        OnPropertyChanged(nameof(ScrollSpeed));
+        OnPropertyChanged(nameof(InvertScroll));
     }
 
     partial void OnPlacementChanged(PeerPlacement value)
@@ -146,6 +156,42 @@ public partial class PeerViewModel : ViewModelBase
         {
             peer.SendFiles = value;
             _owner.Settings.Save();
+        }
+    }
+
+    partial void OnMouseSpeedChanged(double value)
+    {
+        if (_updating || _owner.Settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (Math.Abs(peer.MouseSpeed - value) > 0.0001)
+        {
+            peer.MouseSpeed = value;
+            _owner.Settings.Save();
+            _owner.Host?.SetPeerMotion(Id, peer.MouseSpeed, peer.ScrollSpeed, peer.InvertScroll);
+        }
+    }
+
+    partial void OnScrollSpeedChanged(double value)
+    {
+        if (_updating || _owner.Settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (Math.Abs(peer.ScrollSpeed - value) > 0.0001)
+        {
+            peer.ScrollSpeed = value;
+            _owner.Settings.Save();
+            _owner.Host?.SetPeerMotion(Id, peer.MouseSpeed, peer.ScrollSpeed, peer.InvertScroll);
+        }
+    }
+
+    partial void OnInvertScrollChanged(bool value)
+    {
+        if (_updating || _owner.Settings == null) return;
+        var peer = GetOrCreatePeerSettings();
+        if (peer.InvertScroll != value)
+        {
+            peer.InvertScroll = value;
+            _owner.Settings.Save();
+            _owner.Host?.SetPeerMotion(Id, peer.MouseSpeed, peer.ScrollSpeed, peer.InvertScroll);
         }
     }
 
@@ -206,6 +252,7 @@ public partial class MonitorLayoutViewModel : ViewModelBase
         Settings = settings;
     }
 
+    internal MouserHost? Host => _host;
     internal SettingsStore? Settings { get; }
 
     /// <summary>The bounding box of all local monitors, or null before the window knows them.</summary>
