@@ -208,7 +208,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 ### Track Q: Quality, docs, website ([H-platform-and-quality.md](roadmap/tasks/H-platform-and-quality.md))
 | Status | ID | Task | Needs | Size |
 | :-: | :-: | :--- | :--- | :-: |
-| ⬜ | Q1 | Headless Avalonia UI tests (both themes) | B9 | M |
+| ✅ | Q1 | Headless Avalonia UI tests (both themes) | B9 | M |
 | ⬜ | Q2 | Extend CI (web job, release build, UI snapshots) | Q1 | S |
 | ⬜ | Q3 | Two-instance integration scenarios | B10 | M |
 | ⬜ | Q4 | Performance budget tests | – | M |
@@ -315,3 +315,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - A14: Replaced raw hex in globals.css with CSS variables matching Tokens.axaml (--bg-app, --bg-surface, --text-primary, --text-muted, --accent, etc.); extended ThemeContext with 'system' mode following prefers-color-scheme live; updated ThemeToggle to cycle System -> Light -> Dark with accessible aria-labels and Monitor/Sun/Moon icons; updated InteractiveMouseFollower to use resolvedTheme; verified npm run lint and npm run build pass cleanly.
 - C5: Replaced Microsoft.Data.Sqlite with Microsoft.Data.Sqlite.Core + SQLitePCLRaw.bundle_e_sqlcipher (2.1.10); initialized Batteries_V2 in static constructor; added optional key parameter and PRAGMA key = "x'{hex}'" on database open; implemented automatic plaintext to encrypted migration using ATTACH DATABASE, sqlcipher_export('enc'), file swap, and .bak cleanup; wired storage lifecycle in App.axaml.cs to open on unlock with appLock.MasterKey, dispose and clear connection pools on lock; wired SettingsViewModel to migrate database on passphrase setup; added 4 unit tests in EncryptedStorageTests (55 passing across Clipboard and EncryptedStorage).
 - H4: Implemented FileLogger with thread-safe timestamped appending, daily log files, 2 MB rollover, and 7-file retention; implemented CrashReporter handling AppDomain.UnhandledException, TaskScheduler.UnobservedTaskException, and Dispatcher.UIThread.UnhandledException with secret/key/clipboard sanitization and toast notifications; added 'Open log folder' button to ActivityView and ActivityViewModel using dynamic theme tokens; added 6 unit tests in DiagnosticsLogTests (6 passing).
+- Q1: Configured Avalonia.Headless.XUnit (12.1.6) with TestAppBuilder using UseSkia and AvaloniaHeadlessPlatformOptions; implemented HeadlessUiTests with [AvaloniaFact] verifying tab navigation ("SmartClipboard", "DisplayMatrix", "Settings", "Activity", "Snippets", "AndroidRemote", "Devices") resolves valid views without "Not Found:" fallbacks, and rendering non-blank frames across ThemeVariant.Light and Dark with PNG snapshot generation in bin/ui-snapshots/.
