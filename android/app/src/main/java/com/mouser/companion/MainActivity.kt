@@ -67,7 +67,29 @@ class MainActivity : FragmentActivity() {
                                 isAppLockEnabled = isAppLockEnabled,
                                 onToggleAppLock = viewModel::setAppLockEnabled,
                                 onConnect = viewModel::connect,
-                                onDisconnect = viewModel::disconnect
+                                onDisconnect = viewModel::disconnect,
+                                onSendClipboard = {
+                                    val cm = getSystemService(CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                    val clipText = cm?.primaryClip?.getItemAt(0)?.text?.toString()
+                                    if (clipText.isNullOrEmpty()) {
+                                        android.widget.Toast.makeText(this@MainActivity, "Clipboard is empty", android.widget.Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        viewModel.sendClipboardToHost(clipText) { _, msg ->
+                                            android.widget.Toast.makeText(this@MainActivity, msg, android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                },
+                                onGetClipboard = {
+                                    viewModel.getClipboardFromHost { success, result ->
+                                        if (success) {
+                                            val cm = getSystemService(CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                            cm?.setPrimaryClip(android.content.ClipData.newPlainText("Mouser", result))
+                                            android.widget.Toast.makeText(this@MainActivity, "Copied from PC", android.widget.Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            android.widget.Toast.makeText(this@MainActivity, result, android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
                             )
                         },
                         bottomBar = {

@@ -142,6 +142,7 @@ public partial class App : Application
             }
 
             var vm = new MainViewModel(_host, settings, _clipboardStorage, appLock: appLock);
+            _host.LatestClipProvider = () => vm.ClipboardHistory.FilteredClips.FirstOrDefault()?.Payload;
             vm.EnsureWindowVisible = () => Dispatcher.UIThread.Post(ShowMainWindow);
             _clipboardWatcher = new ClipboardWatcher();
             _clipboardWatcher.Changed += () => Dispatcher.UIThread.Post(async () =>

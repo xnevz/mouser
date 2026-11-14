@@ -18,6 +18,7 @@ public sealed record FileClipItemInfo(string Path, string Name, string SizeOrTyp
 public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
 {
     private readonly ClipboardPayload _payload;
+    public ClipboardPayload Payload => _payload;
     private Bitmap? _thumbnail;
     private bool _thumbnailLoaded;
     private Bitmap? _previewImage;

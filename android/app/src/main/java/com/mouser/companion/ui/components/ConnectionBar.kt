@@ -8,7 +8,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.SettingsEthernet
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,6 +40,8 @@ fun ConnectionBar(
     onConnect: (HostTarget) -> Unit,
     onDisconnect: () -> Unit,
     onConfirmCode: () -> Unit = {},
+    onSendClipboard: (() -> Unit)? = null,
+    onGetClipboard: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showHosts by remember { mutableStateOf(connectionState is HostConnectionState.Disconnected) }
@@ -73,6 +77,22 @@ fun ConnectionBar(
                 Text("Mouser", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                 Box(modifier = Modifier.size(8.dp).background(statusColor, CircleShape))
                 Text(statusText, style = MaterialTheme.typography.labelSmall, color = statusColor, maxLines = 1)
+            }
+            if (connectionState is HostConnectionState.Connected) {
+                IconButton(onClick = { onSendClipboard?.invoke() }) {
+                    Icon(
+                        Icons.Default.Upload,
+                        contentDescription = "Send phone clipboard to PC",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                IconButton(onClick = { onGetClipboard?.invoke() }) {
+                    Icon(
+                        Icons.Default.Download,
+                        contentDescription = "Get PC clipboard",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
             IconButton(onClick = { showHosts = true }) {
                 Icon(Icons.Default.SettingsEthernet, contentDescription = "Choose computer", tint = MaterialTheme.colorScheme.onSurfaceVariant)

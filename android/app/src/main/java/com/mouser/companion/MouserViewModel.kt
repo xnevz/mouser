@@ -15,6 +15,10 @@ import com.mouser.companion.sensors.GyroAirMouse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import com.mouser.companion.network.ClipboardBridge
 
 enum class AppNavigationTab {
     TRACKPAD,
@@ -165,6 +169,80 @@ class MouserViewModel(application: Application) : AndroidViewModel(application) 
             when (action) {
                 is com.mouser.companion.model.Action.Backspace -> connection.tapKey(com.mouser.companion.model.VirtualKey.BACK)
                 is com.mouser.companion.model.Action.CharUnit -> connection.typeChar(action.char)
+            }
+        }
+    }
+
+    fun sendClipboardToHost(text: String, onComplete: (Boolean, String) -> Unit) {
+        val state = connectionState.value
+        if (state !is HostConnectionState.Connected) {
+            onComplete(false, "Not connected")
+            return
+        }
+        val target = state.target
+        val savedHex = prefs.getString("pairkey:${target.targetKey}", null)
+        val pairKey = savedHex?.chunked(2)?.map { it.toInt(16).toByte() }?.toByteArray()
+        if (pairKey == null) {
+            onComplete(false, "Not paired")
+            return
+        }
+        val ownDeviceId = prefs.getString("own.deviceId", null) ?: "android-phone"
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                ClipboardBridge.sendClip(
+                    hostAddress = target.address,
+                    controlPort = target.controlPort,
+                    pairKey = pairKey,
+                    ownDeviceId = ownDeviceId,
+                    text = text,
+                    deviceName = android.os.Build.MODEL ?: "Android Phone"
+                )
+                withContext(Dispatchers.Main) {
+                    onComplete(true, "Sent to ${target.hostName}")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "Failed to send: ${e.message}")
+                }
+            }
+        }
+    }
+
+    fun getClipboardFromHost(onComplete: (Boolean, String) -> Unit) {
+        val state = connectionState.value
+        if (state !is HostConnectionState.Connected) {
+            onComplete(false, "Not connected")
+            return
+        }
+        val target = state.target
+        val savedHex = prefs.getString("pairkey:${target.targetKey}", null)
+        val pairKey = savedHex?.chunked(2)?.map { it.toInt(16).toByte() }?.toByteArray()
+        if (pairKey == null) {
+            onComplete(false, "Not paired")
+            return
+        }
+        val ownDeviceId = prefs.getString("own.deviceId", null) ?: "android-phone"
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val clip = ClipboardBridge.requestClip(
+                    hostAddress = target.address,
+                    controlPort = target.controlPort,
+                    pairKey = pairKey,
+                    ownDeviceId = ownDeviceId
+                )
+                withContext(Dispatchers.Main) {
+                    if (clip != null) {
+                        onComplete(true, clip)
+                    } else {
+                        onComplete(false, "No clipboard content on ${target.hostName}")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "Failed to get clipboard: ${e.message}")
+                }
             }
         }
     }

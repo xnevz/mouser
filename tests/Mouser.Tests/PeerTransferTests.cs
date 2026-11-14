@@ -39,6 +39,22 @@ public sealed class PeerTransferTests : IDisposable
     }
 
     [Fact]
+    public async Task ClipRequest_ReturnsLatestClip_WhenConfigured()
+    {
+        _b.GetLatestClip = () => new ClipboardPayload
+        {
+            TextContent = "desktop clip content",
+            SourceDevice = "device-b"
+        };
+
+        var clip = await _a.RequestClipAsync(B, _pairKey);
+
+        Assert.NotNull(clip);
+        Assert.Equal("desktop clip content", clip!.TextContent);
+        Assert.Equal("device-b", clip.SourceDevice);
+    }
+
+    [Fact]
     public async Task Clip_WithTheWrongKey_IsDropped()
     {
         bool received = false;

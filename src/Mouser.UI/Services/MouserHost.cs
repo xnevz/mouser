@@ -58,6 +58,9 @@ public sealed class MouserHost : IDisposable
     /// <summary>Raised when an incoming file transfer requires user confirmation (senderId, peerName, fileName, totalBytes) -> bool accepted.</summary>
     public Func<string, string, string, long, Task<bool>>? IncomingFilePromptHandler { get; set; }
 
+    /// <summary>Provider for the latest local clipboard payload to answer remote clip requests.</summary>
+    public Func<ClipboardPayload?>? LatestClipProvider { get; set; }
+
     /// <summary>An incoming pairing request arrived (peerDeviceName, confirmationCode, allow, deny).</summary>
     public event Action<string, string, Action, Action>? PairingRequested;
 
@@ -267,7 +270,8 @@ public sealed class MouserHost : IDisposable
         {
             var transfer = new PeerTransferService(_settings.Current.DeviceId, ReceiveKeys, _downloadDirectory, port, _settings.Current.DeviceName, bindAddress)
             {
-                LocalNetworkOnly = _settings.Current.LocalNetworkOnly
+                LocalNetworkOnly = _settings.Current.LocalNetworkOnly,
+                GetLatestClip = () => LatestClipProvider?.Invoke()
             };
             transfer.MaxIncomingBytes = (long)_settings.Current.MaxIncomingFileMB * 1024 * 1024;
             transfer.BlockedExtensions.Clear();

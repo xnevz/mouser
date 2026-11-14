@@ -52,7 +52,8 @@ public sealed class PeerTransferService : IDisposable
         PairRequest = 8,
         PairResponse = 9,
         PairRefused = 10,
-        PairConfirm = 11
+        PairConfirm = 11,
+        ClipRequest = 12
     }
 
     private static readonly ConcurrentDictionary<(int, string), byte[]> KeyCache = new();
@@ -68,6 +69,7 @@ public sealed class PeerTransferService : IDisposable
 
     public int BoundPort => ((IPEndPoint)_listener.LocalEndpoint).Port;
     public PairingRateLimiter RateLimiter => _rateLimiter;
+    public Func<ClipboardPayload?>? GetLatestClip { get; set; }
 
     /// <summary>A clip arrived from a paired computer (sender device id, clip).</summary>
     public event Action<string, ClipboardPayload>? ClipReceived;
@@ -133,6 +135,20 @@ public sealed class PeerTransferService : IDisposable
         await client.ConnectAsync(target, ct);
         await using var stream = client.GetStream();
         await WriteFrameAsync(stream, FrameType.Clip, key, clip.Serialize(), ct);
+    }
+
+    public async Task<ClipboardPayload?> RequestClipAsync(IPEndPoint target, byte[] key, CancellationToken ct = default)
+    {
+        using var client = new TcpClient();
+        await client.ConnectAsync(target, ct);
+        await using var stream = client.GetStream();
+        await WriteFrameAsync(stream, FrameType.ClipRequest, key, Array.Empty<byte>(), ct);
+        var reply = await ReadFrameAsync(stream, target.Address, key, ct);
+        if (reply is { Type: FrameType.Clip } clipFrame)
+        {
+            return ClipboardPayload.Deserialize(clipFrame.Body);
+        }
+        return null;
     }
 
     public async Task SendHelloAsync(IPEndPoint target, byte[] key, CancellationToken ct = default)
@@ -269,6 +285,14 @@ public sealed class PeerTransferService : IDisposable
                     var clip = ClipboardPayload.Deserialize(body);
                     if (clip.TextContent.Length > ClipboardTextLimit) return;
                     ClipReceived?.Invoke(sender, clip);
+                }
+                else if (type == FrameType.ClipRequest)
+                {
+                    var latest = GetLatestClip?.Invoke();
+                    if (latest != null)
+                    {
+                        await WriteFrameAsync(stream, FrameType.Clip, key, latest.Serialize(), ct);
+                    }
                 }
                 else if (type == FrameType.Hello)
                 {
