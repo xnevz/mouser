@@ -18,12 +18,7 @@
                     <TextBlock Classes="hint" Text="Switch pointer and keyboard back from a remote computer. Secondary default: Scroll Lock." />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
-                            BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding ReturnControlDisplay}" FontSize="12"
-                                   FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimary}" />
-                    </Border>
+                    <Border Classes="kbd"><TextBlock Text="{Binding ReturnControlDisplay}" /></Border>
                     <Button Classes="secondary-btn" Content="{Binding ReturnControlButtonText}"
                             Command="{Binding ToggleListeningReturnControlCommand}"
                             ToolTip.Tip="Change return control hotkey" />
@@ -40,12 +35,7 @@
                     <TextBlock Classes="hint" Text="Prevent the pointer from hopping across screen edges to remote computers." />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
-                            BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding LockCursorDisplay}" FontSize="12"
-                                   FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimary}" />
-                    </Border>
+                    <Border Classes="kbd"><TextBlock Text="{Binding LockCursorDisplay}" /></Border>
                     <Button Classes="secondary-btn" Content="{Binding LockCursorButtonText}"
                             Command="{Binding ToggleListeningLockCursorCommand}"
                             ToolTip.Tip="Change lock cursor hotkey" />
@@ -62,12 +52,7 @@
                     <TextBlock Classes="hint" Text="Open the clipboard search overlay next to the cursor in any application." />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
-                            BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding QuickPasteDisplay}" FontSize="12"
-                                   FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimary}" />
-                    </Border>
+                    <Border Classes="kbd"><TextBlock Text="{Binding QuickPasteDisplay}" /></Border>
                     <Button Classes="secondary-btn" Content="{Binding QuickPasteButtonText}"
                             Command="{Binding ToggleListeningQuickPasteCommand}"
                             ToolTip.Tip="Change quick paste hotkey" />
@@ -84,12 +69,7 @@
                     <TextBlock Classes="hint" Text="Open the clipboard overlay filtered to clips copied on the computer you last came from." />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
-                            BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding PasteFromPeerDisplay}" FontSize="12"
-                                   FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimary}" />
-                    </Border>
+                    <Border Classes="kbd"><TextBlock Text="{Binding PasteFromPeerDisplay}" /></Border>
                     <Button Classes="secondary-btn" Content="{Binding PasteFromPeerButtonText}"
                             Command="{Binding ToggleListeningPasteFromPeerCommand}"
                             ToolTip.Tip="Change paste from other computer hotkey" />
@@ -115,12 +95,7 @@
                     <TextBlock Classes="hint" Text="Jump directly to placed computers ordered alphabetically by name." />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
-                            BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding NextComputerDisplay}" FontSize="12"
-                                   FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimary}" />
-                    </Border>
+                    <Border Classes="kbd"><TextBlock Text="{Binding NextComputerDisplay}" /></Border>
                     <Button Classes="secondary-btn" Content="{Binding NextComputerButtonText}"
                             Command="{Binding ToggleListeningNextComputerCommand}"
                             ToolTip.Tip="Change jump to next computer hotkey" />
@@ -137,12 +112,7 @@
                     <TextBlock Classes="hint" Text="Jump directly to placed computers ordered alphabetically by name." />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
-                            BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Jump1Display}" FontSize="12"
-                                   FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimary}" />
-                    </Border>
+                    <Border Classes="kbd"><TextBlock Text="{Binding Jump1Display}" /></Border>
                     <Button Classes="secondary-btn" Content="{Binding Jump1ButtonText}"
                             Command="{Binding ToggleListeningJump1Command}"
                             ToolTip.Tip="Change jump to computer 1 hotkey" />
@@ -159,12 +129,7 @@
                     <TextBlock Classes="hint" Text="Jump directly to placed computers ordered alphabetically by name." />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
-                            BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Jump2Display}" FontSize="12"
-                                   FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimary}" />
-                    </Border>
+                    <Border Classes="kbd"><TextBlock Text="{Binding Jump2Display}" /></Border>
                     <Button Classes="secondary-btn" Content="{Binding Jump2ButtonText}"
                             Command="{Binding ToggleListeningJump2Command}"
                             ToolTip.Tip="Change jump to computer 2 hotkey" />
@@ -181,12 +146,7 @@
                     <TextBlock Classes="hint" Text="Jump directly to placed computers ordered alphabetically by name." />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
-                            BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Jump3Display}" FontSize="12"
-                                   FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimary}" />
-                    </Border>
+                    <Border Classes="kbd"><TextBlock Text="{Binding Jump3Display}" /></Border>
                     <Button Classes="secondary-btn" Content="{Binding Jump3ButtonText}"
                             Command="{Binding ToggleListeningJump3Command}"
                             ToolTip.Tip="Change jump to computer 3 hotkey" />
@@ -206,12 +166,7 @@
                             <TextBlock Classes="hint" Text="Jump directly to placed computers ordered alphabetically by name." />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
-                                    BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Jump4Display}" FontSize="12"
-                                           FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimary}" />
-                            </Border>
+                            <Border Classes="kbd"><TextBlock Text="{Binding Jump4Display}" /></Border>
                             <Button Classes="secondary-btn" Content="{Binding Jump4ButtonText}"
                                     Command="{Binding ToggleListeningJump4Command}"
                                     ToolTip.Tip="Change jump to computer 4 hotkey" />
@@ -227,12 +182,7 @@
                             <TextBlock Classes="hint" Text="Jump directly to placed computers ordered alphabetically by name." />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
-                                    BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Jump5Display}" FontSize="12"
-                                           FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimary}" />
-                            </Border>
+                            <Border Classes="kbd"><TextBlock Text="{Binding Jump5Display}" /></Border>
                             <Button Classes="secondary-btn" Content="{Binding Jump5ButtonText}"
                                     Command="{Binding ToggleListeningJump5Command}"
                                     ToolTip.Tip="Change jump to computer 5 hotkey" />
@@ -248,12 +198,7 @@
                             <TextBlock Classes="hint" Text="Jump directly to placed computers ordered alphabetically by name." />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
-                                    BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Jump6Display}" FontSize="12"
-                                           FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimary}" />
-                            </Border>
+                            <Border Classes="kbd"><TextBlock Text="{Binding Jump6Display}" /></Border>
                             <Button Classes="secondary-btn" Content="{Binding Jump6ButtonText}"
                                     Command="{Binding ToggleListeningJump6Command}"
                                     ToolTip.Tip="Change jump to computer 6 hotkey" />
@@ -269,12 +214,7 @@
                             <TextBlock Classes="hint" Text="Jump directly to placed computers ordered alphabetically by name." />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
-                                    BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Jump7Display}" FontSize="12"
-                                           FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimary}" />
-                            </Border>
+                            <Border Classes="kbd"><TextBlock Text="{Binding Jump7Display}" /></Border>
                             <Button Classes="secondary-btn" Content="{Binding Jump7ButtonText}"
                                     Command="{Binding ToggleListeningJump7Command}"
                                     ToolTip.Tip="Change jump to computer 7 hotkey" />
@@ -290,12 +230,7 @@
                             <TextBlock Classes="hint" Text="Jump directly to placed computers ordered alphabetically by name." />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
-                                    BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Jump8Display}" FontSize="12"
-                                           FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimary}" />
-                            </Border>
+                            <Border Classes="kbd"><TextBlock Text="{Binding Jump8Display}" /></Border>
                             <Button Classes="secondary-btn" Content="{Binding Jump8ButtonText}"
                                     Command="{Binding ToggleListeningJump8Command}"
                                     ToolTip.Tip="Change jump to computer 8 hotkey" />
@@ -311,12 +246,7 @@
                             <TextBlock Classes="hint" Text="Jump directly to placed computers ordered alphabetically by name." />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <Border Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}"
-                                    BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Jump9Display}" FontSize="12"
-                                           FontFamily="Consolas,Menlo,monospace" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimary}" />
-                            </Border>
+                            <Border Classes="kbd"><TextBlock Text="{Binding Jump9Display}" /></Border>
                             <Button Classes="secondary-btn" Content="{Binding Jump9ButtonText}"
                                     Command="{Binding ToggleListeningJump9Command}"
                                     ToolTip.Tip="Change jump to computer 9 hotkey" />

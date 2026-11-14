@@ -43,6 +43,13 @@ public sealed class AppSettings
     public bool RunAsAdministrator { get; set; } = false;
     public string Theme { get; set; } = "System";
     public string DesignTheme { get; set; } = "ModernMinimalist";
+    public string UiCornerRadius { get; set; } = "Theme default";
+    public string UiDensity { get; set; } = "Comfortable";
+    public string UiFontFamily { get; set; } = "System Default";
+    public string UiScale { get; set; } = "100%";
+    public string CustomAccentColor { get; set; } = string.Empty;
+    public string WindowEffect { get; set; } = "Solid";
+    public bool ReduceMotion { get; set; } = false;
 
     public bool CloseToTray { get; set; } = true;
     public bool MinimizeToTray { get; set; } = true;

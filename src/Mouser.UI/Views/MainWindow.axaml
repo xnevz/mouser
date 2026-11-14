@@ -151,7 +151,9 @@
                         <Grid ColumnDefinitions="24,*,Auto">
                             <TextBlock Grid.Column="0" Text="⚙" FontSize="14" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="1" Text="Settings" Margin="8,0,0,0" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="2" Text="Ctrl+," Classes="hint" FontSize="11" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Classes="shortcut-badge" Margin="8,0,0,0">
+                                <TextBlock Text="Ctrl+," />
+                            </Border>
                         </Grid>
                     </Button>
                 </StackPanel>

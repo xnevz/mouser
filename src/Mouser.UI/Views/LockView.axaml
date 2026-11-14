@@ -9,10 +9,7 @@
              Background="{DynamicResource BgApp}">
 
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-        <Border Background="{DynamicResource BgSurface}"
-                BorderBrush="{DynamicResource BorderSubtle}"
-                BorderThickness="1"
-                CornerRadius="12"
+        <Border Classes="glass-card"
                 Padding="32"
                 MaxWidth="440"
                 HorizontalAlignment="Center"

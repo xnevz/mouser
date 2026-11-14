@@ -44,7 +44,7 @@
                        Text="Saving new clips is turned off. Turn it back on in Settings." />
         </Border>
 
-        <Grid Grid.Row="2" ColumnDefinitions="*,16,340">
+        <Grid Grid.Row="2" ColumnDefinitions="*,16,360">
             <!-- List -->
             <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*">
                 <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
@@ -157,15 +157,16 @@
                           IsVisible="{Binding SelectedClip, Converter={x:Static ObjectConverters.IsNotNull}}">
 
                         <!-- Action buttons row for Text -->
-                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"
+                        <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8"
                                     IsVisible="{Binding SelectedClip.IsTextClip}">
-                            <Button Classes="primary-btn" Content="Copy" Command="{Binding CopyClipCommand}" CommandParameter="{Binding SelectedClip}" />
+                            <Button Classes="primary-btn" Content="Copy" Command="{Binding CopyClipCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6" />
                             <Button Classes="secondary-btn"
                                     IsVisible="{Binding SelectedClip.IsSensitive}"
                                     Content="{Binding SelectedClip.RevealButtonText}"
                                     Command="{Binding SelectedClip.ToggleRevealCommand}"
-                                    ToolTip.Tip="Show or hide masked secret" />
-                            <Button Classes="secondary-btn" Content="Transform ▾">
+                                    ToolTip.Tip="Show or hide masked secret"
+                                    Margin="0,0,6,6" />
+                            <Button Classes="secondary-btn" Content="Transform ▾" Margin="0,0,6,6">
                                 <Button.Flyout>
                                     <MenuFlyout ItemsSource="{Binding AvailableTransforms}">
                                         <MenuFlyout.ItemTemplate>
@@ -178,7 +179,7 @@
                                     </MenuFlyout>
                                 </Button.Flyout>
                             </Button>
-                            <Button Classes="secondary-btn" Content="Send to ▾">
+                            <Button Classes="secondary-btn" Content="Send to ▾" Margin="0,0,6,6">
                                 <Button.Flyout>
                                     <MenuFlyout ItemsSource="{Binding SendablePeers}">
                                         <MenuFlyout.ItemTemplate>
@@ -192,30 +193,36 @@
                                 </Button.Flyout>
                             </Button>
                             <Button Classes="secondary-btn" Command="{Binding ToggleStarCommand}" CommandParameter="{Binding SelectedClip}"
-                                    Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}" />
-                            <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}" />
-                        </StackPanel>
+                                    Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}"
+                                    Margin="0,0,6,6" />
+                            <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}"
+                                    Margin="0,0,6,6" />
+                        </WrapPanel>
 
                         <!-- Action buttons row for Image -->
-                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"
+                        <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8"
                                     IsVisible="{Binding SelectedClip.IsImage}">
-                            <Button Classes="primary-btn" Content="Copy image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding SelectedClip}" />
-                            <Button Classes="secondary-btn" Content="Save as…" Command="{Binding SaveImageAsCommand}" CommandParameter="{Binding SelectedClip}" />
-                            <Button Classes="secondary-btn" Content="Open" Command="{Binding OpenImageCommand}" CommandParameter="{Binding SelectedClip}" />
+                            <Button Classes="primary-btn" Content="Copy image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6" />
+                            <Button Classes="secondary-btn" Content="Save as…" Command="{Binding SaveImageAsCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6" />
+                            <Button Classes="secondary-btn" Content="Open" Command="{Binding OpenImageCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6" />
                             <Button Classes="secondary-btn" Command="{Binding ToggleStarCommand}" CommandParameter="{Binding SelectedClip}"
-                                    Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}" />
-                            <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}" />
-                        </StackPanel>
+                                    Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}"
+                                    Margin="0,0,6,6" />
+                            <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}"
+                                    Margin="0,0,6,6" />
+                        </WrapPanel>
 
                         <!-- Action buttons row for Files -->
-                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"
+                        <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8"
                                     IsVisible="{Binding SelectedClip.IsFileClip}">
-                            <Button Classes="primary-btn" Content="Copy" Command="{Binding CopyFilesCommand}" CommandParameter="{Binding SelectedClip}" />
-                            <Button Classes="secondary-btn" Content="Send to…" Command="{Binding SendFileToPeerCommand}" CommandParameter="{Binding SelectedClip}" />
+                            <Button Classes="primary-btn" Content="Copy" Command="{Binding CopyFilesCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6" />
+                            <Button Classes="secondary-btn" Content="Send to…" Command="{Binding SendFileToPeerCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6" />
                             <Button Classes="secondary-btn" Command="{Binding ToggleStarCommand}" CommandParameter="{Binding SelectedClip}"
-                                    Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}" />
-                            <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}" />
-                        </StackPanel>
+                                    Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}"
+                                    Margin="0,0,6,6" />
+                            <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}"
+                                    Margin="0,0,6,6" />
+                        </WrapPanel>
 
                         <!-- Tags row -->
                         <WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
