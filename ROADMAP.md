@@ -197,13 +197,13 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | Status | ID | Task | Needs | Size |
 | :-: | :-: | :--- | :--- | :-: |
 | ✅ | H1 | Windows installer (Inno Setup) with firewall rule | A10, A11 | M |
-| ⬜ | H2 | Code signing (needs the user's certificate) | H1 | S |
+| ⛔ | H2 | Code signing (needs the user's certificate) | H1 | S |
 | ✅ | H3 | Update check (then optional auto-update) | H1 | L |
 | ✅ | H4 | Local log files and crash handling | B12 | S |
 | ✅ | H5 | Windows service for UAC/lock screen (design note first) | H1, H2 | XL |
 | ✅ | H6 | Linux X11 input injection | – | L |
 | ✅ | H7 | Linux capture, tray, AppImage/Flatpak | H6 | XL |
-| ⬜ | H8 | `uiAccess` signed build: types into admin windows without elevation (needs certificate) | H1, H2 | M |
+| ⛔ | H8 | `uiAccess` signed build: types into admin windows without elevation (needs certificate) | H1, H2 | M |
 
 ### Track Q: Quality, docs, website ([H-platform-and-quality.md](roadmap/tasks/H-platform-and-quality.md))
 | Status | ID | Task | Needs | Size |
@@ -330,3 +330,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - H5: Authored docs/windows-service.md comprehensive design specification covering LocalSystem service architecture, WTS session monitoring, winlogon desktop injection (lpDesktop = "winsta0\\winlogon"), secure named pipe IPC with interactive user ACL, failure mitigations, Inno Setup service registration, and VM testing plan.
 - E17: Implemented DragDropPolicy pure logic (checking left-button state, Explorer shell window classes, and 500 MB budget cap); authored docs/cross-screen-drag-drop.md answering spike questions (clipboard snapshot/restore, Explorer target folder paste semantics, 500 MB budget); added 13 unit tests across DragDropPolicyTests (all pass in 26 ms).
 - E11: Implemented VirtualPlane for multi-computer chains (A-B-C) with non-overlapping bounding validation, gap edge-stopping, and direct peer-to-peer active link switching; added AnchorId to PeerSettings, DeviceDetailViewModel, and MonitorLayoutViewModel; wired SwitchPeerLocked and ReleasePeerInput in KvmController; added 4 unit tests in VirtualPlaneTests and all 47 KvmControllerTests green (3 s).
+- H2/H8: Blocked waiting for user Authenticode code-signing certificate; marked as ⛔ per card instructions ('Do not start without the user's certificate').
