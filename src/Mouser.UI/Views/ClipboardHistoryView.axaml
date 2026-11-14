@@ -160,6 +160,11 @@
                         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"
                                     IsVisible="{Binding SelectedClip.IsTextClip}">
                             <Button Classes="primary-btn" Content="Copy" Command="{Binding CopyClipCommand}" CommandParameter="{Binding SelectedClip}" />
+                            <Button Classes="secondary-btn"
+                                    IsVisible="{Binding SelectedClip.IsSensitive}"
+                                    Content="{Binding SelectedClip.RevealButtonText}"
+                                    Command="{Binding SelectedClip.ToggleRevealCommand}"
+                                    ToolTip.Tip="Show or hide masked secret" />
                             <Button Classes="secondary-btn" Content="Transform ▾">
                                 <Button.Flyout>
                                     <MenuFlyout ItemsSource="{Binding AvailableTransforms}">
@@ -268,7 +273,7 @@
 
                         <!-- Preview for Text -->
                         <Grid Grid.Row="2" RowDefinitions="*,Auto" IsVisible="{Binding SelectedClip.IsTextClip}">
-                            <TextBox Grid.Row="0" Text="{Binding SelectedClip.Content, Mode=OneWay, FallbackValue=''}"
+                            <TextBox Grid.Row="0" Text="{Binding SelectedClip.DisplayText, Mode=OneWay, FallbackValue=''}"
                                      IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
                                      FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12"
                                      VerticalContentAlignment="Top" />
@@ -349,6 +354,9 @@
                                     <TextBlock Classes="label" Text="METADATA" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
                                     <Border Classes="nav-badge" IsVisible="{Binding SelectedClip.HasHtml}" Margin="4,0,0,0">
                                         <TextBlock Text="Rich" Foreground="{DynamicResource BadgeViolet}" FontSize="11" />
+                                    </Border>
+                                    <Border Classes="nav-badge" IsVisible="{Binding SelectedClip.IsSensitive}" Margin="4,0,0,0">
+                                        <TextBlock Text="Sensitive" Foreground="{DynamicResource Danger}" FontSize="11" />
                                     </Border>
                                 </StackPanel>
                                 <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextSecondary}">

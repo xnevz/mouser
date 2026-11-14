@@ -493,6 +493,13 @@ public partial class ClipboardHistoryViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void ToggleReveal(ClipboardItemViewModel? clip)
+    {
+        var target = clip ?? SelectedClip;
+        target?.ToggleReveal();
+    }
+
+    [RelayCommand]
     private async Task CopyClipAsync(ClipboardItemViewModel? clip)
     {
         if (clip == null) return;

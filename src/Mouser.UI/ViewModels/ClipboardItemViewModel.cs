@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Mouser.Core.Clipboard;
 
 namespace Mouser.UI.ViewModels;
@@ -75,9 +76,33 @@ public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
         }
     }
 
-    public string DisplayTitle => IsFileClip && HasFiles ? FileTitle : Content;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayText))]
+    [NotifyPropertyChangedFor(nameof(DisplayTitle))]
+    [NotifyPropertyChangedFor(nameof(PreviewTitle))]
+    [NotifyPropertyChangedFor(nameof(RevealButtonText))]
+    private bool _isRevealed;
 
-    public string PreviewTitle => IsFileClip && HasFiles ? FileTitle : ClipboardClassifier.Title(_payload.TextContent);
+    public bool IsSensitive => ClipboardPrivacyFilter.IsSensitive(Content);
+
+    public string RevealButtonText => IsRevealed ? "Hide" : "Reveal";
+
+    [RelayCommand]
+    public void ToggleReveal() => IsRevealed = !IsRevealed;
+
+    public string DisplayText => IsSensitive && !IsRevealed ? ClipboardPrivacyFilter.Mask(Content) : Content;
+
+    public string DisplayTitle => IsFileClip && HasFiles ? FileTitle : DisplayText;
+
+    public string PreviewTitle
+    {
+        get
+        {
+            if (IsFileClip && HasFiles) return FileTitle;
+            if (IsSensitive && !IsRevealed) return ClipboardPrivacyFilter.Mask(Content);
+            return ClipboardClassifier.Title(_payload.TextContent);
+        }
+    }
 
     public string FileSubtitle => FilePaths.Count == 1 ? (IsDirectoryOnly ? "1 folder" : "1 file") : $"{FilePaths.Count} items";
 

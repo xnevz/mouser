@@ -140,7 +140,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | D14 | Text transforms | B6 | S |
 | ✅ | D15 | Quick paste v2 (previews, 1–9, tabs, configurable hotkey) | D6, D9, D14 | M |
 | ✅ | D16 | Paging, big clips, retention presets, maintenance, panic wipe | D10 | M |
-| ⬜ | D17 | More secret detectors | – | S |
+| ✅ | D17 | More secret detectors | – | S |
 
 ### Track E: Mouse and keyboard sharing ([E-kvm.md](roadmap/tasks/E-kvm.md))
 | Status | ID | Task | Needs | Size |
