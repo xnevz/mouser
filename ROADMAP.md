@@ -176,7 +176,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | F4 | Encrypted, authenticated input channel | F3 | XL |
 | ⬜ | F5 | Android crypto and pairing | F2, F3 | XL |
 | ✅ | F6 | Keys at rest (DPAPI); stop storing PINs | F3 | M |
-| ⬜ | F7 | Incoming-file safety (prompt, limits, sanitising) | B9 | M |
+| ✅ | F7 | Incoming-file safety (prompt, limits, sanitising) | B9 | M |
 | ⬜ | F8 | Remove v1 PIN trust | F4, F5, F6 | M |
 | ⬜ | F9 | Fuzz tests, SECURITY.md, threat model | F4 | M |
 | ⬜ | F10 | Local-network-only, adapter picker, separate ports | B11 | S |
@@ -309,3 +309,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - F3: Implemented TCP pairing protocol (PairRequest=8, PairResponse=9, PairRefused=10, PairConfirm=11) in PeerTransferService with PairingRateLimiter (3 requests/min, 5 min lockout after 3 denials), 2-minute pairing countdown window, mutual confirmation code prompt UI in DevicesView, PairKeyProtected in PeerSettings, and 7 unit/integration tests in TcpPairingTests (674 passing).
 - F4: Implemented SecureInputPacket (51 bytes, Version 2, 4-byte FNV-1a sender ID hash, 8-byte session ID, 8-byte counter, 30-byte ciphertext+tag); updated PeerLink to seal/open datagrams with SessionCrypto; updated InputInjectionService to authenticate/decrypt secure datagrams, dispatch to existing input handling, remove IP-trust for v2, and guard v1 behind AllowOlderDevices; added 9 unit and integration tests in SecureInputChannelTests (683 passing).
 - F6: Implemented SecretStore with Windows DPAPI (CurrentUser) Protect and Unprotect; routed PairKeyProtected storage and retrieval through SecretStore; handled unprotect failure across MouserHost and DevicesView/DevicesViewModel by treating as unpaired with 'Pair again' status and action; added 8 unit and integration tests in SecretStoreTests (691 passing).
+- F7: Implemented incoming-file safety in PeerTransferService with SafeFileName (ADS, traversal, reserved names, dots/spaces, 150-char cap), size limits (MaxIncomingFileMB), blocked extensions, early refusal ack (2), Mark-of-the-web Zone.Identifier, AutoAcceptFiles per peer, and main window prompt modal; added 23 tests across PeerTransferTests (41 passing).
