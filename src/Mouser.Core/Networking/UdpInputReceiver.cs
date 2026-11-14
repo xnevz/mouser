@@ -21,6 +21,7 @@ public sealed class UdpInputReceiver : IDisposable
     public long TotalPacketsReceived { get; private set; }
 
     public event Action<InputMotionPacket, IPEndPoint>? MotionReceived;
+    public event Action<ReadOnlyMemory<byte>, IPEndPoint>? DatagramReceived;
 
     public UdpInputReceiver(int bindPort = 0)
     {
@@ -64,6 +65,19 @@ public sealed class UdpInputReceiver : IDisposable
         }
     }
 
+    /// <summary>Sends raw bytes (such as a 51-byte secure datagram) to a target endpoint.</summary>
+    public void SendBytesTo(ReadOnlySpan<byte> buffer, IPEndPoint target)
+    {
+        if (_isDisposed) return;
+        try
+        {
+            _socket.SendTo(buffer, SocketFlags.None, target);
+        }
+        catch (SocketException)
+        {
+        }
+    }
+
     private async Task ListenLoopAsync(CancellationToken token)
     {
         var memory = new Memory<byte>(_receiveBuffer);
@@ -73,10 +87,15 @@ public sealed class UdpInputReceiver : IDisposable
             try
             {
                 var result = await _socket.ReceiveFromAsync(memory, SocketFlags.None, _anyEndPoint, token);
-                if (InputMotionPacket.TryRead(_receiveBuffer.AsSpan(0, result.ReceivedBytes), out var packet))
+                TotalPacketsReceived++;
+                var remote = (IPEndPoint)result.RemoteEndPoint;
+                var slice = memory.Slice(0, result.ReceivedBytes);
+
+                DatagramReceived?.Invoke(slice, remote);
+
+                if (MotionReceived != null && InputMotionPacket.TryRead(slice.Span, out var packet))
                 {
-                    TotalPacketsReceived++;
-                    MotionReceived?.Invoke(packet, (IPEndPoint)result.RemoteEndPoint);
+                    MotionReceived.Invoke(packet, remote);
                 }
             }
             catch (OperationCanceledException)

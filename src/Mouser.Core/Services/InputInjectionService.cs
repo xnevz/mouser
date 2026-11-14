@@ -1,7 +1,9 @@
+using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Net;
 using Mouser.Core.Input;
 using Mouser.Core.Networking;
+using Mouser.Core.Security;
 
 namespace Mouser.Core.Services;
 
@@ -25,6 +27,34 @@ public sealed class InputInjectionService : IDisposable
     public static readonly TimeSpan StuckInputTimeout = TimeSpan.FromSeconds(3);
 
     private static readonly MouseButton[] Buttons = { MouseButton.Left, MouseButton.Right, MouseButton.Middle };
+
+    private sealed class SecurePeerEntry : IDisposable
+    {
+        public string DeviceId { get; }
+        public byte[] PairKey { get; }
+        public object Lock { get; } = new();
+        public ulong LastSeenSessionId { get; set; }
+        public SessionCrypto? Crypto { get; set; }
+
+        public SecurePeerEntry(string deviceId, byte[] pairKey)
+        {
+            DeviceId = deviceId;
+            PairKey = pairKey;
+        }
+
+        public void Dispose()
+        {
+            lock (Lock)
+            {
+                Crypto?.Dispose();
+                Crypto = null;
+            }
+        }
+    }
+
+    private readonly ConcurrentDictionary<uint, SecurePeerEntry> _securePeers = new();
+    private readonly string _ownDeviceId;
+    public bool AllowOlderDevices { get; set; } = false;
 
     private readonly UdpInputReceiver _receiver;
     private readonly IInputSink _sink;
@@ -55,13 +85,29 @@ public sealed class InputInjectionService : IDisposable
 
     public event Action<InputMotionPacket, IPEndPoint>? PacketProcessed;
 
-    public InputInjectionService(IInputSink sink, PairingGate gate, int listenPort = 0, Func<DateTime>? clock = null)
+    public InputInjectionService(IInputSink sink, PairingGate gate, int listenPort = 0, Func<DateTime>? clock = null, string? ownDeviceId = null)
     {
         _sink = sink;
         _gate = gate;
         _clock = clock ?? (() => DateTime.UtcNow);
+        _ownDeviceId = string.IsNullOrWhiteSpace(ownDeviceId) ? Guid.NewGuid().ToString("N") : ownDeviceId;
         _receiver = new UdpInputReceiver(listenPort);
-        _receiver.MotionReceived += HandlePacket;
+        _receiver.DatagramReceived += HandleDatagram;
+    }
+
+    public void RegisterPeer(string deviceId, byte[] pairKey)
+    {
+        uint hash = SecureInputPacket.HashDeviceId(deviceId);
+        _securePeers[hash] = new SecurePeerEntry(deviceId, pairKey);
+    }
+
+    public void UnregisterPeer(string deviceId)
+    {
+        uint hash = SecureInputPacket.HashDeviceId(deviceId);
+        if (_securePeers.TryRemove(hash, out var entry))
+        {
+            entry.Dispose();
+        }
     }
 
     public void Start()
@@ -90,8 +136,98 @@ public sealed class InputInjectionService : IDisposable
         _clients.TryRemove(Normalize(address), out _);
     }
 
+    public void HandleDatagram(ReadOnlyMemory<byte> datagram, IPEndPoint remoteEndPoint)
+    {
+        var span = datagram.Span;
+        if (span.Length == SecureInputPacket.PacketSize && span[0] == SecureInputPacket.Version)
+        {
+            HandleSecureDatagram(span, remoteEndPoint);
+            return;
+        }
+
+        if (AllowOlderDevices && InputMotionPacket.TryRead(span, out var v1Packet))
+        {
+            HandlePacket(v1Packet, remoteEndPoint);
+            return;
+        }
+
+        RejectedPackets++;
+    }
+
+    private void HandleSecureDatagram(ReadOnlySpan<byte> datagram, IPEndPoint remoteEndPoint)
+    {
+        if (!SecureInputPacket.TryRead(datagram, out var senderIdHashBytes, out ulong sessionId, out ulong counter, out var cipherAndTag))
+        {
+            RejectedPackets++;
+            return;
+        }
+
+        uint hash = BinaryPrimitives.ReadUInt32BigEndian(senderIdHashBytes);
+        if (!_securePeers.TryGetValue(hash, out var peerEntry))
+        {
+            RejectedPackets++;
+            return;
+        }
+
+        byte[] plaintext;
+        lock (peerEntry.Lock)
+        {
+            if (peerEntry.Crypto == null || sessionId > peerEntry.LastSeenSessionId)
+            {
+                peerEntry.Crypto?.Dispose();
+                bool isInitiator = string.CompareOrdinal(_ownDeviceId, peerEntry.DeviceId) < 0;
+                peerEntry.Crypto = new SessionCrypto(peerEntry.PairKey, isInitiator, sessionId);
+                peerEntry.LastSeenSessionId = sessionId;
+            }
+            else if (sessionId < peerEntry.LastSeenSessionId)
+            {
+                RejectedPackets++;
+                return;
+            }
+
+            if (!peerEntry.Crypto.TryOpen(counter, cipherAndTag, out plaintext))
+            {
+                RejectedPackets++;
+                return;
+            }
+        }
+
+        if (!InputMotionPacket.TryRead(plaintext, out var packet))
+        {
+            RejectedPackets++;
+            return;
+        }
+
+        if (packet.PacketType == InputMotionPacket.TypePing)
+        {
+            Touch(Normalize(remoteEndPoint.Address), null);
+            Span<byte> pongPlaintext = stackalloc byte[InputMotionPacket.PacketSize];
+            InputMotionPacket.Create(InputMotionPacket.TypePong, packet.SequenceId, packet.DeltaX, packet.DeltaY, 1).TryWrite(pongPlaintext);
+            lock (peerEntry.Lock)
+            {
+                if (peerEntry.Crypto != null)
+                {
+                    byte[] replyCipher = peerEntry.Crypto.Seal(pongPlaintext, out ulong replyCounter);
+                    Span<byte> replyDatagram = stackalloc byte[SecureInputPacket.PacketSize];
+                    byte[] ownHash = SecureInputPacket.ComputeSenderIdHash(_ownDeviceId);
+                    SecureInputPacket.Write(replyDatagram, ownHash, sessionId, replyCounter, replyCipher);
+                    _receiver.SendBytesTo(replyDatagram, remoteEndPoint);
+                }
+            }
+            return;
+        }
+
+        ProcessPacketPayload(packet, remoteEndPoint);
+    }
+
     public void HandlePacket(InputMotionPacket packet, IPEndPoint remoteEndPoint)
     {
+        if (!AllowOlderDevices)
+        {
+            RejectedPackets++;
+            return;
+        }
+
         var address = Normalize(remoteEndPoint.Address);
 
         switch (packet.PacketType)
@@ -131,6 +267,12 @@ public sealed class InputInjectionService : IDisposable
             return;
         }
 
+        ProcessPacketPayload(packet, remoteEndPoint);
+    }
+
+    private void ProcessPacketPayload(InputMotionPacket packet, IPEndPoint remoteEndPoint, string? customEvent = null)
+    {
+        var address = Normalize(remoteEndPoint.Address);
         string? description;
         lock (_stateLock)
         {
@@ -190,7 +332,7 @@ public sealed class InputInjectionService : IDisposable
             _lastInputUtc = _clock();
         }
 
-        Touch(address, description);
+        Touch(address, customEvent ?? description);
         PacketProcessed?.Invoke(packet, remoteEndPoint);
     }
 
@@ -254,7 +396,12 @@ public sealed class InputInjectionService : IDisposable
         if (_isDisposed) return;
         _isDisposed = true;
         Stop();
-        _receiver.MotionReceived -= HandlePacket;
+        _receiver.DatagramReceived -= HandleDatagram;
         _receiver.Dispose();
+        foreach (var entry in _securePeers.Values)
+        {
+            entry.Dispose();
+        }
+        _securePeers.Clear();
     }
 }

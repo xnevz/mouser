@@ -45,9 +45,9 @@ public sealed class KvmRig : IAsyncDisposable
 
     private KvmRig()
     {
-        PeerHost = new InputInjectionService(PeerSink, new PairingGate(Pin), 0);
+        PeerHost = new InputInjectionService(PeerSink, new PairingGate(Pin), 0) { AllowOlderDevices = true };
         PeerHost.Start();
-        Link = new PeerLink(new IPEndPoint(IPAddress.Loopback, PeerHost.BoundPort));
+        Link = new PeerLink(new IPEndPoint(IPAddress.Loopback, PeerHost.BoundPort), allowOlderDevices: true);
         Kvm = new KvmController(Capture);
         Kvm.SetLocalScreen(Local);
     }
@@ -427,9 +427,9 @@ public class KvmControllerTests
             rig.Kvm.SetPeer("alpha", "Alpha PC", rig.Link, KvmRig.Remote, PeerPlacement.Left);
 
             var betaSink = new RecordingSink();
-            var hostBeta = new InputInjectionService(betaSink, new PairingGate(KvmRig.Pin), 0);
+            var hostBeta = new InputInjectionService(betaSink, new PairingGate(KvmRig.Pin), 0) { AllowOlderDevices = true };
             hostBeta.Start();
-            var linkBeta = new PeerLink(new IPEndPoint(IPAddress.Loopback, hostBeta.BoundPort));
+            var linkBeta = new PeerLink(new IPEndPoint(IPAddress.Loopback, hostBeta.BoundPort), allowOlderDevices: true);
             Assert.True(await linkBeta.PairAsync(KvmRig.Pin));
             rig.Kvm.SetPeer("beta", "Beta PC", linkBeta, KvmRig.Remote, PeerPlacement.Right);
 

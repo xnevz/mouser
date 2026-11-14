@@ -124,7 +124,17 @@ public sealed class MouserHost : IDisposable
 
         try
         {
-            Input = new InputInjectionService(_sink, Pairing, _settings.Current.InputPort);
+            Input = new InputInjectionService(_sink, Pairing, _settings.Current.InputPort, ownDeviceId: _settings.Current.DeviceId)
+            {
+                AllowOlderDevices = _settings.Current.AllowOlderDevices
+            };
+            foreach (var (id, saved) in _settings.Current.Peers)
+            {
+                if (!string.IsNullOrEmpty(saved.PairKeyProtected))
+                {
+                    try { Input.RegisterPeer(id, Convert.FromBase64String(saved.PairKeyProtected)); } catch { }
+                }
+            }
             Input.Start();
         }
         catch (SocketException e)
@@ -305,6 +315,11 @@ public sealed class MouserHost : IDisposable
                     _settings.Current.Peers[senderId] = saved;
                 }
                 saved.PairKeyProtected = Convert.ToBase64String(pairKey);
+                Input?.RegisterPeer(senderId, pairKey);
+                if (_links.TryGetValue(senderId, out var link))
+                {
+                    link.SetSecurity(pairKey, _settings.Current.DeviceId, senderId);
+                }
                 if (saved.Placement == PeerPlacement.None) saved.Placement = PeerPlacement.Right;
                 _settings.Save();
                 SyncPeers();
@@ -586,6 +601,11 @@ public sealed class MouserHost : IDisposable
         {
             var saved = PeerSettingsFor(peer);
             saved.PairKeyProtected = Convert.ToBase64String(result.PairKey);
+            Input?.RegisterPeer(peer.DeviceId, result.PairKey);
+            if (_links.TryGetValue(peer.DeviceId, out var link))
+            {
+                link.SetSecurity(result.PairKey, _settings.Current.DeviceId, peer.DeviceId);
+            }
             if (saved.Placement == PeerPlacement.None) saved.Placement = PeerPlacement.Right;
             _settings.Save();
             SyncPeers();
@@ -844,13 +864,32 @@ public sealed class MouserHost : IDisposable
     private PeerLink EnsureLink(DiscoveredPeer peer)
     {
         var endpoint = new IPEndPoint(peer.IpAddress, peer.MotionPort);
-        if (_links.TryGetValue(peer.DeviceId, out var link) && link.Target.Equals(endpoint)) return link;
+        if (_links.TryGetValue(peer.DeviceId, out var link) && link.Target.Equals(endpoint))
+        {
+            UpdateLinkSecurity(link, peer.DeviceId);
+            return link;
+        }
 
         link?.Dispose(); // the peer's address or port changed
-        link = new PeerLink(endpoint);
+        link = new PeerLink(endpoint, allowOlderDevices: _settings.Current.AllowOlderDevices);
+        UpdateLinkSecurity(link, peer.DeviceId);
         _links[peer.DeviceId] = link;
         _lastPairAttempt.Remove(peer.DeviceId);
         return link;
+    }
+
+    private void UpdateLinkSecurity(PeerLink link, string peerDeviceId)
+    {
+        link.AllowOlderDevices = _settings.Current.AllowOlderDevices;
+        if (!link.IsSecure && _settings.Current.Peers.TryGetValue(peerDeviceId, out var s) && !string.IsNullOrEmpty(s.PairKeyProtected))
+        {
+            try
+            {
+                byte[] pairKey = Convert.FromBase64String(s.PairKeyProtected);
+                link.SetSecurity(pairKey, _settings.Current.DeviceId, peerDeviceId);
+            }
+            catch { }
+        }
     }
 
     private PeerSettings PeerSettingsFor(DiscoveredPeer peer)

@@ -51,9 +51,9 @@ public class UdpNetworkingTests
     {
         var now = DateTime.UtcNow;
         var gate = new PairingGate(424_242);
-        using var host = new InputInjectionService(new RecordingSink(), gate, 0);
+        using var host = new InputInjectionService(new RecordingSink(), gate, 0) { AllowOlderDevices = true };
         host.Start();
-        using var link = new PeerLink(new IPEndPoint(IPAddress.Loopback, host.BoundPort), () => now);
+        using var link = new PeerLink(new IPEndPoint(IPAddress.Loopback, host.BoundPort), () => now, allowOlderDevices: true);
 
         Assert.False(await link.PairAsync(111_111));
         Assert.False(link.IsAlive);
@@ -72,9 +72,9 @@ public class UdpNetworkingTests
     public async Task PeerLink_ReportsLostPairingWhenHostChangesPin()
     {
         var gate = new PairingGate(424_242);
-        using var host = new InputInjectionService(new RecordingSink(), gate, 0);
+        using var host = new InputInjectionService(new RecordingSink(), gate, 0) { AllowOlderDevices = true };
         host.Start();
-        using var link = new PeerLink(new IPEndPoint(IPAddress.Loopback, host.BoundPort));
+        using var link = new PeerLink(new IPEndPoint(IPAddress.Loopback, host.BoundPort), allowOlderDevices: true);
         var lost = new TaskCompletionSource();
         link.PairingLost += () => lost.TrySetResult();
 

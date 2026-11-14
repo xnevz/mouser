@@ -17,6 +17,7 @@ public sealed class AppSettings
     public int PairingPin { get; set; } = PairingGate.GeneratePin();
     public int InputPort { get; set; } = InputInjectionService.DefaultPort;
     public bool AcceptRemoteInput { get; set; } = true;
+    public bool AllowOlderDevices { get; set; } = true;
     public bool ClipboardHistoryEnabled { get; set; } = true;
     public bool SaveImages { get; set; } = true;
     public bool SkipSensitiveClips { get; set; } = true;

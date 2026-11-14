@@ -14,7 +14,7 @@ public class InputInjectionServiceTests
     {
         var sink = new RecordingSink();
         var gate = new PairingGate(Pin, clock);
-        return (new InputInjectionService(sink, gate, 0, clock), sink, gate);
+        return (new InputInjectionService(sink, gate, 0, clock) { AllowOlderDevices = true }, sink, gate);
     }
 
     private static InputMotionPacket P(byte type, ushort seq, short dx = 0, short dy = 0, byte buttons = 0) =>
@@ -168,7 +168,7 @@ public class InputInjectionServiceTests
     {
         var sink = new RecordingSink();
         var gate = new PairingGate(Pin);
-        using var service = new InputInjectionService(sink, gate, listenPort: 0);
+        using var service = new InputInjectionService(sink, gate, listenPort: 0) { AllowOlderDevices = true };
         service.Start();
         using var phone = new FakePhone(service.BoundPort);
 
