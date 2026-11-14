@@ -16,6 +16,7 @@
     <Window.KeyBindings>
         <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding NavigateCommand}" CommandParameter="Settings" />
         <KeyBinding Gesture="Ctrl+F" Command="{Binding FocusSearchCommand}" />
+        <KeyBinding Gesture="Ctrl+L" Command="{Binding LockNowCommand}" />
     </Window.KeyBindings>
 
     <Grid ColumnDefinitions="232,*">

@@ -27,6 +27,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly AppLockService? _appLock;
 
     public bool IsLocked => _appLock?.IsLocked ?? false;
+    public bool CanLockNow => _appLock is { IsConfigured: true, IsLocked: false };
     public LockViewModel? Lock { get; }
 
     public ObservableCollection<SidebarDeviceViewModel> Devices { get; } = new();
@@ -82,12 +83,14 @@ public partial class MainViewModel : ViewModelBase
             _appLock.Locked += () =>
             {
                 OnPropertyChanged(nameof(IsLocked));
+                OnPropertyChanged(nameof(CanLockNow));
                 _host.SetLocked(true);
                 ClipboardHistory.IsLocked = true;
             };
             _appLock.Unlocked += () =>
             {
                 OnPropertyChanged(nameof(IsLocked));
+                OnPropertyChanged(nameof(CanLockNow));
                 _host.SetLocked(false);
                 ClipboardHistory.IsLocked = false;
             };
@@ -114,6 +117,7 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>Pulls live state from the network services. Called once a second by the app.</summary>
     public void Refresh()
     {
+        OnPropertyChanged(nameof(CanLockNow));
         Onboarding?.Refresh();
         AndroidRemote.Refresh();
         RefreshDevices();
@@ -263,5 +267,14 @@ public partial class MainViewModel : ViewModelBase
         if (CurrentTab != NavigationTab.SmartClipboard)
             Navigate("SmartClipboard");
         FocusSearchRequested?.Invoke();
+    }
+
+    [RelayCommand]
+    private void LockNow()
+    {
+        if (_appLock is { IsConfigured: true })
+        {
+            _appLock.Lock();
+        }
     }
 }

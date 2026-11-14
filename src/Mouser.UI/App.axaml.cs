@@ -24,11 +24,14 @@ public partial class App : Application
     private QuickPasteWindow? _quickPaste;
     private MainWindow? _window;
     private bool _quitting;
+    private bool _quitAfterUnlock;
     private bool _hasShownTrayToast;
+    private NativeMenuItem? _lockItem;
     private NativeMenuItem? _pauseSharingItem;
     private NativeMenuItem? _pauseClipboardItem;
     private MainViewModel? _mainViewModel;
     private SettingsStore? _settings;
+    private AppLockService? _appLock;
 
     public override void Initialize()
     {
@@ -59,6 +62,35 @@ public partial class App : Application
             ThemeService.Apply(settings.Current.Theme);
             ToastService.Initialize(settings);
             var appLock = new AppLockService(Path.Combine(settings.DataDirectory, "lock.json"));
+            _appLock = appLock;
+            _appLock.Locked += () =>
+            {
+                try
+                {
+                    if (Dispatcher.UIThread.CheckAccess())
+                        HandleLocked();
+                    else
+                        Dispatcher.UIThread.Post(HandleLocked);
+                }
+                catch
+                {
+                    HandleLocked();
+                }
+            };
+            _appLock.Unlocked += () =>
+            {
+                try
+                {
+                    if (Dispatcher.UIThread.CheckAccess())
+                        HandleUnlocked();
+                    else
+                        Dispatcher.UIThread.Post(HandleUnlocked);
+                }
+                catch
+                {
+                    HandleUnlocked();
+                }
+            };
             _host = new MouserHost(settings, InputSinks.CreateForCurrentPlatform(), InputCaptures.CreateForCurrentPlatform());
             if (appLock.IsLocked)
             {
@@ -112,7 +144,14 @@ public partial class App : Application
 
             window.Closing += (_, e) =>
             {
-                if (_quitting || e.CloseReason == WindowCloseReason.OSShutdown || !_settings.Current.CloseToTray) return;
+                if (_quitting || e.CloseReason == WindowCloseReason.OSShutdown) return;
+                if (_appLock is { IsLocked: true })
+                {
+                    e.Cancel = true;
+                    HideToTray(window);
+                    return;
+                }
+                if (!_settings.Current.CloseToTray) return;
                 e.Cancel = true;
                 HideToTray(window);
             };
@@ -129,7 +168,12 @@ public partial class App : Application
             {
                 foreach (var item in menu.Items.OfType<NativeMenuItem>())
                 {
-                    if (item.Header == "Pause sharing")
+                    if (item.Header == "Lock")
+                    {
+                        _lockItem = item;
+                        item.IsVisible = _appLock?.IsConfigured ?? false;
+                    }
+                    else if (item.Header == "Pause sharing")
                     {
                         _pauseSharingItem = item;
                         item.IsChecked = _settings.Current.PauseSharing;
@@ -176,6 +220,12 @@ public partial class App : Application
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _refreshTimer.Tick += async (_, _) =>
             {
+                if (ShouldAutoLock(_appLock, settings.Current, WindowsSession.IsWorkstationLocked(), WindowsSession.IdleTime()))
+                {
+                    _appLock?.Lock();
+                }
+
+                UpdateLockTrayItem();
                 vm.Refresh();
                 await vm.ClipboardHistory.PollClipboardAsync();
             };
@@ -195,13 +245,14 @@ public partial class App : Application
     }
 
     /// <summary>Opens the quick-paste overlay; picking a clip pastes it into <paramref name="previous"/>.</summary>
-    private void ShowQuickPaste(nint previous, MainViewModel vm)
+    internal bool ShowQuickPaste(nint previous, MainViewModel vm)
     {
-        if (!OperatingSystem.IsWindows() || _clipboardStorage == null) return;
+        if (_appLock is { IsLocked: true }) return false;
+        if (!OperatingSystem.IsWindows() || _clipboardStorage == null) return false;
         if (_quickPaste != null)
         {
             _quickPaste.Activate();
-            return;
+            return true;
         }
 
         var model = new QuickPasteViewModel(_clipboardStorage);
@@ -223,12 +274,22 @@ public partial class App : Application
             Close();
             await vm.ClipboardHistory.CopyTextAsync(text);
             var keys = InputSinks.CreateForCurrentPlatform();
-            await System.Threading.Tasks.Task.Run(() => QuickPasteHotkey.PasteInto(previous, keys));
+            if (OperatingSystem.IsWindows())
+            {
+                await System.Threading.Tasks.Task.Run(() =>
+                {
+                    if (OperatingSystem.IsWindows())
+                    {
+                        QuickPasteHotkey.PasteInto(previous, keys);
+                    }
+                });
+            }
         };
 
         _ = model.LoadAsync();
         window.Show();
         window.Activate();
+        return true;
     }
 
     private static string? ArgValue(string name)
@@ -288,9 +349,82 @@ public partial class App : Application
         _mainViewModel.ClipboardHistory.IsPaused = paused;
     }
 
+    internal static bool ShouldAutoLock(AppLockService? appLock, AppSettings settings, bool isWorkstationLocked, TimeSpan idleTime)
+    {
+        return appLock is { IsConfigured: true, IsLocked: false } &&
+            ((settings.LockWithWindows && isWorkstationLocked) ||
+             (settings.AutoLockMinutes > 0 && idleTime >= TimeSpan.FromMinutes(settings.AutoLockMinutes)));
+    }
+
+    internal bool QuitAfterUnlock => _quitAfterUnlock;
+    internal bool Quitting => _quitting;
+
+    internal void SetAppLockForTesting(AppLockService appLock)
+    {
+        _appLock = appLock;
+        _appLock.Locked += HandleLocked;
+        _appLock.Unlocked += HandleUnlocked;
+    }
+
+    private void HandleLocked()
+    {
+        if (_quickPaste != null)
+        {
+            _quickPaste.Close();
+            _quickPaste = null;
+        }
+        UpdateLockTrayItem();
+    }
+
+    private void HandleUnlocked()
+    {
+        UpdateLockTrayItem();
+        if (_quitAfterUnlock)
+        {
+            _quitting = true;
+            (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown();
+        }
+    }
+
+    private void UpdateLockTrayItem()
+    {
+        if (_lockItem == null) return;
+        try
+        {
+            if (Dispatcher.UIThread.CheckAccess())
+                _lockItem.IsVisible = _appLock?.IsConfigured ?? false;
+            else
+                Dispatcher.UIThread.Post(() => _lockItem.IsVisible = _appLock?.IsConfigured ?? false);
+        }
+        catch
+        {
+            _lockItem.IsVisible = _appLock?.IsConfigured ?? false;
+        }
+    }
+
+    private void OnTrayLock(object? sender, EventArgs e)
+    {
+        if (_appLock is { IsConfigured: true })
+        {
+            _appLock.Lock();
+        }
+    }
+
     private void OnTrayQuit(object? sender, EventArgs e)
     {
+        RequestQuit();
+    }
+
+    internal bool RequestQuit()
+    {
+        if (_appLock is { IsLocked: true })
+        {
+            ShowMainWindow();
+            _quitAfterUnlock = true;
+            return false;
+        }
         _quitting = true;
         (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown();
+        return true;
     }
 }

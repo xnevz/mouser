@@ -4,6 +4,7 @@ using Mouser.Core.Input;
 using Mouser.Core.Networking;
 using Mouser.Core.Security;
 using Mouser.Core.Services;
+using Mouser.UI;
 using Mouser.UI.Services;
 using Mouser.UI.ViewModels;
 using Mouser.UI.Views;
@@ -1111,6 +1112,172 @@ public class ViewModelTests
             Assert.Null(app.Host.Input);
             Assert.Null(app.Host.Discovery);
             Assert.True(app.Main.ClipboardHistory.IsLocked);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task CtrlL_LocksAppWhenConfigured()
+    {
+        // When unconfigured: does not throw, does not lock
+        await using var app1 = new AppFixture();
+        Assert.False(app1.Main.CanLockNow);
+        app1.Main.LockNowCommand.Execute(null);
+        Assert.False(app1.Main.IsLocked);
+
+        // When configured: locks the app and updates CanLockNow
+        string dir = Path.Combine(Path.GetTempPath(), $"mouser_lock_ctrl_l_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string lockFile = Path.Combine(dir, "lock.json");
+            var lockService = new AppLockService(lockFile, null, 1000);
+            lockService.Setup("Passphrase123!");
+            Assert.False(lockService.IsLocked);
+
+            await using var app2 = new AppFixture(appLock: lockService);
+            Assert.False(app2.Main.IsLocked);
+            Assert.True(app2.Main.CanLockNow);
+
+            app2.Main.LockNowCommand.Execute(null);
+            Assert.True(app2.Main.IsLocked);
+            Assert.False(app2.Main.CanLockNow);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void WindowsSession_MethodsDoNotThrow()
+    {
+        bool locked = WindowsSession.IsWorkstationLocked();
+        Assert.True(locked || !locked);
+
+        TimeSpan idle = WindowsSession.IdleTime();
+        Assert.True(idle >= TimeSpan.Zero);
+    }
+
+    [Fact]
+    public void QuitWhileLocked_BlockedUntilUnlocked()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), $"mouser_lock_quit_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string lockFile = Path.Combine(dir, "lock.json");
+            var lockService = new AppLockService(lockFile, null, 1000);
+            lockService.Setup("Password123!");
+
+            var app = new App();
+            app.SetAppLockForTesting(lockService);
+
+            // When not locked: quit succeeds immediately
+            Assert.True(app.RequestQuit());
+            Assert.True(app.Quitting);
+
+            // Re-test with locked app
+            var app2 = new App();
+            lockService.Lock();
+            Assert.True(lockService.IsLocked);
+            app2.SetAppLockForTesting(lockService);
+
+            // Quit attempt while locked is blocked
+            bool quitResult = app2.RequestQuit();
+            Assert.False(quitResult);
+            Assert.True(app2.QuitAfterUnlock);
+            Assert.False(app2.Quitting);
+
+            // Unlocking allows the quit to proceed
+            bool unlocked = lockService.TryUnlock("Password123!");
+            Assert.True(unlocked);
+            Assert.True(app2.Quitting);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task QuickPaste_BlockedWhileLocked()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), $"mouser_lock_quickpaste_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string lockFile = Path.Combine(dir, "lock.json");
+            var lockService = new AppLockService(lockFile, null, 1000);
+            lockService.Setup("Password123!");
+
+            await using var fixture = new AppFixture(appLock: lockService);
+
+            var app = new App();
+            app.SetAppLockForTesting(lockService);
+
+            // When unlocked: service is not locked
+            Assert.False(lockService.IsLocked);
+
+            // Now lock the service
+            lockService.Lock();
+            Assert.True(lockService.IsLocked);
+
+            // When locked: ShowQuickPaste immediately returns false
+            Assert.False(app.ShowQuickPaste(0, fixture.Main));
+
+            // Also verify clipboard polling is blocked
+            bool pollResult = await fixture.Main.ClipboardHistory.PollClipboardAsync();
+            Assert.False(pollResult);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void AutoLock_TriggerLogic()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), $"mouser_lock_trigger_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string lockFile = Path.Combine(dir, "lock.json");
+            var unconfigured = new AppLockService(Path.Combine(dir, "nonexistent.json"));
+            var settings = new AppSettings { LockWithWindows = true, AutoLockMinutes = 5 };
+
+            // Unconfigured lock never triggers
+            Assert.False(App.ShouldAutoLock(unconfigured, settings, isWorkstationLocked: true, TimeSpan.FromMinutes(10)));
+            Assert.False(App.ShouldAutoLock(null, settings, isWorkstationLocked: true, TimeSpan.FromMinutes(10)));
+
+            var configured = new AppLockService(lockFile, null, 1000);
+            configured.Setup("Password123!");
+
+            // Workstation locked triggers when LockWithWindows is true
+            Assert.True(App.ShouldAutoLock(configured, settings, isWorkstationLocked: true, TimeSpan.Zero));
+
+            // Workstation locked does not trigger when LockWithWindows is false
+            var settingsNoWin = new AppSettings { LockWithWindows = false, AutoLockMinutes = 0 };
+            Assert.False(App.ShouldAutoLock(configured, settingsNoWin, isWorkstationLocked: true, TimeSpan.Zero));
+
+            // Idle timer triggers when idle >= AutoLockMinutes
+            var settingsIdle = new AppSettings { LockWithWindows = false, AutoLockMinutes = 10 };
+            Assert.False(App.ShouldAutoLock(configured, settingsIdle, isWorkstationLocked: false, TimeSpan.FromMinutes(9)));
+            Assert.True(App.ShouldAutoLock(configured, settingsIdle, isWorkstationLocked: false, TimeSpan.FromMinutes(10)));
+            Assert.True(App.ShouldAutoLock(configured, settingsIdle, isWorkstationLocked: false, TimeSpan.FromMinutes(15)));
+
+            // Idle timer disabled (0) never triggers
+            var settingsIdleOff = new AppSettings { LockWithWindows = false, AutoLockMinutes = 0 };
+            Assert.False(App.ShouldAutoLock(configured, settingsIdleOff, isWorkstationLocked: false, TimeSpan.FromHours(5)));
+
+            // Already locked service does not re-trigger
+            configured.Lock();
+            Assert.True(configured.IsLocked);
+            Assert.False(App.ShouldAutoLock(configured, settings, isWorkstationLocked: true, TimeSpan.FromMinutes(10)));
         }
         finally
         {
