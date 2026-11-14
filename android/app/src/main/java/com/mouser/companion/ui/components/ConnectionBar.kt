@@ -34,6 +34,8 @@ fun ConnectionBar(
     discoveryError: String?,
     themeMode: String = "System",
     onThemeModeChanged: (String) -> Unit = {},
+    isAppLockEnabled: Boolean = false,
+    onToggleAppLock: (Boolean) -> Unit = {},
     onConnect: (HostTarget) -> Unit,
     onSubmitPin: (Int) -> Unit,
     onDisconnect: () -> Unit,
@@ -93,6 +95,8 @@ fun ConnectionBar(
             discoveryError = discoveryError,
             themeMode = themeMode,
             onThemeModeChanged = onThemeModeChanged,
+            isAppLockEnabled = isAppLockEnabled,
+            onToggleAppLock = onToggleAppLock,
             onDismiss = { showHosts = false },
             onConnect = {
                 onConnect(it)
@@ -113,6 +117,8 @@ fun HostSelectionDialog(
     discoveryError: String?,
     themeMode: String = "System",
     onThemeModeChanged: (String) -> Unit = {},
+    isAppLockEnabled: Boolean = false,
+    onToggleAppLock: (Boolean) -> Unit = {},
     onDismiss: () -> Unit,
     onConnect: (HostTarget) -> Unit,
     onDisconnect: () -> Unit
@@ -124,7 +130,7 @@ fun HostSelectionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Choose a computer", color = MaterialTheme.colorScheme.onSurface) },
+        title = { Text("Settings & Connection", color = MaterialTheme.colorScheme.onSurface) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 // Theme chooser chips (Step 5)
@@ -140,6 +146,22 @@ fun HostSelectionDialog(
                             label = { Text(mode) }
                         )
                     }
+                }
+
+                // App Lock Toggle (Task C6)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("App Lock", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                        Text("Require biometric/PIN after 30s in background", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = isAppLockEnabled,
+                        onCheckedChange = onToggleAppLock
+                    )
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)

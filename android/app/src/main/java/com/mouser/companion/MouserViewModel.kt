@@ -60,6 +60,42 @@ class MouserViewModel(application: Application) : AndroidViewModel(application) 
         themeMode.value = m
     }
 
+    val lockState = com.mouser.companion.model.LockState()
+    val isAppLockEnabled = MutableStateFlow(prefs.getBoolean("app_lock", false))
+    val isLocked = MutableStateFlow(false)
+
+    init {
+        lockState.isEnabled = isAppLockEnabled.value
+    }
+
+    fun setAppLockEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("app_lock", enabled).apply()
+        isAppLockEnabled.value = enabled
+        lockState.isEnabled = enabled
+        if (!enabled) {
+            unlock()
+        }
+    }
+
+    fun onAppBackgrounded() {
+        lockState.onBackgrounded()
+    }
+
+    fun onAppForegrounded() {
+        lockState.onForegrounded()
+        isLocked.value = lockState.isLocked
+    }
+
+    fun unlock() {
+        lockState.unlock()
+        isLocked.value = false
+    }
+
+    fun lockNow() {
+        lockState.lock()
+        isLocked.value = lockState.isLocked
+    }
+
     private val motionX = SubpixelAccumulator()
     private val motionY = SubpixelAccumulator()
     private val scrollX = SubpixelAccumulator()
@@ -94,20 +130,33 @@ class MouserViewModel(application: Application) : AndroidViewModel(application) 
 
     /** Pointer motion in screen pixels (fractional values accumulate). */
     fun sendMotion(dx: Float, dy: Float) {
+        if (isLocked.value) return
         connection.sendMotion(motionX.add(dx).toShortClamped(), motionY.add(dy).toShortClamped())
     }
 
     /** Scroll by finger distance in pixels; positive dy = finger moved down = content scrolls up (natural). */
     fun sendScroll(dxPixels: Float, dyPixels: Float) {
+        if (isLocked.value) return
         // ~1 wheel notch (120) per 40 px of finger travel.
         val h = scrollX.add(-dxPixels * 3f)
         val v = scrollY.add(dyPixels * 3f)
         connection.sendScroll(h.toShortClamped(), v.toShortClamped())
     }
 
-    fun setButton(button: Byte, isDown: Boolean) = connection.setButton(button, isDown)
-    fun click(button: Byte) = connection.click(button)
-    fun tapKey(virtualKey: Short) = connection.tapKey(virtualKey)
+    fun setButton(button: Byte, isDown: Boolean) {
+        if (isLocked.value) return
+        connection.setButton(button, isDown)
+    }
+
+    fun click(button: Byte) {
+        if (isLocked.value) return
+        connection.click(button)
+    }
+
+    fun tapKey(virtualKey: Short) {
+        if (isLocked.value) return
+        connection.tapKey(virtualKey)
+    }
 
     fun setTrackpadSensitivity(value: Float) {
         _trackpadSensitivity.value = value

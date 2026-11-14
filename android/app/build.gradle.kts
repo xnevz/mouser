@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
+    implementation("androidx.biometric:biometric:1.1.0")
 
     testImplementation(libs.junit)
     testImplementation(libs.json)
