@@ -75,8 +75,9 @@
                     </ItemsControl>
                     <TextBlock Classes="hint" Text="No devices yet" IsVisible="{Binding !Devices.Count}" Margin="12,4" />
 
-                    <Button Classes="nav-button" Classes.active="{Binding IsRemoteTab}"
-                            Command="{Binding NavigateCommand}" CommandParameter="AndroidRemote">
+                    <Button Classes="nav-button"
+                            Command="{Binding NavigateCommand}" CommandParameter="AndroidRemote"
+                            ToolTip.Tip="Add a phone or view pairing PIN">
                         <Grid ColumnDefinitions="24,*,Auto">
                             <TextBlock Grid.Column="0" Text="+" FontSize="14" VerticalAlignment="Center" FontWeight="Bold" />
                             <TextBlock Grid.Column="1" Text="Add a phone" Margin="8,0,0,0" VerticalAlignment="Center" />
@@ -87,7 +88,8 @@
                     </Button>
 
                     <Button Classes="nav-button" Classes.active="{Binding IsDisplaysTab}"
-                            Command="{Binding NavigateCommand}" CommandParameter="DisplayMatrix">
+                            Command="{Binding NavigateCommand}" CommandParameter="DisplayMatrix"
+                            ToolTip.Tip="Manage connected computers and phones">
                         <Grid ColumnDefinitions="24,*">
                             <TextBlock Grid.Column="0" Text="🖥" FontSize="14" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="1" Text="Manage devices…" Margin="8,0,0,0" VerticalAlignment="Center" />

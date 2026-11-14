@@ -30,12 +30,13 @@ public partial class MainViewModel : ViewModelBase
     public ClipboardHistoryViewModel ClipboardHistory { get; }
     public MonitorLayoutViewModel MonitorLayout { get; }
     public SettingsViewModel Settings { get; }
+    public DevicesViewModel DevicesPage { get; }
 
     [ObservableProperty] private ViewModelBase _currentPage;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRemoteTab), nameof(IsClipboardTab), nameof(IsDisplaysTab), nameof(IsSettingsTab))]
-    private NavigationTab _currentTab = NavigationTab.AndroidRemote;
+    private NavigationTab _currentTab = NavigationTab.SmartClipboard;
 
     [ObservableProperty] private string _systemStatusTitle = string.Empty;
     [ObservableProperty] private string _systemStatusText = string.Empty;
@@ -54,8 +55,10 @@ public partial class MainViewModel : ViewModelBase
         ClipboardHistory = new ClipboardHistoryViewModel(clipboardStorage, settings);
         Settings = new SettingsViewModel(settings, host);
         MonitorLayout = new MonitorLayoutViewModel(host, settings);
+        DevicesPage = new DevicesViewModel(host, MonitorLayout, AndroidRemote, settings);
         ClipboardHistory.ShareCapturedText = host.ShareClipboardAsync;
-        _currentPage = AndroidRemote;
+        _currentPage = ClipboardHistory;
+        _currentTab = NavigationTab.SmartClipboard;
         Refresh();
     }
 
@@ -65,6 +68,7 @@ public partial class MainViewModel : ViewModelBase
         AndroidRemote.Refresh();
         RefreshDevices();
         MonitorLayout.SetPeers(_host.Peers);
+        DevicesPage.Refresh();
 
         if (_host.Kvm?.ActivePeerName is { } controlled)
         {
@@ -180,12 +184,17 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private void Navigate(string tabName)
     {
+        if (tabName == "AndroidRemote")
+        {
+            DevicesPage.SelectCommand.Execute("this");
+        }
+
         (CurrentTab, CurrentPage) = tabName switch
         {
             "SmartClipboard" => (NavigationTab.SmartClipboard, (ViewModelBase)ClipboardHistory),
-            "DisplayMatrix" => (NavigationTab.DisplayMatrix, MonitorLayout),
+            "DisplayMatrix" or "AndroidRemote" => (NavigationTab.DisplayMatrix, DevicesPage),
             "Settings" => (NavigationTab.Settings, Settings),
-            _ => (NavigationTab.AndroidRemote, AndroidRemote)
+            _ => (NavigationTab.DisplayMatrix, DevicesPage)
         };
     }
 

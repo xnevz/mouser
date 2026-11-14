@@ -15,21 +15,43 @@ public partial class DevicesViewModel : ViewModelBase
 {
     private readonly MouserHost _host;
     private readonly SettingsStore _settings;
-    private readonly AndroidRemoteViewModel _phoneRemote;
+
+    public MonitorLayoutViewModel Layout { get; }
+    public AndroidRemoteViewModel Remote { get; }
+    public string ThisDeviceName => _host.DeviceName;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsThisDeviceSelected), nameof(IsComputerSelected), nameof(IsPhoneSelected))]
+    private object? _selected = "this";
+
+    public bool IsThisDeviceSelected => Selected is string s && s == "this";
+    public bool IsComputerSelected => Selected is PeerViewModel;
+    public bool IsPhoneSelected => Selected is RemoteClientItem;
+
+    [RelayCommand]
+    private void Select(object? item) => Selected = item;
 
     public ObservableCollection<DeviceDetailViewModel> Devices { get; } = new();
     [ObservableProperty] private DeviceDetailViewModel? _selectedDevice;
 
-    public DevicesViewModel(MouserHost host, SettingsStore settings, AndroidRemoteViewModel phoneRemote)
+    public DevicesViewModel(MouserHost host, MonitorLayoutViewModel layout, AndroidRemoteViewModel remote, SettingsStore settings)
     {
         _host = host;
+        Layout = layout;
+        Remote = remote;
         _settings = settings;
-        _phoneRemote = phoneRemote;
         Refresh();
+    }
+
+    public DevicesViewModel(MouserHost host, SettingsStore settings, AndroidRemoteViewModel remote)
+        : this(host, new MonitorLayoutViewModel(host, settings), remote, settings)
+    {
     }
 
     public void Refresh()
     {
+        OnPropertyChanged(nameof(ThisDeviceName));
+
         var currentIds = new HashSet<string>();
 
         // 1. Online computers from _host.Peers
@@ -96,8 +118,8 @@ public partial class DevicesViewModel : ViewModelBase
             }
         }
 
-        // 3. Phones from _phoneRemote.Clients
-        foreach (var client in _phoneRemote.Clients)
+        // 3. Phones from Remote.Clients
+        foreach (var client in Remote.Clients)
         {
             currentIds.Add(client.Address);
             var existing = Devices.FirstOrDefault(d => d.Id == client.Address && d.Kind == DeviceKind.Phone);
@@ -169,10 +191,10 @@ public partial class DevicesViewModel : ViewModelBase
         }
         else if (d.IsPhone)
         {
-            var client = _phoneRemote.Clients.FirstOrDefault(c => c.Address == d.Id);
+            var client = Remote.Clients.FirstOrDefault(c => c.Address == d.Id);
             if (client != null)
             {
-                _phoneRemote.ForgetCommand.Execute(client);
+                Remote.ForgetCommand.Execute(client);
                 Refresh();
             }
         }

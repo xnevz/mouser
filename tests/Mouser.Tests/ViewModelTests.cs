@@ -58,18 +58,19 @@ public class ViewModelTests
         await using var app = new AppFixture();
         var vm = app.Main;
 
-        Assert.True(vm.IsRemoteTab);
-        Assert.IsType<AndroidRemoteViewModel>(vm.CurrentPage);
-
-        vm.NavigateCommand.Execute("SmartClipboard");
         Assert.True(vm.IsClipboardTab);
-        Assert.False(vm.IsRemoteTab);
         Assert.IsType<ClipboardHistoryViewModel>(vm.CurrentPage);
 
+        vm.NavigateCommand.Execute("AndroidRemote");
+        Assert.True(vm.IsDisplaysTab);
+        Assert.IsType<DevicesViewModel>(vm.CurrentPage);
+
         vm.NavigateCommand.Execute("DisplayMatrix");
-        Assert.IsType<MonitorLayoutViewModel>(vm.CurrentPage);
+        Assert.True(vm.IsDisplaysTab);
+        Assert.IsType<DevicesViewModel>(vm.CurrentPage);
 
         vm.NavigateCommand.Execute("Settings");
+        Assert.True(vm.IsSettingsTab);
         Assert.IsType<SettingsViewModel>(vm.CurrentPage);
     }
 

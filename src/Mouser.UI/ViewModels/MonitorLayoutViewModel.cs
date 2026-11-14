@@ -42,6 +42,18 @@ public partial class PeerViewModel : ViewModelBase
     public bool IsPaired => Status is PeerLinkStatus.Paired;
     public bool NeedsPin => Status is PeerLinkStatus.NotPaired;
 
+    public bool ShareMouseAndKeyboard
+    {
+        get => Placement != PeerPlacement.None;
+        set
+        {
+            if (value && Placement == PeerPlacement.None)
+                Placement = PeerPlacement.Right;
+            else if (!value && Placement != PeerPlacement.None)
+                Placement = PeerPlacement.None;
+        }
+    }
+
     public string StatusText => Status switch
     {
         PeerLinkStatus.Paired => "Paired",
@@ -74,10 +86,12 @@ public partial class PeerViewModel : ViewModelBase
         _updating = false;
         OnPropertyChanged(nameof(Address));
         OnPropertyChanged(nameof(ScreenText));
+        OnPropertyChanged(nameof(ShareMouseAndKeyboard));
     }
 
     partial void OnPlacementChanged(PeerPlacement value)
     {
+        OnPropertyChanged(nameof(ShareMouseAndKeyboard));
         if (!_updating) _owner.ChangePlacement(this, value);
     }
 
