@@ -17,6 +17,7 @@ object BeaconParser {
             val json = JSONObject(payload.substring(PREFIX.length))
             val id = json.optString("Id")
             val port = json.optInt("MPort", 0)
+            val controlPort = json.optInt("CPort", 4243)
             if (id.isEmpty() || port !in 1..65535) return null
             DiscoveredHost(
                 deviceId = id,
@@ -24,6 +25,7 @@ object BeaconParser {
                 operatingSystem = json.optString("Os"),
                 ipAddress = senderIp,
                 port = port,
+                controlPort = controlPort,
                 lastSeenTimestamp = now
             )
         } catch (_: JSONException) {

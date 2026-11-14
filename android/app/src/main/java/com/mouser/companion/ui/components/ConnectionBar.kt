@@ -51,6 +51,7 @@ fun ConnectionBar(
         }
         is HostConnectionState.Connecting -> AmberAccent to "Connecting to ${connectionState.target.hostName}…"
         is HostConnectionState.NeedsPin -> AmberAccent to "Enter PIN for ${connectionState.target.hostName}"
+        is HostConnectionState.ConfirmPairingCode -> AmberAccent to "Confirm code: ${connectionState.code}"
         is HostConnectionState.Unreachable -> RoseAccent to "${connectionState.target.hostName} not responding…"
         is HostConnectionState.Disconnected -> defaultMutedColor to "Not connected"
         is HostConnectionState.Error -> RoseAccent to connectionState.message
@@ -81,7 +82,14 @@ fun ConnectionBar(
         }
     }
 
-    if (connectionState is HostConnectionState.NeedsPin) {
+    if (connectionState is HostConnectionState.ConfirmPairingCode) {
+        ConfirmCodeDialog(
+            hostName = connectionState.target.hostName,
+            code = connectionState.code,
+            onConfirm = { onSubmitPin(0) },
+            onCancel = onDisconnect
+        )
+    } else if (connectionState is HostConnectionState.NeedsPin) {
         PinDialog(
             hostName = connectionState.target.hostName,
             wrongPin = connectionState.wrongPin,
@@ -277,6 +285,49 @@ fun PinDialog(hostName: String, wrongPin: Boolean, onSubmit: (Int) -> Unit, onCa
             }
         },
         dismissButton = { TextButton(onClick = onCancel) { Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant) } },
+        containerColor = MaterialTheme.colorScheme.surface
+    )
+}
+
+@Composable
+fun ConfirmCodeDialog(
+    hostName: String,
+    code: String,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("Pair with $hostName", color = MaterialTheme.colorScheme.onSurface) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "Compare this 6-digit confirmation code with the code on your computer:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    code,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = BluePrimary,
+                    letterSpacing = 2.sp
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
+            ) {
+                Text("Codes Match")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
         containerColor = MaterialTheme.colorScheme.surface
     )
 }

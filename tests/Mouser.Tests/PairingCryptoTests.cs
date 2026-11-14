@@ -248,4 +248,26 @@ public class PairingCryptoTests
 
         Assert.False(bob.TryOpen(1, new byte[15], out _));
     }
+
+    [Fact]
+    public void KnownAnswer_Vectors()
+    {
+        byte[] shared = new byte[32];
+        Array.Fill(shared, (byte)0x42);
+        byte[] salt = Encoding.UTF8.GetBytes("device-a:device-b");
+        byte[] okm = HKDF.DeriveKey(HashAlgorithmName.SHA256, shared, 64, salt, Encoding.UTF8.GetBytes("mouser-pair-v2"));
+        byte[] pairKey = okm[..32];
+        uint codeNumber = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(okm.AsSpan(32, 4)) % 1_000_000;
+        string confirmationCode = $"{codeNumber / 1000:D3} {codeNumber % 1000:D3}";
+
+        Assert.Equal("C1443AA2A327BA87B58D82F938255D9389842B5AF2409672B416731F04448E1E", Convert.ToHexString(pairKey));
+        Assert.Equal("543 901", confirmationCode);
+
+        using var session = new SessionCrypto(pairKey, isInitiator: true, 0x0102030405060708UL);
+        byte[] plaintext = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 };
+        byte[] sealedMsg = session.Seal(plaintext, out ulong counter);
+
+        Assert.Equal(1UL, counter);
+        Assert.Equal("34314783A3478246C66E2A647D4EEC15C8604327B0DBCDB23DEC7670FA08", Convert.ToHexString(sealedMsg));
+    }
 }

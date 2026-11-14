@@ -50,6 +50,16 @@ class MouserConnection(
     private var sessionJobs = emptyList<Job>()
     @Volatile private var lastPongAt = 0L
     @Volatile private var paired = false
+    @Volatile var sessionCrypto: SessionCrypto? = null
+    @Volatile var sessionId: Long = 0L
+    @Volatile var senderIdHash: ByteArray = ByteArray(4)
+
+    fun initSessionCrypto(pairKey: ByteArray, ownDeviceId: String, hostDeviceId: String, currentSessionId: Long) {
+        sessionId = currentSessionId
+        senderIdHash = SecureInputPacket.computeSenderIdHash(ownDeviceId)
+        val isInitiator = ownDeviceId < hostDeviceId
+        sessionCrypto = SessionCrypto(pairKey, isInitiator, currentSessionId)
+    }
 
     val isPaired: Boolean get() = paired
 
@@ -143,10 +153,18 @@ class MouserConnection(
     private fun send(packet: InputMotionPacket, force: Boolean = false) {
         if (!force && !paired) return
         val s = socket ?: return
-        val data = packet.toByteArray()
+        val exec = sender ?: return
         try {
-            sender?.execute {
+            exec.execute {
                 try {
+                    val crypto = sessionCrypto
+                    val data = if (crypto != null && packet.packetType != InputMotionPacket.TYPE_PING && packet.packetType != InputMotionPacket.TYPE_PAIR) {
+                        val raw = packet.toByteArray()
+                        val (counter, cipherAndTag) = crypto.seal(raw)
+                        SecureInputPacket.write(senderIdHash, sessionId, counter, cipherAndTag)
+                    } else {
+                        packet.toByteArray()
+                    }
                     s.send(DatagramPacket(data, data.size))
                 } catch (_: Exception) {
                     // Wi-Fi hiccup: the next ping notices if the host is really gone.
