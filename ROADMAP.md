@@ -89,7 +89,7 @@ Tick a row by changing ⬜ to ✅ (and add a short note in section 6 if somethin
 | ✅ | A10 | Tray icon, **close-to-tray and minimize-to-tray** (two settings), pause items | A9 | M |
 | ✅ | A11 | `--minimized`, start at login minimized, single instance | A10 | S |
 | ✅ | A12 | In-app toasts | A9 | M |
-| ⬜ | A13 | Android light + dark scheme and chooser | – | M |
+| ✅ | A13 | Android light + dark scheme and chooser | – | M |
 | ✅ | A14 | Website System/Light/Dark and shared token names | – | S |
 
 ### Track B: New shell ([B-shell.md](roadmap/tasks/B-shell.md))
@@ -331,3 +331,4 @@ All macOS work (first run on a Mac VM, menu bar, `NSPasteboard`, signing/notaris
 - E17: Implemented DragDropPolicy pure logic (checking left-button state, Explorer shell window classes, and 500 MB budget cap); authored docs/cross-screen-drag-drop.md answering spike questions (clipboard snapshot/restore, Explorer target folder paste semantics, 500 MB budget); added 13 unit tests across DragDropPolicyTests (all pass in 26 ms).
 - E11: Implemented VirtualPlane for multi-computer chains (A-B-C) with non-overlapping bounding validation, gap edge-stopping, and direct peer-to-peer active link switching; added AnchorId to PeerSettings, DeviceDetailViewModel, and MonitorLayoutViewModel; wired SwitchPeerLocked and ReleasePeerInput in KvmController; added 4 unit tests in VirtualPlaneTests and all 47 KvmControllerTests green (3 s).
 - H2/H8: Blocked waiting for user Authenticode code-signing certificate; marked as ⛔ per card instructions ('Do not start without the user's certificate').
+- A13: Added Slate light palette to Color.kt and lightColorScheme + System mode to Theme.kt; converted all backgrounds, text, and borders across MainActivity, ConnectionBar, TrackpadSurface, AirMouseSurface, and MediaMacrosView to dynamic MaterialTheme.colorScheme tokens; added theme mode persistence in MouserViewModel and FilterChips chooser in ConnectionBar; verified 0 remaining Zinc/raw hex occurrences outside theme.
