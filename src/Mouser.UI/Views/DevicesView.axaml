@@ -4,460 +4,466 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Mouser.UI.ViewModels"
              xmlns:views="using:Mouser.UI.Views"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="640"
              x:Class="Mouser.UI.Views.DevicesView"
              x:DataType="vm:DevicesViewModel">
 
-    <Grid ColumnDefinitions="260,*" RowDefinitions="Auto,*,Auto" Margin="24">
-        <!-- Top Banners -->
-        <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Spacing="8" Margin="0,0,0,16">
-            <!-- Elevated window warning banner -->
-            <Border Classes="banner-warning" IsVisible="{Binding ForegroundIsElevated}">
-                <TextBlock Foreground="{DynamicResource BannerWarningText}" FontSize="12" TextWrapping="Wrap"
-                           Text="The window in front runs as administrator. Mouser cannot type or click in it until you run Mouser as administrator." />
+    <UserControl.Styles>
+        <!-- A setting row: title and explanation on the left, control on the right -->
+        <Style Selector="Grid.setting">
+            <Setter Property="Margin" Value="0,2" />
+        </Style>
+        <Style Selector="Grid.setting > StackPanel > TextBlock.section-title">
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Selector="Grid.setting > ToggleSwitch, Grid.setting > ComboBox">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="16,0,0,0" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*" Margin="24,20,24,0">
+        <!-- Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+            <StackPanel Spacing="4" VerticalAlignment="Center">
+                <TextBlock Classes="page-title" Text="Devices" />
+                <TextBlock Classes="page-subtitle" Text="Pair computers to share one mouse, keyboard and clipboard. Phones connect with the Mouser app." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top" Margin="16,2,0,0">
+                <Button Classes="primary-btn" Command="{Binding AllowNewDevicesCommand}"
+                        ToolTip.Tip="Let a new computer pair with this one for the next 2 minutes">
+                    <StackPanel Classes="btn">
+                        <mi:MaterialIcon Kind="Plus" />
+                        <TextBlock Text="Add computer" />
+                    </StackPanel>
+                </Button>
+                <Button Classes="icon-btn" Command="{Binding LockAllDevicesCommand}"
+                        ToolTip.Tip="Lock all paired computers">
+                    <mi:MaterialIcon Kind="LockOutline" Width="18" Height="18" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Banners -->
+        <StackPanel Grid.Row="1" Spacing="8">
+            <Border Classes="banner-warning" IsVisible="{Binding ForegroundIsElevated}" Margin="0,4,0,0">
+                <Grid ColumnDefinitions="Auto,*">
+                    <mi:MaterialIcon Kind="AlertOutline" Foreground="{DynamicResource Warning}" Margin="0,0,10,0" VerticalAlignment="Top" />
+                    <TextBlock Grid.Column="1" Foreground="{DynamicResource BannerWarningText}" FontSize="12" TextWrapping="Wrap"
+                               Text="The window in front runs as administrator. Mouser can't type or click in it until you run Mouser as administrator too." />
+                </Grid>
             </Border>
 
-            <!-- Pairing countdown banner -->
-            <Border Background="{DynamicResource BannerInfoBg}" BorderBrush="{DynamicResource BannerInfoBorder}"
-                    BorderThickness="1" CornerRadius="6" Padding="12,8"
-                    IsVisible="{Binding IsPairingWindowOpen}">
-                <Grid ColumnDefinitions="*,Auto">
-                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <TextBlock Text="📡" FontSize="14" VerticalAlignment="Center" />
-                        <TextBlock Foreground="{DynamicResource BannerInfoText}" FontSize="13" VerticalAlignment="Center"
-                                   Text="{Binding PairingWindowRemainingText}" />
+            <Border Classes="banner-info" IsVisible="{Binding IsPairingWindowOpen}" Margin="0,4,0,0">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <mi:MaterialIcon Kind="AccessPoint" Foreground="{DynamicResource BannerInfoText}" Margin="0,0,10,0" />
+                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Foreground="{DynamicResource BannerInfoText}" FontSize="13" FontWeight="SemiBold"
+                                   Text="{Binding PairingWindowRemainingText}" TextWrapping="Wrap" />
+                        <TextBlock Foreground="{DynamicResource BannerInfoText}" FontSize="12" TextWrapping="Wrap" Opacity="0.85"
+                                   Text="Now click Connect &amp; pair on the other computer. You'll both see a code to compare." />
                     </StackPanel>
-                    <Button Grid.Column="1" Classes="secondary-btn" Content="Cancel"
-                            Command="{Binding CancelPairingWindowCommand}" Padding="10,4" FontSize="12"
-                            ToolTip.Tip="Cancel device pairing window" />
+                    <Button Grid.Column="2" Classes="secondary-btn" Content="Stop"
+                            Command="{Binding CancelPairingWindowCommand}" Padding="10,4" FontSize="12" Margin="12,0,0,0"
+                            VerticalAlignment="Center" ToolTip.Tip="Stop accepting new computers" />
                 </Grid>
             </Border>
         </StackPanel>
 
-        <!-- Left Side: Devices navigation list -->
-        <ScrollViewer Grid.Row="1" Grid.Column="0" Margin="0,0,16,0">
-            <StackPanel Spacing="4">
-                <!-- This device button -->
-                <Button Classes="nav-button" Classes.active="{Binding IsThisDeviceSelected}"
-                        Command="{Binding SelectCommand}" CommandParameter="this"
-                        ToolTip.Tip="This computer">
-                    <Grid ColumnDefinitions="Auto,*">
-                        <TextBlock Text="💻" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" />
-                        <TextBlock Grid.Column="1" Text="{Binding ThisDeviceName}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                    </Grid>
-                </Button>
+        <TabControl Grid.Row="2" Classes="page-tabs" Margin="0,4,0,0">
+            <TabItem Header="Devices">
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="190" MaxWidth="260" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="2.6*" />
+                    </Grid.ColumnDefinitions>
 
-                <!-- Computers section header -->
-                <Grid ColumnDefinitions="*,Auto,Auto" Margin="12,12,0,4">
-                    <TextBlock Classes="label" Text="COMPUTERS" VerticalAlignment="Center" />
-                    <Button Classes="primary-btn" Content="Add computer"
-                            Command="{Binding AllowNewDevicesCommand}"
-                            ToolTip.Tip="Allow a new computer to connect (2 min window)"
-                            Padding="8,2" FontSize="11" Margin="0,0,4,0" />
-                    <Button Grid.Column="2" Classes="secondary-btn" Content="Lock all"
-                            Command="{Binding LockAllDevicesCommand}"
-                            ToolTip.Tip="Send lock request to all paired computers"
-                            Padding="8,2" FontSize="11" Margin="0,0,4,0" />
-                </Grid>
-                <ItemsControl ItemsSource="{Binding Layout.Peers}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="vm:PeerViewModel">
-                            <Button Classes="nav-button"
-                                    Command="{Binding $parent[UserControl].((vm:DevicesViewModel)DataContext).SelectCommand}"
-                                    CommandParameter="{Binding}"
-                                    ToolTip.Tip="{Binding Hostname}">
-                                <Grid ColumnDefinitions="Auto,*">
-                                    <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <TextBlock Grid.Column="1" Text="{Binding Hostname}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    <!-- Device list -->
+                    <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,16">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="label" Text="This computer" Margin="12,0,0,6" />
+                            <Button Classes="nav-button" Classes.active="{Binding IsThisDeviceSelected}"
+                                    Command="{Binding SelectCommand}" CommandParameter="this">
+                                <Grid ColumnDefinitions="26,*">
+                                    <mi:MaterialIcon Kind="Laptop" />
+                                    <TextBlock Grid.Column="1" Text="{Binding ThisDeviceName}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                 </Grid>
                             </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <TextBlock Classes="hint" Text="No computers found" Margin="12,4" IsVisible="{Binding !Layout.Peers.Count}" />
 
-                <!-- Phones section header -->
-                <TextBlock Classes="label" Text="PHONES" Margin="12,12,0,4" />
-                <ItemsControl ItemsSource="{Binding Remote.Clients}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="vm:RemoteClientItem">
-                            <Button Classes="nav-button"
-                                    Command="{Binding $parent[UserControl].((vm:DevicesViewModel)DataContext).SelectCommand}"
-                                    CommandParameter="{Binding}"
-                                    ToolTip.Tip="{Binding Address}">
-                                <Grid ColumnDefinitions="Auto,*">
-                                    <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <TextBlock Grid.Column="1" Text="{Binding Address}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                                </Grid>
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <TextBlock Classes="hint" Text="No phones paired" Margin="12,4" IsVisible="{Binding !Remote.Clients.Count}" />
-
-                <!-- Add device manually -->
-                <StackPanel Margin="0,12,0,0" Spacing="6">
-                    <TextBlock Classes="label" Text="ADD DEVICE MANUALLY" />
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBox Grid.Column="0" Text="{Binding ManualAddress}"
-                                 PlaceholderText="IP or hostname" />
-                        <Button Grid.Column="1" Classes="secondary-btn" Content="Add" Margin="6,0,0,0"
-                                Command="{Binding AddByAddressCommand}" />
-                    </Grid>
-                    <TextBlock Classes="hint" FontSize="11" Text="{Binding ManualError}"
-                               IsVisible="{Binding ManualError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                </StackPanel>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- Right Side: Detail Sheet -->
-        <Grid Grid.Row="1" Grid.Column="1">
-            <TextBlock Classes="hint" Text="Select a device to view its details."
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       IsVisible="{Binding Selected, Converter={x:Static ObjectConverters.IsNull}}" />
-
-            <ContentControl Content="{Binding Selected}">
-                <ContentControl.DataTemplates>
-                    <!-- Template 1: This Device -->
-                    <DataTemplate DataType="vm:ThisDeviceViewModel">
-                        <ScrollViewer>
-                            <Border Classes="glass-card" Padding="24"
-                                    x:DataType="vm:ThisDeviceViewModel">
-                                <StackPanel Spacing="16">
-                                    <StackPanel Spacing="4">
-                                        <TextBlock Classes="label" Text="THIS DEVICE" />
-                                        <TextBlock Classes="page-title" Text="{Binding ThisDeviceName}" />
-                                    </StackPanel>
-
-                                    <!-- Accept remote input toggle -->
-                                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
-                                        <StackPanel Spacing="2">
-                                            <TextBlock Classes="section-title" FontSize="13" Text="Accept phone remote input" />
-                                            <TextBlock Classes="hint" Text="Allow paired phones to control mouse and keyboard." />
-                                        </StackPanel>
-                                        <ToggleSwitch Grid.Column="1"
-                                                      IsChecked="{Binding Remote.IsAccepting, Mode=OneWay}"
-                                                      Command="{Binding Remote.ToggleAcceptingCommand}"
-                                                      OnContent="" OffContent=""
-                                                      ToolTip.Tip="Toggle accepting input from paired phones" />
-                                    </Grid>
-
-                                    <Separator Background="{DynamicResource BorderSubtle}" />
-
-                                    <!-- Address text and port -->
-                                    <StackPanel Spacing="6">
-                                        <TextBlock Classes="label" Text="NETWORK ADDRESS" />
-                                        <SelectableTextBlock Text="{Binding Remote.AddressText}"
-                                                             FontSize="14" FontWeight="SemiBold"
-                                                             Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
-                                        <TextBlock Classes="label" Text="{Binding Remote.Port, StringFormat='Port {0}'}" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                        </ScrollViewer>
-                    </DataTemplate>
-
-                    <!-- Template 2: Peer Computer (vm:PeerViewModel) -->
-                    <DataTemplate DataType="vm:PeerViewModel">
-                        <ScrollViewer>
-                            <Border Classes="glass-card" Padding="24">
-                                <StackPanel Spacing="16">
-                                    <!-- Header -->
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <StackPanel Grid.Column="0" Spacing="4">
-                                            <TextBlock Classes="page-title" Text="{Binding Hostname}" />
-                                            <TextBlock Classes="label">
-                                                <Run Text="{Binding OperatingSystem}" /><Run Text=" • " /><Run Text="{Binding Address}" />
-                                            </TextBlock>
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                            <Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" />
-                                            <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                                        </StackPanel>
-                                    </Grid>
-
-                                    <!-- Error banner if any -->
-                                    <Border Classes="banner-error"
-                                            IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                        <TextBlock Text="{Binding Error}" Foreground="{DynamicResource BannerErrorText}"
-                                                   FontSize="12" TextWrapping="Wrap" />
-                                    </Border>
-
-                                    <!-- If not paired -->
-                                    <StackPanel Spacing="12" IsVisible="{Binding !IsPaired}">
-                                        <TextBlock Classes="hint" Text="Pair securely using mutual code confirmation." />
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <Button Classes="primary-btn" Content="{Binding PairButtonText}"
-                                                    Command="{Binding $parent[UserControl].((vm:DevicesViewModel)DataContext).PairComputerV2Command}"
-                                                    CommandParameter="{Binding}"
-                                                    ToolTip.Tip="Connect and verify confirmation code" />
-                                        </StackPanel>
-                                    </StackPanel>
-
-                                    <!-- Wake button for offline peer with known MAC -->
-                                    <StackPanel Spacing="6" Margin="0,8,0,0" IsVisible="{Binding CanWake}">
-                                        <Button Classes="primary-btn" Content="Wake" Command="{Binding WakeCommand}"
-                                                ToolTip.Tip="Send Wake-on-LAN magic packet to this computer" />
-                                        <TextBlock Classes="hint" Text="Works only if Wake-on-LAN is enabled in that computer's BIOS and network adapter settings."
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-
-                                    <!-- If paired -->
-                                    <StackPanel Spacing="14" IsVisible="{Binding IsPaired}">
-                                        <!-- Share mouse & keyboard toggle -->
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Spacing="2">
-                                                <TextBlock Classes="section-title" FontSize="13" Text="Share mouse &amp; keyboard" />
-                                                <TextBlock Classes="hint" Text="Move cursor past the display edge to control this computer." />
-                                            </StackPanel>
-                                            <ToggleSwitch Grid.Column="1"
-                                                          IsChecked="{Binding ShareMouseAndKeyboard}"
-                                                          OnContent="" OffContent=""
-                                                          ToolTip.Tip="Toggle mouse and keyboard sharing" />
-                                        </Grid>
-
-                                        <!-- Placement ComboBox (visible when sharing) -->
-                                        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding ShareMouseAndKeyboard}">
-                                            <StackPanel Spacing="2">
-                                                <TextBlock Classes="section-title" FontSize="13" Text="Position" />
-                                                <TextBlock Classes="hint" Text="Which side of this computer's display it sits on." />
-                                            </StackPanel>
-                                            <ComboBox Grid.Column="1"
-                                                      ItemsSource="{x:Static vm:PeerViewModel.PlacementOptions}"
-                                                      SelectedItem="{Binding Placement}"
-                                                      Width="140"
-                                                      ToolTip.Tip="Position of this computer relative to your display" />
-                                        </Grid>
-
-                                        <!-- Send clipboard toggle -->
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Spacing="2">
-                                                <TextBlock Classes="section-title" FontSize="13" Text="Send my clipboard to this device" />
-                                                <TextBlock Classes="hint" Text="Automatically sync text copied on this computer." />
-                                            </StackPanel>
-                                            <ToggleSwitch Grid.Column="1"
-                                                          IsChecked="{Binding SendClipboard}"
-                                                          OnContent="" OffContent=""
-                                                          ToolTip.Tip="Toggle sending clipboard to this device" />
-                                        </Grid>
-
-                                        <!-- Accept clipboard toggle -->
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Spacing="2">
-                                                <TextBlock Classes="section-title" FontSize="13" Text="Accept clipboard from this device" />
-                                                <TextBlock Classes="hint" Text="Automatically receive text copied on this device." />
-                                            </StackPanel>
-                                            <ToggleSwitch Grid.Column="1"
-                                                          IsChecked="{Binding ReceiveClipboard}"
-                                                          OnContent="" OffContent=""
-                                                          ToolTip.Tip="Toggle receiving clipboard from this device" />
-                                        </Grid>
-
-                                        <!-- Automatically accept files toggle -->
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Spacing="2">
-                                                <TextBlock Classes="section-title" FontSize="13" Text="Automatically accept files" />
-                                                <TextBlock Classes="hint" Text="Accept incoming files from this device without asking every time." />
-                                            </StackPanel>
-                                            <ToggleSwitch Grid.Column="1"
-                                                          IsChecked="{Binding AutoAcceptFiles}"
-                                                          OnContent="" OffContent=""
-                                                          ToolTip.Tip="Toggle automatically accepting incoming files from this device" />
-                                        </Grid>
-
-                                        <!-- Actions -->
-                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                                            <Button Classes="secondary-btn" Content="Send file…"
-                                                    Command="{Binding SendFileCommand}"
-                                                    ToolTip.Tip="Send a file to this computer" />
-                                            <Button Classes="secondary-btn" Content="Forget"
-                                                    Command="{Binding ForgetCommand}"
-                                                    ToolTip.Tip="Forget this computer" />
-                                        </StackPanel>
-
-                                        <!-- Advanced Expander -->
-                                        <Expander Header="Advanced" IsExpanded="False" Margin="0,8,0,0">
-                                            <StackPanel Spacing="12" Margin="0,8,0,0">
-                                                <!-- Mouse speed -->
-                                                <StackPanel Spacing="4">
-                                                    <Grid ColumnDefinitions="*,Auto">
-                                                        <TextBlock Classes="section-title" FontSize="13" Text="Mouse speed" />
-                                                        <TextBlock Grid.Column="1" Text="{Binding MouseSpeed, StringFormat='{}{0:0.00}x'}"
-                                                                   Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" FontSize="13" />
-                                                    </Grid>
-                                                    <Slider Minimum="0.25" Maximum="4.0" TickFrequency="0.25" IsSnapToTickEnabled="True"
-                                                            Value="{Binding MouseSpeed}"
-                                                            ToolTip.Tip="Mouse pointer speed on this computer" />
-                                                </StackPanel>
-
-                                                <!-- Scroll speed -->
-                                                <StackPanel Spacing="4">
-                                                    <Grid ColumnDefinitions="*,Auto">
-                                                        <TextBlock Classes="section-title" FontSize="13" Text="Scroll speed" />
-                                                        <TextBlock Grid.Column="1" Text="{Binding ScrollSpeed, StringFormat='{}{0:0.00}x'}"
-                                                                   Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" FontSize="13" />
-                                                    </Grid>
-                                                    <Slider Minimum="0.25" Maximum="4.0" TickFrequency="0.25" IsSnapToTickEnabled="True"
-                                                            Value="{Binding ScrollSpeed}"
-                                                            ToolTip.Tip="Scroll wheel speed on this computer" />
-                                                </StackPanel>
-
-                                                <!-- Reverse scroll direction -->
-                                                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
-                                                    <StackPanel Spacing="2">
-                                                        <TextBlock Classes="section-title" FontSize="13" Text="Reverse scroll direction" />
-                                                        <TextBlock Classes="hint" Text="Invert the scroll wheel direction for this computer." />
-                                                    </StackPanel>
-                                                    <ToggleSwitch Grid.Column="1"
-                                                                  IsChecked="{Binding InvertScroll}"
-                                                                  OnContent="" OffContent=""
-                                                                  ToolTip.Tip="Reverse scroll direction on this computer" />
-                                                </Grid>
-
-                                                <Separator Background="{DynamicResource BorderSubtle}" />
-
-                                                <!-- Lock sync -->
-                                                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
-                                                    <StackPanel Spacing="2">
-                                                        <TextBlock Classes="section-title" FontSize="13" Text="Lock when this computer locks" />
-                                                        <TextBlock Classes="hint" Text="Locks this computer automatically when the other computer is locked." />
-                                                    </StackPanel>
-                                                    <ToggleSwitch Grid.Column="1"
-                                                                  IsChecked="{Binding SyncLock}"
-                                                                  OnContent="" OffContent=""
-                                                                  ToolTip.Tip="Lock when this computer locks" />
-                                                </Grid>
-
-                                                <!-- Sleep sync -->
-                                                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
-                                                    <StackPanel Spacing="2">
-                                                        <TextBlock Classes="section-title" FontSize="13" Text="Sleep when this computer sleeps" />
-                                                        <TextBlock Classes="hint" Text="Puts this computer to sleep when the other computer sleeps." />
-                                                    </StackPanel>
-                                                    <ToggleSwitch Grid.Column="1"
-                                                                  IsChecked="{Binding SyncSleep}"
-                                                                  OnContent="" OffContent=""
-                                                                  ToolTip.Tip="Sleep when this computer sleeps" />
-                                                </Grid>
-
-                                                <!-- Display off sync -->
-                                                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
-                                                    <StackPanel Spacing="2">
-                                                        <TextBlock Classes="section-title" FontSize="13" Text="Turn off display when this computer turns off display" />
-                                                        <TextBlock Classes="hint" Text="Turns off this computer's display when the other computer turns off its display." />
-                                                    </StackPanel>
-                                                    <ToggleSwitch Grid.Column="1"
-                                                                  IsChecked="{Binding SyncDisplayOff}"
-                                                                  OnContent="" OffContent=""
-                                                                  ToolTip.Tip="Turn off display when this computer turns off display" />
-                                                </Grid>
-
-                                                <Separator Background="{DynamicResource BorderSubtle}" />
-
-                                                <StackPanel Spacing="2">
-                                                    <TextBlock Classes="label" Text="SCREEN RESOLUTION" />
-                                                    <TextBlock Text="{Binding ScreenText}" Foreground="{DynamicResource TextPrimary}" />
-                                                </StackPanel>
-                                                <StackPanel Spacing="2">
-                                                    <TextBlock Classes="label" Text="NETWORK ADDRESS" />
-                                                    <TextBlock Text="{Binding Address}" Foreground="{DynamicResource TextPrimary}" />
-                                                </StackPanel>
-                                                <StackPanel Spacing="2">
-                                                    <TextBlock Classes="label" Text="DEVICE ID" />
-                                                    <SelectableTextBlock Text="{Binding Id}" Foreground="{DynamicResource TextMuted}" FontSize="11" />
-                                                </StackPanel>
-                                            </StackPanel>
-                                        </Expander>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                        </ScrollViewer>
-                    </DataTemplate>
-
-                    <!-- Template 3: Phone (vm:RemoteClientItem) -->
-                    <DataTemplate DataType="vm:RemoteClientItem">
-                        <ScrollViewer>
-                            <Border Classes="glass-card" Padding="24">
-                                <StackPanel Spacing="16">
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <StackPanel Grid.Column="0" Spacing="4">
-                                            <TextBlock Classes="label" Text="PHONE" />
-                                            <TextBlock Classes="page-title" Text="{Binding Address}" />
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                            <Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" />
-                                            <TextBlock Text="Connected" IsVisible="{Binding IsActive}"
-                                                       Foreground="{DynamicResource Success}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                            <TextBlock Text="Idle" IsVisible="{Binding !IsActive}"
-                                                       Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        </StackPanel>
-                                    </Grid>
-
-                                    <!-- Activity info -->
-                                    <Border Background="{DynamicResource BgRaised}" BorderBrush="{DynamicResource BorderSubtle}"
-                                            BorderThickness="1" CornerRadius="8" Padding="14,12">
-                                        <Grid ColumnDefinitions="*,*">
-                                            <StackPanel Grid.Column="0" Spacing="2">
-                                                <TextBlock Classes="label" Text="LAST SEEN" />
-                                                <TextBlock Text="{Binding LastSeenText}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" />
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="1" Spacing="2">
-                                                <TextBlock Classes="label" Text="LAST EVENT" />
-                                                <TextBlock Text="{Binding LastEvent}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" />
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-
-                                    <!-- Unpair button -->
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Button Classes="secondary-btn" Content="Unpair"
-                                                Command="{Binding $parent[UserControl].((vm:DevicesViewModel)DataContext).Remote.ForgetCommand}"
+                            <TextBlock Classes="label" Text="Computers" Margin="12,14,0,6" />
+                            <ItemsControl ItemsSource="{Binding Layout.Peers}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="vm:PeerViewModel">
+                                        <Button Classes="nav-button" Margin="0,0,0,2"
+                                                Command="{Binding $parent[UserControl].((vm:DevicesViewModel)DataContext).SelectCommand}"
                                                 CommandParameter="{Binding}"
-                                                ToolTip.Tip="Unpair this phone" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                        </ScrollViewer>
-                    </DataTemplate>
-                </ContentControl.DataTemplates>
-            </ContentControl>
-        </Grid>
+                                                ToolTip.Tip="{Binding StatusText}">
+                                            <Grid ColumnDefinitions="26,*,Auto" RowDefinitions="Auto,Auto">
+                                                <mi:MaterialIcon Grid.RowSpan="2" Kind="Monitor" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Hostname}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding StatusText}" FontSize="11"
+                                                           Foreground="{DynamicResource TextFaint}" TextTrimming="CharacterEllipsis" />
+                                                <Ellipse Grid.Column="2" Grid.RowSpan="2" Width="8" Height="8" Fill="{Binding StatusColor}"
+                                                         VerticalAlignment="Center" Margin="8,0,0,0" />
+                                            </Grid>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Classes="hint" Margin="12,0,8,0" IsVisible="{Binding !Layout.Peers.Count}"
+                                       Text="No other computers found yet. Start Mouser on a computer on this network and it shows up here." />
 
-        <!-- Screen layout expander at bottom of page -->
-        <Expander Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
-                  Header="Screen layout" IsExpanded="False" Margin="0,12,0,0">
-            <views:MonitorLayoutView DataContext="{Binding Layout}" />
-        </Expander>
+                            <TextBlock Classes="label" Text="Phones" Margin="12,14,0,6" />
+                            <ItemsControl ItemsSource="{Binding Remote.Clients}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="vm:RemoteClientItem">
+                                        <Button Classes="nav-button" Margin="0,0,0,2"
+                                                Command="{Binding $parent[UserControl].((vm:DevicesViewModel)DataContext).SelectCommand}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip.Tip="{Binding Address}">
+                                            <Grid ColumnDefinitions="26,*,Auto">
+                                                <mi:MaterialIcon Kind="Cellphone" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Address}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                <Ellipse Grid.Column="2" Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                            </Grid>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Classes="hint" Text="No phones yet. Open the Mouser app on your phone and pick this computer." Margin="12,0,8,0"
+                                       IsVisible="{Binding !Remote.Clients.Count}" />
 
-        <!-- Modal pairing card overlay (SAS verification) -->
-        <Grid Grid.Row="0" Grid.Column="0" Grid.RowSpan="3" Grid.ColumnSpan="2"
-              IsVisible="{Binding IsPairingPromptVisible}">
-            <Border Background="{DynamicResource BgApp}" Opacity="0.8" />
-            <Border Classes="glass-card" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Padding="28" Width="400" CornerRadius="12"
-                    BorderBrush="{DynamicResource BorderStrong}" BorderThickness="1"
-                    Background="{DynamicResource BgSurface}">
-                <StackPanel Spacing="16">
-                    <TextBlock Text="{Binding PairingPromptTitle}" FontWeight="SemiBold" FontSize="18"
-                               Foreground="{DynamicResource TextPrimary}" TextAlignment="Center" TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding PairingPromptSubtitle}" Classes="hint"
-                               Foreground="{DynamicResource TextSecondary}" TextAlignment="Center" TextWrapping="Wrap" />
-                    <Border Background="{DynamicResource BgSunken}" CornerRadius="8" Padding="20,12"
-                            BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
-                            HorizontalAlignment="Center">
-                        <TextBlock Text="{Binding PairingPromptCode}" FontFamily="{DynamicResource CodeFontFamily}"
-                                   FontSize="32" FontWeight="Bold" Foreground="{DynamicResource Accent}"
-                                   LetterSpacing="4" TextAlignment="Center" />
-                    </Border>
-                    <Grid ColumnDefinitions="*,12,*" Margin="0,8,0,0">
-                        <Button Grid.Column="0" Classes="primary-btn" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                Content="{Binding ConfirmButtonText}" Command="{Binding ConfirmPairingCommand}" />
-                        <Button Grid.Column="2" Classes="secondary-btn" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                Content="{Binding DenyButtonText}" Command="{Binding DenyPairingCommand}" />
+                            <!-- Add by address -->
+                            <StackPanel Margin="4,18,4,0" Spacing="6">
+                                <TextBlock Classes="label" Text="Not listed? Add by address" />
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBox Grid.Column="0" Text="{Binding ManualAddress}" PlaceholderText="IP or hostname" />
+                                    <Button Grid.Column="1" Classes="secondary-btn" Content="Add" Margin="6,0,0,0"
+                                            Command="{Binding AddByAddressCommand}" />
+                                </Grid>
+                                <TextBlock Classes="hint" FontSize="11" Text="{Binding ManualError}"
+                                           IsVisible="{Binding ManualError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Detail -->
+                    <Grid Grid.Column="2">
+                        <TextBlock Classes="hint" Text="Pick a device on the left to see its details."
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   IsVisible="{Binding Selected, Converter={x:Static ObjectConverters.IsNull}}" />
+
+                        <ContentControl Content="{Binding Selected}">
+                            <ContentControl.DataTemplates>
+                                <!-- This computer -->
+                                <DataTemplate DataType="vm:ThisDeviceViewModel">
+                                    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                                        <Border Classes="glass-card" Padding="22" Margin="0,0,0,16" VerticalAlignment="Top">
+                                            <StackPanel Spacing="16">
+                                                <Grid ColumnDefinitions="Auto,*">
+                                                    <Border Classes="icon-tile" Margin="0,0,14,0">
+                                                        <mi:MaterialIcon Kind="Laptop" />
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                        <TextBlock Classes="page-title" FontSize="19" Text="{Binding ThisDeviceName}" />
+                                                        <TextBlock Classes="hint" Text="This computer" />
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <Grid Classes="setting" ColumnDefinitions="*,Auto">
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock Classes="section-title" Text="Accept input from phones" />
+                                                        <TextBlock Classes="hint" Text="Paired phones can move the mouse and type on this computer." />
+                                                    </StackPanel>
+                                                    <ToggleSwitch Grid.Column="1"
+                                                                  IsChecked="{Binding Remote.IsAccepting, Mode=OneWay}"
+                                                                  Command="{Binding Remote.ToggleAcceptingCommand}"
+                                                                  OnContent="" OffContent=""
+                                                                  ToolTip.Tip="Accept input from paired phones" />
+                                                </Grid>
+
+                                                <Separator />
+
+                                                <StackPanel Spacing="6">
+                                                    <TextBlock Classes="label" Text="Address for the phone app" />
+                                                    <SelectableTextBlock Text="{Binding Remote.AddressText}"
+                                                                         FontFamily="{DynamicResource CodeFontFamily}" FontSize="15" FontWeight="SemiBold"
+                                                                         Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
+                                                    <TextBlock Classes="hint" Text="{Binding Remote.Port, StringFormat='Port {0}. The phone app usually finds this computer by itself.'}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </ScrollViewer>
+                                </DataTemplate>
+
+                                <!-- Another computer -->
+                                <DataTemplate DataType="vm:PeerViewModel">
+                                    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                                        <Border Classes="glass-card" Padding="22" Margin="0,0,0,16" VerticalAlignment="Top">
+                                            <StackPanel Spacing="16">
+                                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                                    <Border Classes="icon-tile" Margin="0,0,14,0">
+                                                        <mi:MaterialIcon Kind="Monitor" />
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                        <TextBlock Classes="page-title" FontSize="19" Text="{Binding Hostname}" />
+                                                        <TextBlock Classes="hint" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap">
+                                                            <Run Text="{Binding OperatingSystem}" /><Run Text="  " /><Run Text="{Binding Address}" />
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                    <Border Grid.Column="2" Classes="chip" Margin="12,0,0,0">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding StatusText}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+
+                                                <Border Classes="banner-error"
+                                                        IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                    <Grid ColumnDefinitions="Auto,*">
+                                                        <mi:MaterialIcon Kind="AlertCircleOutline" Foreground="{DynamicResource Danger}" Margin="0,0,10,0" VerticalAlignment="Top" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding Error}" Foreground="{DynamicResource BannerErrorText}"
+                                                                   FontSize="12" TextWrapping="Wrap" />
+                                                    </Grid>
+                                                </Border>
+
+                                                <!-- Not paired -->
+                                                <StackPanel Spacing="12" IsVisible="{Binding !IsPaired}">
+                                                    <StackPanel Spacing="6">
+                                                        <TextBlock Classes="section-title" FontSize="13" Text="Pair in two steps" />
+                                                        <TextBlock Classes="hint">
+                                                            <Run Text="1. On " /><Run Text="{Binding Hostname}" FontWeight="SemiBold" /><Run Text=", open Manage devices and click Add computer." />
+                                                        </TextBlock>
+                                                        <TextBlock Classes="hint" Text="2. Click Connect &amp; pair below, then check that both screens show the same code." />
+                                                    </StackPanel>
+                                                    <Button Classes="primary-btn" HorizontalAlignment="Left"
+                                                            Command="{Binding $parent[UserControl].((vm:DevicesViewModel)DataContext).PairComputerV2Command}"
+                                                            CommandParameter="{Binding}"
+                                                            IsEnabled="{Binding IsOnline}"
+                                                            ToolTip.Tip="Connect and compare the confirmation code">
+                                                        <StackPanel Classes="btn">
+                                                            <mi:MaterialIcon Kind="LanConnect" />
+                                                            <TextBlock Text="{Binding PairButtonText}" />
+                                                        </StackPanel>
+                                                    </Button>
+                                                </StackPanel>
+
+                                                <!-- Wake an offline computer -->
+                                                <StackPanel Spacing="6" IsVisible="{Binding CanWake}">
+                                                    <Button Classes="secondary-btn" Command="{Binding WakeCommand}" HorizontalAlignment="Left"
+                                                            ToolTip.Tip="Send a Wake-on-LAN packet to this computer">
+                                                        <StackPanel Classes="btn">
+                                                            <mi:MaterialIcon Kind="Power" />
+                                                            <TextBlock Text="Wake" />
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <TextBlock Classes="hint" Text="Works only if Wake-on-LAN is turned on in that computer's BIOS and network adapter settings." />
+                                                </StackPanel>
+
+                                                <!-- Paired -->
+                                                <StackPanel Spacing="14" IsVisible="{Binding IsPaired}">
+                                                    <Grid Classes="setting" ColumnDefinitions="*,Auto">
+                                                        <StackPanel Spacing="2">
+                                                            <TextBlock Classes="section-title" Text="Share mouse &amp; keyboard" />
+                                                            <TextBlock Classes="hint" Text="Push the cursor past the screen edge to control this computer." />
+                                                        </StackPanel>
+                                                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding ShareMouseAndKeyboard}"
+                                                                      OnContent="" OffContent="" ToolTip.Tip="Share mouse and keyboard" />
+                                                    </Grid>
+
+                                                    <Grid Classes="setting" ColumnDefinitions="*,Auto" IsVisible="{Binding ShareMouseAndKeyboard}">
+                                                        <StackPanel Spacing="2">
+                                                            <TextBlock Classes="section-title" Text="Position" />
+                                                            <TextBlock Classes="hint" Text="Which side of your screen it sits on. Fine-tune in Screen layout." />
+                                                        </StackPanel>
+                                                        <ComboBox Grid.Column="1"
+                                                                  ItemsSource="{x:Static vm:PeerViewModel.PlacementOptions}"
+                                                                  SelectedItem="{Binding Placement}" MinWidth="120" />
+                                                    </Grid>
+
+                                                    <Grid Classes="setting" ColumnDefinitions="*,Auto">
+                                                        <StackPanel Spacing="2">
+                                                            <TextBlock Classes="section-title" Text="Send my clipboard" />
+                                                            <TextBlock Classes="hint" Text="Text copied here is copied there too." />
+                                                        </StackPanel>
+                                                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding SendClipboard}"
+                                                                      OnContent="" OffContent="" ToolTip.Tip="Send clipboard to this computer" />
+                                                    </Grid>
+
+                                                    <Grid Classes="setting" ColumnDefinitions="*,Auto">
+                                                        <StackPanel Spacing="2">
+                                                            <TextBlock Classes="section-title" Text="Receive its clipboard" />
+                                                            <TextBlock Classes="hint" Text="Text copied there is copied here too." />
+                                                        </StackPanel>
+                                                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding ReceiveClipboard}"
+                                                                      OnContent="" OffContent="" ToolTip.Tip="Receive clipboard from this computer" />
+                                                    </Grid>
+
+                                                    <Grid Classes="setting" ColumnDefinitions="*,Auto">
+                                                        <StackPanel Spacing="2">
+                                                            <TextBlock Classes="section-title" Text="Accept files without asking" />
+                                                            <TextBlock Classes="hint" Text="Files from this computer save straight to Downloads/Mouser." />
+                                                        </StackPanel>
+                                                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoAcceptFiles}"
+                                                                      OnContent="" OffContent="" ToolTip.Tip="Accept files without asking" />
+                                                    </Grid>
+
+                                                    <WrapPanel Orientation="Horizontal">
+                                                        <Button Classes="secondary-btn" Command="{Binding SendFileCommand}" Margin="0,0,8,8"
+                                                                ToolTip.Tip="Send a file to this computer">
+                                                            <StackPanel Classes="btn">
+                                                                <mi:MaterialIcon Kind="FileSendOutline" />
+                                                                <TextBlock Text="Send file…" />
+                                                            </StackPanel>
+                                                        </Button>
+                                                        <Button Classes="secondary-btn danger" Command="{Binding ForgetCommand}" Margin="0,0,8,8"
+                                                                ToolTip.Tip="Remove the pairing with this computer">
+                                                            <StackPanel Classes="btn">
+                                                                <mi:MaterialIcon Kind="LinkOff" />
+                                                                <TextBlock Text="Forget" />
+                                                            </StackPanel>
+                                                        </Button>
+                                                    </WrapPanel>
+
+                                                    <Expander Header="Advanced" IsExpanded="False" HorizontalAlignment="Stretch">
+                                                        <StackPanel Spacing="14" Margin="0,4,0,0">
+                                                            <StackPanel Spacing="4">
+                                                                <Grid ColumnDefinitions="*,Auto">
+                                                                    <TextBlock Classes="section-title" FontSize="13" Text="Mouse speed" />
+                                                                    <TextBlock Grid.Column="1" Text="{Binding MouseSpeed, StringFormat='{}{0:0.00}×'}"
+                                                                               Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" />
+                                                                </Grid>
+                                                                <Slider Minimum="0.25" Maximum="4.0" TickFrequency="0.25" IsSnapToTickEnabled="True"
+                                                                        Value="{Binding MouseSpeed}" ToolTip.Tip="Pointer speed on this computer" />
+                                                            </StackPanel>
+
+                                                            <StackPanel Spacing="4">
+                                                                <Grid ColumnDefinitions="*,Auto">
+                                                                    <TextBlock Classes="section-title" FontSize="13" Text="Scroll speed" />
+                                                                    <TextBlock Grid.Column="1" Text="{Binding ScrollSpeed, StringFormat='{}{0:0.00}×'}"
+                                                                               Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" />
+                                                                </Grid>
+                                                                <Slider Minimum="0.25" Maximum="4.0" TickFrequency="0.25" IsSnapToTickEnabled="True"
+                                                                        Value="{Binding ScrollSpeed}" ToolTip.Tip="Scroll wheel speed on this computer" />
+                                                            </StackPanel>
+
+                                                            <Grid Classes="setting" ColumnDefinitions="*,Auto">
+                                                                <StackPanel Spacing="2">
+                                                                    <TextBlock Classes="section-title" Text="Reverse scroll direction" />
+                                                                    <TextBlock Classes="hint" Text="Flip the scroll wheel on this computer." />
+                                                                </StackPanel>
+                                                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding InvertScroll}" OnContent="" OffContent="" />
+                                                            </Grid>
+
+                                                            <Separator />
+
+                                                            <Grid Classes="setting" ColumnDefinitions="*,Auto">
+                                                                <StackPanel Spacing="2">
+                                                                    <TextBlock Classes="section-title" Text="Lock together" />
+                                                                    <TextBlock Classes="hint" Text="Lock this computer when the other one locks." />
+                                                                </StackPanel>
+                                                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding SyncLock}" OnContent="" OffContent="" />
+                                                            </Grid>
+
+                                                            <Grid Classes="setting" ColumnDefinitions="*,Auto">
+                                                                <StackPanel Spacing="2">
+                                                                    <TextBlock Classes="section-title" Text="Sleep together" />
+                                                                    <TextBlock Classes="hint" Text="Put this computer to sleep when the other one sleeps." />
+                                                                </StackPanel>
+                                                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding SyncSleep}" OnContent="" OffContent="" />
+                                                            </Grid>
+
+                                                            <Grid Classes="setting" ColumnDefinitions="*,Auto">
+                                                                <StackPanel Spacing="2">
+                                                                    <TextBlock Classes="section-title" Text="Turn displays off together" />
+                                                                    <TextBlock Classes="hint" Text="Turn off this display when the other computer turns off its display." />
+                                                                </StackPanel>
+                                                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding SyncDisplayOff}" OnContent="" OffContent="" />
+                                                            </Grid>
+
+                                                            <Separator />
+
+                                                            <StackPanel Spacing="2">
+                                                                <TextBlock Classes="label" Text="Screen" />
+                                                                <TextBlock Text="{Binding ScreenText}" Foreground="{DynamicResource TextPrimary}" />
+                                                            </StackPanel>
+                                                            <StackPanel Spacing="2">
+                                                                <TextBlock Classes="label" Text="Network address" />
+                                                                <TextBlock Text="{Binding Address}" FontFamily="{DynamicResource CodeFontFamily}" Foreground="{DynamicResource TextPrimary}" />
+                                                            </StackPanel>
+                                                            <StackPanel Spacing="2">
+                                                                <TextBlock Classes="label" Text="Device ID" />
+                                                                <SelectableTextBlock Text="{Binding Id}" FontFamily="{DynamicResource CodeFontFamily}"
+                                                                                     Foreground="{DynamicResource TextMuted}" FontSize="11" TextWrapping="Wrap" />
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Expander>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </ScrollViewer>
+                                </DataTemplate>
+
+                                <!-- Phone -->
+                                <DataTemplate DataType="vm:RemoteClientItem">
+                                    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                                        <Border Classes="glass-card" Padding="22" Margin="0,0,0,16" VerticalAlignment="Top">
+                                            <StackPanel Spacing="16">
+                                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                                    <Border Classes="icon-tile" Margin="0,0,14,0">
+                                                        <mi:MaterialIcon Kind="Cellphone" />
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                        <TextBlock Classes="page-title" FontSize="19" Text="{Binding Address}" />
+                                                        <TextBlock Classes="hint" Text="Phone" />
+                                                    </StackPanel>
+                                                    <Border Grid.Column="2" Classes="chip" Margin="12,0,0,0">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" />
+                                                            <TextBlock Text="Connected" IsVisible="{Binding IsActive}" />
+                                                            <TextBlock Text="Idle" IsVisible="{Binding !IsActive}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+
+                                                <Border Background="{DynamicResource BgRaised}" BorderBrush="{DynamicResource BorderSubtle}"
+                                                        BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}" Padding="14,12">
+                                                    <Grid ColumnDefinitions="*,*">
+                                                        <StackPanel Grid.Column="0" Spacing="2">
+                                                            <TextBlock Classes="label" Text="Last seen" />
+                                                            <TextBlock Text="{Binding LastSeenText}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="1" Spacing="2">
+                                                            <TextBlock Classes="label" Text="Last action" />
+                                                            <TextBlock Text="{Binding LastEvent}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+
+                                                <Button Classes="secondary-btn danger" HorizontalAlignment="Left"
+                                                        Command="{Binding $parent[UserControl].((vm:DevicesViewModel)DataContext).Remote.ForgetCommand}"
+                                                        CommandParameter="{Binding}" ToolTip.Tip="Unpair this phone">
+                                                    <StackPanel Classes="btn">
+                                                        <mi:MaterialIcon Kind="LinkOff" />
+                                                        <TextBlock Text="Unpair" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </Border>
+                                    </ScrollViewer>
+                                </DataTemplate>
+                            </ContentControl.DataTemplates>
+                        </ContentControl>
                     </Grid>
-                </StackPanel>
-            </Border>
-        </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Screen layout">
+                <views:MonitorLayoutView DataContext="{Binding Layout}" Margin="0,4,0,0" />
+            </TabItem>
+        </TabControl>
     </Grid>
 </UserControl>

@@ -25,7 +25,7 @@ public partial class QuickPasteViewModel : ViewModelBase
     [ObservableProperty] private string? _deviceFilter;
 
     public bool HasDeviceFilter => !string.IsNullOrWhiteSpace(DeviceFilter);
-    public string DeviceFilterText => $"From {DeviceFilter} ✕";
+    public string DeviceFilterText => $"From {DeviceFilter}";
 
     [RelayCommand]
     public void ClearDeviceFilter()

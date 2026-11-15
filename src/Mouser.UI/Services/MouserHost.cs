@@ -630,7 +630,7 @@ public sealed class MouserHost : IDisposable
 
     public PeerLinkStatus GetPeerStatus(string deviceId)
     {
-        if (_pairing.Contains(deviceId)) return PeerLinkStatus.Pairing;
+        lock (_pairing) { if (_pairing.Contains(deviceId)) return PeerLinkStatus.Pairing; }
         if (!_links.TryGetValue(deviceId, out var link)) return PeerLinkStatus.NotPaired;
         if (link.IsAlive) return PeerLinkStatus.Paired;
         return _settings.Current.Peers.TryGetValue(deviceId, out var s) && (!string.IsNullOrEmpty(s.PairKeyProtected) && SecretStore.Unprotect(s.PairKeyProtected) != null)
@@ -639,11 +639,29 @@ public sealed class MouserHost : IDisposable
     }
 
     /// <summary>Pairs with another Mouser computer using TCP ECDH + SAS confirmation code.</summary>
-    public async Task<bool> PairPeerV2Async(DiscoveredPeer peer, Func<string, string, Task<bool>> confirmationPrompt)
+    public async Task<PairingInitiatorResult> PairPeerV2Async(DiscoveredPeer peer, Func<string, string, Task<bool>> confirmationPrompt)
     {
-        if (Transfer == null || peer.ControlPort <= 0) return false;
+        if (Transfer == null || peer.ControlPort <= 0) return PairingInitiatorResult.Failed("NoControlPort");
         var target = new IPEndPoint(peer.IpAddress, peer.ControlPort);
-        var result = await Transfer.RequestPairingAsync(target, confirmationPrompt);
+        PairingInitiatorResult result;
+        lock (_pairing) _pairing.Add(peer.DeviceId);
+        try
+        {
+            // Covers the other side's 60 s Allow/Deny prompt plus our own code check.
+            using var timeout = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(120));
+            result = await Transfer.RequestPairingAsync(target, confirmationPrompt, timeout.Token);
+        }
+        catch (Exception e) when (e is SocketException or IOException or OperationCanceledException
+                                      or System.Security.Cryptography.CryptographicException or InvalidDataException)
+        {
+            Log.Record(ActivityCategory.Pairing, $"Pairing with {peer.Hostname} failed: {e.Message}");
+            return PairingInitiatorResult.Failed(e is SocketException ? "Unreachable" : "ConnectionClosed");
+        }
+        finally
+        {
+            lock (_pairing) _pairing.Remove(peer.DeviceId);
+        }
+
         if (result.IsSuccess && result.PairKey != null)
         {
             var saved = PeerSettingsFor(peer);
@@ -657,18 +675,18 @@ public sealed class MouserHost : IDisposable
             _settings.Save();
             SyncPeers();
             Log.Record(ActivityCategory.Pairing, $"Paired with {peer.Hostname} (v2 code)");
-            return true;
+            return result;
         }
         if (result.IsRefused)
         {
             Log.Record(ActivityCategory.Pairing, $"Pairing refused by {peer.Hostname}: {result.Reason}");
         }
-        return false;
+        return result;
     }
 
     /// <summary>Convenience helper for tests or direct pairing without prompt.</summary>
-    public Task<bool> PairPeerAsync(DiscoveredPeer peer) =>
-        PairPeerV2Async(peer, (_, _) => Task.FromResult(true));
+    public async Task<bool> PairPeerAsync(DiscoveredPeer peer) =>
+        (await PairPeerV2Async(peer, (_, _) => Task.FromResult(true))).IsSuccess;
 
     public void SetPeerPlacement(string peerId, PeerPlacement placement)
     {

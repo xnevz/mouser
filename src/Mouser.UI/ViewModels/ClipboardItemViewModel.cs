@@ -12,7 +12,8 @@ namespace Mouser.UI.ViewModels;
 
 public sealed record FileClipItemInfo(string Path, string Name, string SizeOrType, bool Exists, bool IsDirectory)
 {
-    public string Icon => !Exists ? "⚠️" : (IsDirectory ? "📁" : "📄");
+    public Material.Icons.MaterialIconKind Icon => !Exists ? Material.Icons.MaterialIconKind.AlertOutline
+        : (IsDirectory ? Material.Icons.MaterialIconKind.FolderOutline : Material.Icons.MaterialIconKind.FileOutline);
 }
 
 public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
@@ -232,7 +233,7 @@ public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
     }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StarIcon), nameof(StarColor))]
+    [NotifyPropertyChangedFor(nameof(StarIcon), nameof(StarColor), nameof(PinButtonText))]
     private bool _isPinned;
 
     [ObservableProperty]
@@ -298,7 +299,17 @@ public partial class ClipboardItemViewModel : ViewModelBase, IDisposable
         _ => "#3b82f6"
     };
 
-    public string StarIcon => IsPinned ? "★" : "☆";
+    public Material.Icons.MaterialIconKind StarIcon => IsPinned ? Material.Icons.MaterialIconKind.Star : Material.Icons.MaterialIconKind.StarOutline;
+    public string PinButtonText => IsPinned ? "Unpin" : "Pin";
+
+    public Material.Icons.MaterialIconKind TypeIconKind => Kind switch
+    {
+        ClipboardContentType.Code => Material.Icons.MaterialIconKind.CodeTags,
+        ClipboardContentType.Link => Material.Icons.MaterialIconKind.LinkVariant,
+        ClipboardContentType.Image => Material.Icons.MaterialIconKind.ImageOutline,
+        ClipboardContentType.FileUri => IsDirectoryOnly ? Material.Icons.MaterialIconKind.FolderOutline : Material.Icons.MaterialIconKind.FileOutline,
+        _ => Material.Icons.MaterialIconKind.FormatTextVariant
+    };
     public string StarColor => IsPinned ? "#f59e0b" : "#64748b";
 
     public int LineCount => string.IsNullOrEmpty(Content) ? 0 : Content.Split('\n').Length;

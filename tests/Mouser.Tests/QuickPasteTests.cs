@@ -381,7 +381,7 @@ public class QuickPasteTests
         await paste.LoadAsync();
 
         Assert.True(paste.HasDeviceFilter);
-        Assert.Equal("From Laptop-Pro ✕", paste.DeviceFilterText);
+        Assert.Equal("From Laptop-Pro", paste.DeviceFilterText);
         var item = Assert.Single(paste.Items);
         Assert.Equal("From laptop", item.Content);
         Assert.Equal("Laptop-Pro", item.SourceDevice);

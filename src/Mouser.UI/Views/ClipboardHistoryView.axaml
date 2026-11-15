@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Mouser.UI.ViewModels"
              xmlns:net="using:Mouser.Core.Networking"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="640"
              x:Class="Mouser.UI.Views.ClipboardHistoryView"
              x:DataType="vm:ClipboardHistoryViewModel"
@@ -25,69 +26,113 @@
             <Setter Property="Background" Value="{DynamicResource BgListItem}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
             <Setter Property="Padding" Value="12,10" />
+        </Style>
+        <Style Selector="ListBox.clips ListBoxItem:pointerover Border.clip-card">
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+        </Style>
+        <Style Selector="Border.type-badge">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+            <Setter Property="Background" Value="{DynamicResource BgRaised}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Border.type-badge > mi|MaterialIcon">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.meta-card">
+            <Setter Property="Margin" Value="0,10,0,0" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="Background" Value="{DynamicResource BgRaised}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
         </Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="24">
+    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+    <Border Padding="24,20,24,16" MinWidth="620" MinHeight="520"
+            Width="{Binding $parent[ScrollViewer].Bounds.Width}"
+            Height="{Binding $parent[ScrollViewer].Bounds.Height}">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
         <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,14">
-            <TextBlock Classes="page-title" Text="Clipboard History" />
+            <TextBlock Classes="page-title" Text="Clipboard" />
             <TextBlock Classes="page-subtitle"
-                       Text="Text you copy on this computer is saved here so you can find and copy it again. History stays on this computer." />
+                       Text="Everything you copy is kept here, searchable. History stays on this computer." />
             <TextBlock Classes="hint" Text="{Binding QuickPasteHint}"
                        IsVisible="{Binding QuickPasteHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </StackPanel>
 
         <Border Grid.Row="1" Classes="banner-warning" Margin="0,0,0,12" IsVisible="{Binding !IsCaptureEnabled}">
-            <TextBlock Foreground="{DynamicResource BannerWarningText}" FontSize="12" TextWrapping="Wrap"
-                       Text="Saving new clips is turned off. Turn it back on in Settings." />
+            <Grid ColumnDefinitions="Auto,*">
+                <mi:MaterialIcon Kind="AlertOutline" Foreground="{DynamicResource Warning}" Margin="0,0,10,0" />
+                <TextBlock Grid.Column="1" Foreground="{DynamicResource BannerWarningText}" FontSize="12" TextWrapping="Wrap"
+                           Text="Saving new clips is turned off. Turn it back on in Settings." />
+            </Grid>
         </Border>
 
-        <Grid Grid.Row="2" ColumnDefinitions="*,16,360">
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.3*" MinWidth="260" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" MinWidth="300" MaxWidth="440" />
+            </Grid.ColumnDefinitions>
             <!-- List -->
             <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*">
                 <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
                     <TextBox x:Name="SearchBox" Grid.Column="0"
-                             PlaceholderText="Search, or type # @ type: on:"
-                             Text="{Binding SearchQuery}" />
-                    <Button Grid.Column="1" Classes="secondary-btn" Content="Clear history" Margin="8,0,0,0"
-                            Command="{Binding ClearAllCommand}" ToolTip.Tip="Delete all clips except starred ones" />
+                             PlaceholderText="Search, or filter with # @ type: on:"
+                             Text="{Binding SearchQuery}">
+                        <TextBox.InnerLeftContent>
+                            <mi:MaterialIcon Kind="Magnify" Foreground="{DynamicResource TextFaint}" Margin="10,0,0,0" />
+                        </TextBox.InnerLeftContent>
+                    </TextBox>
+                    <Button Grid.Column="1" Classes="icon-btn" Margin="6,0,0,0"
+                            Command="{Binding ClearAllCommand}" ToolTip.Tip="Clear history (pinned clips stay)">
+                        <mi:MaterialIcon Kind="Broom" Width="18" Height="18" />
+                    </Button>
                 </Grid>
 
-                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
+                <WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,4">
                     <ComboBox ItemsSource="{x:Static vm:ClipboardHistoryViewModel.TypeOptions}"
-                              SelectedItem="{Binding SelectedFilter}" Width="120" />
+                              SelectedItem="{Binding SelectedFilter}" MinWidth="110" Margin="0,0,8,8" ToolTip.Tip="Type" />
                     <ComboBox ItemsSource="{Binding DeviceOptions}"
-                              SelectedItem="{Binding SelectedDevice}" Width="130" />
+                              SelectedItem="{Binding SelectedDevice}" MinWidth="120" Margin="0,0,8,8" ToolTip.Tip="Copied on" />
                     <ComboBox ItemsSource="{x:Static vm:ClipboardHistoryViewModel.TimeOptions}"
-                              SelectedItem="{Binding SelectedTime}" Width="120" />
-                    <Border Classes="status-pill" IsVisible="{Binding SelectedTag, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                            Padding="8,2" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding SelectedTag, StringFormat='#{0}'}" FontSize="11" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
-                            <Button Classes="link" Content="✕" FontSize="11" Foreground="{DynamicResource TextMuted}"
-                                    Command="{Binding ClearTagCommand}" ToolTip.Tip="Clear tag filter" VerticalAlignment="Center" />
+                              SelectedItem="{Binding SelectedTime}" MinWidth="110" Margin="0,0,8,8" ToolTip.Tip="When" />
+                    <Border Classes="chip" IsVisible="{Binding SelectedTag, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            Padding="10,2,4,2" Margin="0,0,8,8">
+                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                            <mi:MaterialIcon Kind="TagOutline" Width="14" Height="14" Foreground="{DynamicResource TextMuted}" />
+                            <TextBlock Text="{Binding SelectedTag}" />
+                            <Button Classes="icon-btn" Padding="3" Command="{Binding ClearTagCommand}" ToolTip.Tip="Clear tag filter">
+                                <mi:MaterialIcon Kind="Close" Width="12" Height="12" />
+                            </Button>
                         </StackPanel>
                     </Border>
-                </StackPanel>
+                </WrapPanel>
 
                 <Grid Grid.Row="2">
-                    <TextBlock Classes="hint" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
-                               IsVisible="{Binding IsEmpty}"
-                               Text="Nothing here yet.&#10;Copy some text anywhere on this computer and it will show up." />
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" IsVisible="{Binding IsEmpty}" MaxWidth="280">
+                        <mi:MaterialIcon Kind="ClipboardOutline" Width="36" Height="36" Foreground="{DynamicResource TextFaint}" HorizontalAlignment="Center" />
+                        <TextBlock Classes="hint" TextAlignment="Center"
+                                   Text="Nothing here yet. Copy some text anywhere on this computer and it shows up here." />
+                    </StackPanel>
 
                     <ListBox x:Name="ClipList" Classes="clips" Background="Transparent" ItemsSource="{Binding FilteredClips}"
                              SelectedItem="{Binding SelectedClip}" IsVisible="{Binding !IsEmpty}">
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="vm:ClipboardItemViewModel">
                                 <StackPanel Spacing="0">
-                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="4,12,4,4" IsVisible="{Binding ShowDayHeader}">
-                                        <TextBlock Text="{Binding DayLabel}" Classes="section-title" FontSize="12" />
-                                        <TextBlock Text="·" Foreground="{DynamicResource TextFaint}" />
-                                        <TextBlock Classes="hint" FontSize="11" Text="{Binding DayCount, StringFormat='{}{0} items'}" />
-                                    </StackPanel>
+                                    <Grid ColumnDefinitions="Auto,*" Margin="4,12,4,6" IsVisible="{Binding ShowDayHeader}">
+                                        <TextBlock Text="{Binding DayLabel}" Classes="label" Foreground="{DynamicResource TextSecondary}" />
+                                        <TextBlock Grid.Column="1" Classes="label" Margin="8,0,0,0" Text="{Binding DayCount, StringFormat='{}{0} items'}" />
+                                    </Grid>
 
                                     <Border Classes="clip-card">
                                         <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
@@ -98,22 +143,17 @@
                                                     <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" Width="36" Height="36" />
                                                 </Border>
                                                 <!-- Text clip badge -->
-                                                <Border Background="{Binding BadgeColor}" CornerRadius="6" Width="36" Height="36"
-                                                        IsVisible="{Binding IsTextClip}">
-                                                    <TextBlock Text="{Binding TypeIcon}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource OnAccent}"
-                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <Border Classes="type-badge" IsVisible="{Binding IsTextClip}">
+                                                    <mi:MaterialIcon Kind="{Binding TypeIconKind}" Foreground="{Binding BadgeColor}" />
                                                 </Border>
                                                 <!-- Image placeholder badge -->
-                                                <Border Background="{Binding BadgeColor}" CornerRadius="6" Width="36" Height="36"
-                                                        IsVisible="{Binding IsImagePlaceholder}">
-                                                    <TextBlock Text="{Binding TypeIcon}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource OnAccent}"
-                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <Border Classes="type-badge" IsVisible="{Binding IsImagePlaceholder}">
+                                                    <mi:MaterialIcon Kind="{Binding TypeIconKind}" Foreground="{Binding BadgeColor}" />
                                                 </Border>
                                                 <!-- File clip badge -->
-                                                <Border Background="{DynamicResource Warning}" CornerRadius="6" Width="36" Height="36"
-                                                        IsVisible="{Binding IsFileClip}">
-                                                    <TextBlock Text="{Binding FileBadgeText}" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource OnAccent}"
-                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <Border Classes="type-badge" IsVisible="{Binding IsFileClip}"
+                                                        ToolTip.Tip="{Binding FileBadgeText}">
+                                                    <mi:MaterialIcon Kind="{Binding TypeIconKind}" Foreground="{Binding BadgeColor}" />
                                                 </Border>
                                             </Panel>
 
@@ -123,23 +163,23 @@
                                             <!-- Text clip subtitle -->
                                             <TextBlock Grid.Column="1" Grid.Row="1" FontSize="11" Foreground="{DynamicResource TextFaint}" Margin="0,3,0,0"
                                                        IsVisible="{Binding IsTextClip}">
-                                                <Run Text="{Binding SourceDevice}" /><Run Text=" • " /><Run Text="{Binding FormattedTime}" /><Run Text=" • " /><Run Text="{Binding LineCount, StringFormat='{}{0} lines'}" />
+                                                <Run Text="{Binding SourceDevice}" /><Run Text="   " /><Run Text="{Binding FormattedTime}" /><Run Text="   " /><Run Text="{Binding LineCount, StringFormat='{}{0} lines'}" />
                                             </TextBlock>
 
                                             <!-- Image clip subtitle -->
                                             <TextBlock Grid.Column="1" Grid.Row="1" FontSize="11" Foreground="{DynamicResource TextFaint}" Margin="0,3,0,0"
                                                        IsVisible="{Binding IsImage}">
-                                                <Run Text="{Binding SourceDevice}" /><Run Text=" • " /><Run Text="{Binding FormattedTime}" /><Run Text=" • " /><Run Text="{Binding ImageFormatText}" />
+                                                <Run Text="{Binding SourceDevice}" /><Run Text="   " /><Run Text="{Binding FormattedTime}" /><Run Text="   " /><Run Text="{Binding ImageFormatText}" />
                                             </TextBlock>
 
                                             <!-- File clip subtitle -->
                                             <TextBlock Grid.Column="1" Grid.Row="1" FontSize="11" Foreground="{DynamicResource TextFaint}" Margin="0,3,0,0"
                                                        IsVisible="{Binding IsFileClip}">
-                                                <Run Text="{Binding SourceDevice}" /><Run Text=" • " /><Run Text="{Binding FormattedTime}" /><Run Text=" • " /><Run Text="{Binding FileSubtitle}" />
+                                                <Run Text="{Binding SourceDevice}" /><Run Text="   " /><Run Text="{Binding FormattedTime}" /><Run Text="   " /><Run Text="{Binding FileSubtitle}" />
                                             </TextBlock>
 
-                                            <TextBlock Grid.Column="2" Grid.RowSpan="2" Text="{Binding StarIcon}" FontSize="15"
-                                                       Foreground="{Binding StarColor}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                            <mi:MaterialIcon Grid.Column="2" Grid.RowSpan="2" Kind="{Binding StarIcon}" Width="16" Height="16"
+                                                             Foreground="{Binding StarColor}" Margin="8,0,0,0" IsVisible="{Binding IsPinned}" />
                                         </Grid>
                                     </Border>
                                 </StackPanel>
@@ -153,20 +193,29 @@
             <Border Grid.Column="2" Classes="glass-card" Padding="16">
                 <Grid>
                     <!-- Detail content when selected -->
-                    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto"
-                          IsVisible="{Binding SelectedClip, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <Grid IsVisible="{Binding SelectedClip, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" MinHeight="120" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
                         <!-- Action buttons row for Text -->
                         <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8"
                                     IsVisible="{Binding SelectedClip.IsTextClip}">
-                            <Button Classes="primary-btn" Content="Copy" Command="{Binding CopyClipCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6" />
+                            <Button Classes="primary-btn" Command="{Binding CopyClipCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6">
+                                <StackPanel Classes="btn"><mi:MaterialIcon Kind="ContentCopy" /><TextBlock Text="Copy" /></StackPanel>
+                            </Button>
                             <Button Classes="secondary-btn"
                                     IsVisible="{Binding SelectedClip.IsSensitive}"
                                     Content="{Binding SelectedClip.RevealButtonText}"
                                     Command="{Binding SelectedClip.ToggleRevealCommand}"
                                     ToolTip.Tip="Show or hide masked secret"
                                     Margin="0,0,6,6" />
-                            <Button Classes="secondary-btn" Content="Transform ▾" Margin="0,0,6,6">
+                            <Button Classes="secondary-btn" Margin="0,0,6,6" ToolTip.Tip="Change case, trim, encode and more">
+                                <StackPanel Classes="btn"><mi:MaterialIcon Kind="AutoFix" /><TextBlock Text="Transform" /><mi:MaterialIcon Kind="ChevronDown" Width="14" Height="14" /></StackPanel>
                                 <Button.Flyout>
                                     <MenuFlyout ItemsSource="{Binding AvailableTransforms}">
                                         <MenuFlyout.ItemTemplate>
@@ -179,7 +228,8 @@
                                     </MenuFlyout>
                                 </Button.Flyout>
                             </Button>
-                            <Button Classes="secondary-btn" Content="Send to ▾" Margin="0,0,6,6">
+                            <Button Classes="secondary-btn" Margin="0,0,6,6" ToolTip.Tip="Send this text to a paired computer">
+                                <StackPanel Classes="btn"><mi:MaterialIcon Kind="SendOutline" /><TextBlock Text="Send to" /><mi:MaterialIcon Kind="ChevronDown" Width="14" Height="14" /></StackPanel>
                                 <Button.Flyout>
                                     <MenuFlyout ItemsSource="{Binding SendablePeers}">
                                         <MenuFlyout.ItemTemplate>
@@ -193,35 +243,64 @@
                                 </Button.Flyout>
                             </Button>
                             <Button Classes="secondary-btn" Command="{Binding ToggleStarCommand}" CommandParameter="{Binding SelectedClip}"
-                                    Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}"
-                                    Margin="0,0,6,6" />
-                            <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}"
-                                    Margin="0,0,6,6" />
+                                    Margin="0,0,6,6">
+                                <StackPanel Classes="btn">
+                                    <mi:MaterialIcon Kind="{Binding SelectedClip.StarIcon, FallbackValue=StarOutline}" />
+                                    <TextBlock Text="{Binding SelectedClip.PinButtonText, FallbackValue=Pin}" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="icon-btn danger" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}"
+                                    Margin="0,0,6,6" ToolTip.Tip="Delete this clip">
+                                <mi:MaterialIcon Kind="DeleteOutline" Width="18" Height="18" />
+                            </Button>
                         </WrapPanel>
 
                         <!-- Action buttons row for Image -->
                         <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8"
                                     IsVisible="{Binding SelectedClip.IsImage}">
-                            <Button Classes="primary-btn" Content="Copy image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6" />
-                            <Button Classes="secondary-btn" Content="Save as…" Command="{Binding SaveImageAsCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6" />
-                            <Button Classes="secondary-btn" Content="Open" Command="{Binding OpenImageCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6" />
+                            <Button Classes="primary-btn" Command="{Binding CopyImageCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6">
+                                <StackPanel Classes="btn"><mi:MaterialIcon Kind="ContentCopy" /><TextBlock Text="Copy image" /></StackPanel>
+                            </Button>
+                            <Button Classes="secondary-btn" Command="{Binding SaveImageAsCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6">
+                                <StackPanel Classes="btn"><mi:MaterialIcon Kind="ContentSaveOutline" /><TextBlock Text="Save as…" /></StackPanel>
+                            </Button>
+                            <Button Classes="icon-btn" Command="{Binding OpenImageCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6"
+                                    ToolTip.Tip="Open in your image viewer">
+                                <mi:MaterialIcon Kind="OpenInNew" Width="18" Height="18" />
+                            </Button>
                             <Button Classes="secondary-btn" Command="{Binding ToggleStarCommand}" CommandParameter="{Binding SelectedClip}"
-                                    Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}"
-                                    Margin="0,0,6,6" />
-                            <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}"
-                                    Margin="0,0,6,6" />
+                                    Margin="0,0,6,6">
+                                <StackPanel Classes="btn">
+                                    <mi:MaterialIcon Kind="{Binding SelectedClip.StarIcon, FallbackValue=StarOutline}" />
+                                    <TextBlock Text="{Binding SelectedClip.PinButtonText, FallbackValue=Pin}" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="icon-btn danger" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}"
+                                    Margin="0,0,6,6" ToolTip.Tip="Delete this clip">
+                                <mi:MaterialIcon Kind="DeleteOutline" Width="18" Height="18" />
+                            </Button>
                         </WrapPanel>
 
                         <!-- Action buttons row for Files -->
                         <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8"
                                     IsVisible="{Binding SelectedClip.IsFileClip}">
-                            <Button Classes="primary-btn" Content="Copy" Command="{Binding CopyFilesCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6" />
-                            <Button Classes="secondary-btn" Content="Send to…" Command="{Binding SendFileToPeerCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6" />
+                            <Button Classes="primary-btn" Command="{Binding CopyFilesCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6">
+                                <StackPanel Classes="btn"><mi:MaterialIcon Kind="ContentCopy" /><TextBlock Text="Copy" /></StackPanel>
+                            </Button>
+                            <Button Classes="secondary-btn" Command="{Binding SendFileToPeerCommand}" CommandParameter="{Binding SelectedClip}" Margin="0,0,6,6">
+                                <StackPanel Classes="btn"><mi:MaterialIcon Kind="FileSendOutline" /><TextBlock Text="Send to…" /></StackPanel>
+                            </Button>
                             <Button Classes="secondary-btn" Command="{Binding ToggleStarCommand}" CommandParameter="{Binding SelectedClip}"
-                                    Content="{Binding SelectedClip.StarIcon, StringFormat='{}{0} Star', FallbackValue='☆ Star'}"
-                                    Margin="0,0,6,6" />
-                            <Button Classes="secondary-btn" Content="Delete" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}"
-                                    Margin="0,0,6,6" />
+                                    Margin="0,0,6,6">
+                                <StackPanel Classes="btn">
+                                    <mi:MaterialIcon Kind="{Binding SelectedClip.StarIcon, FallbackValue=StarOutline}" />
+                                    <TextBlock Text="{Binding SelectedClip.PinButtonText, FallbackValue=Pin}" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="icon-btn danger" Command="{Binding DeleteClipCommand}" CommandParameter="{Binding SelectedClip}"
+                                    Margin="0,0,6,6" ToolTip.Tip="Delete this clip">
+                                <mi:MaterialIcon Kind="DeleteOutline" Width="18" Height="18" />
+                            </Button>
                         </WrapPanel>
 
                         <!-- Tags row -->
@@ -244,24 +323,25 @@
                                             <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                                 <Rectangle Width="6" Height="6" RadiusX="3" RadiusY="3" Fill="{Binding Brush}" VerticalAlignment="Center" />
                                                 <TextBlock Text="{Binding DisplayName}" FontSize="11" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
-                                                <Button Classes="link" Padding="2,0" Margin="2,0,0,0" FontSize="10"
-                                                        Foreground="{DynamicResource TextMuted}"
-                                                        Content="✕"
+                                                <Button Classes="icon-btn" Padding="2" Margin="0"
                                                         ToolTip.Tip="Remove tag"
                                                         IsVisible="{Binding !IsSystem}"
                                                         Command="{Binding $parent[UserControl].((vm:ClipboardHistoryViewModel)DataContext).RemoveTagCommand}"
-                                                        CommandParameter="{Binding}" />
+                                                        CommandParameter="{Binding}">
+                                                    <mi:MaterialIcon Kind="Close" Width="11" Height="11" />
+                                                </Button>
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
-                            <Button Classes="secondary-btn" Content="＋ Tag" Padding="8,4" FontSize="11" Margin="0,0,0,6" VerticalAlignment="Center">
+                            <Button Classes="secondary-btn" Padding="8,4" FontSize="12" Margin="0,0,0,6" VerticalAlignment="Center" ToolTip.Tip="Add a tag">
+                                <StackPanel Classes="btn" Spacing="4"><mi:MaterialIcon Kind="TagPlusOutline" Width="14" Height="14" /><TextBlock Text="Tag" /></StackPanel>
                                 <Button.Flyout>
                                     <Flyout Placement="Bottom">
                                         <StackPanel Spacing="8" Width="200">
-                                            <TextBox x:Name="AddTagBox" PlaceholderText="Add tag..."
+                                            <TextBox x:Name="AddTagBox" PlaceholderText="Tag name"
                                                      Text="{Binding NewTagName, Mode=TwoWay}">
                                                 <TextBox.KeyBindings>
                                                     <KeyBinding Gesture="Enter"
@@ -293,12 +373,12 @@
                                     IsVisible="{Binding HasTransformResult}">
                                 <StackPanel Spacing="8">
                                     <Grid ColumnDefinitions="*,Auto">
-                                        <TextBlock Text="Transformed Result" FontSize="11" FontWeight="Bold"
-                                                   Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                                        <Button Grid.Column="1" Classes="link" Content="✕" Padding="4,2" FontSize="11"
-                                                Foreground="{DynamicResource TextMuted}"
+                                        <TextBlock Text="Result" Classes="label" VerticalAlignment="Center" />
+                                        <Button Grid.Column="1" Classes="icon-btn" Padding="4"
                                                 ToolTip.Tip="Close"
-                                                Command="{Binding ClearTransformCommand}" />
+                                                Command="{Binding ClearTransformCommand}">
+                                            <mi:MaterialIcon Kind="Close" Width="14" Height="14" />
+                                        </Button>
                                     </Grid>
                                     <ScrollViewer MaxHeight="140" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                                         <TextBlock Text="{Binding TransformResult}" TextWrapping="Wrap"
@@ -340,7 +420,7 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="vm:FileClipItemInfo">
                                             <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4">
-                                                <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                <mi:MaterialIcon Grid.Column="0" Kind="{Binding Icon}" Foreground="{DynamicResource TextMuted}" Margin="0,0,8,0" />
                                                 <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource TextPrimary}"
                                                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding Path}" />
                                                 <TextBlock Grid.Column="2" Text="{Binding SizeOrType}" FontSize="11" Foreground="{DynamicResource TextMuted}"
@@ -353,12 +433,11 @@
                         </Border>
 
                         <!-- Metadata card for Text -->
-                        <Border Grid.Row="3" Margin="0,10,0,0" Padding="12,10" Background="{DynamicResource BgRaised}"
-                                BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8"
+                        <Border Grid.Row="3" Classes="meta-card"
                                 IsVisible="{Binding SelectedClip.IsTextClip}">
                             <StackPanel Spacing="4">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <TextBlock Classes="label" Text="METADATA" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
+                                    <TextBlock Classes="label" Text="Details" VerticalAlignment="Center" />
                                     <Border Classes="nav-badge" IsVisible="{Binding SelectedClip.HasHtml}" Margin="4,0,0,0">
                                         <TextBlock Text="Rich" Foreground="{DynamicResource BadgeViolet}" FontSize="11" />
                                     </Border>
@@ -367,24 +446,23 @@
                                     </Border>
                                 </StackPanel>
                                 <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextSecondary}">
-                                    <Run Text="Type: " /><Run Text="{Binding SelectedClip.ContentType}" /><Run Text=" · Source: " /><Run Text="{Binding SelectedClip.SourceDevice}" /><Run Text=" · Copied: " /><Run Text="{Binding SelectedClip.FormattedTime}" />
+                                    <Run Text="{Binding SelectedClip.ContentType}" /><Run Text=" from " /><Run Text="{Binding SelectedClip.SourceDevice}" /><Run Text=", " /><Run Text="{Binding SelectedClip.FormattedTime}" />
                                 </TextBlock>
                                 <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextSecondary}"
                                            IsVisible="{Binding SelectedClip.HasSourceApp}">
                                     <Run Text="App: " /><Run Text="{Binding SelectedClip.SourceApp}" />
                                 </TextBlock>
                                 <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextMuted}">
-                                    <Run Text="{Binding SelectedClip.LineCount}" /><Run Text=" lines · " /><Run Text="{Binding SelectedClip.WordCount}" /><Run Text=" words · " /><Run Text="{Binding SelectedClip.CharCount, StringFormat='{}{0:N0}'}" /><Run Text=" characters" />
+                                    <Run Text="{Binding SelectedClip.LineCount}" /><Run Text=" lines, " /><Run Text="{Binding SelectedClip.WordCount}" /><Run Text=" words, " /><Run Text="{Binding SelectedClip.CharCount, StringFormat='{}{0:N0}'}" /><Run Text=" characters" />
                                 </TextBlock>
                             </StackPanel>
                         </Border>
 
                         <!-- Metadata card for Image -->
-                        <Border Grid.Row="3" Margin="0,10,0,0" Padding="12,10" Background="{DynamicResource BgRaised}"
-                                BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8"
+                        <Border Grid.Row="3" Classes="meta-card"
                                 IsVisible="{Binding SelectedClip.IsImage}">
                             <StackPanel Spacing="4">
-                                <TextBlock Classes="label" Text="IMAGE DETAILS" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" />
+                                <TextBlock Classes="label" Text="Image details" />
                                 <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextSecondary}"
                                            IsVisible="{Binding SelectedClip.DimensionsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                                     <Run Text="Dimensions: " /><Run Text="{Binding SelectedClip.DimensionsText}" />
@@ -406,13 +484,12 @@
                         </Border>
 
                         <!-- Metadata card for Files -->
-                        <Border Grid.Row="3" Margin="0,10,0,0" Padding="12,10" Background="{DynamicResource BgRaised}"
-                                BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8"
+                        <Border Grid.Row="3" Classes="meta-card"
                                 IsVisible="{Binding SelectedClip.IsFileClip}">
                             <StackPanel Spacing="4">
-                                <TextBlock Classes="label" Text="FILE DETAILS" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" />
+                                <TextBlock Classes="label" Text="File details" />
                                 <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextSecondary}">
-                                    <Run Text="Items: " /><Run Text="{Binding SelectedClip.FilePaths.Count, Mode=OneWay}" /><Run Text=" · Source: " /><Run Text="{Binding SelectedClip.SourceDevice}" /><Run Text=" · Copied: " /><Run Text="{Binding SelectedClip.FormattedTime}" />
+                                    <Run Text="{Binding SelectedClip.FilePaths.Count, Mode=OneWay}" /><Run Text=" items from " /><Run Text="{Binding SelectedClip.SourceDevice}" /><Run Text=", " /><Run Text="{Binding SelectedClip.FormattedTime}" />
                                 </TextBlock>
                                 <TextBlock Classes="hint" FontSize="11" Foreground="{DynamicResource TextSecondary}"
                                            IsVisible="{Binding SelectedClip.HasSourceApp}">
@@ -424,7 +501,7 @@
                         <!-- Delivery status per device -->
                         <StackPanel Grid.Row="4" IsVisible="{Binding HasDeliveries}">
                             <TextBlock Text="{Binding DeliverySummaryHeader}" Classes="label" Margin="0,16,0,8" />
-                            <Border Classes="card" Background="{DynamicResource BgSurface}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8" Padding="12">
+                            <Border Background="{DynamicResource BgRaised}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}" Padding="12">
                                 <ItemsControl ItemsSource="{Binding SelectedClipDeliveries}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="vm:ClipDeliveryViewModel">
@@ -432,7 +509,7 @@
                                                 <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{Binding StatusBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
                                                 <TextBlock Grid.Column="1" Text="{Binding DeviceName}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
                                                 <TextBlock Grid.Column="2" Text="{Binding StatusDisplay}" Foreground="{DynamicResource TextMuted}" Margin="8,0,0,0" VerticalAlignment="Center" />
-                                                <TextBlock Grid.Column="3" Text="ⓘ" Foreground="{DynamicResource Danger}" ToolTip.Tip="{Binding Error}" IsVisible="{Binding HasError}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                                <mi:MaterialIcon Grid.Column="3" Kind="InformationOutline" Foreground="{DynamicResource Danger}" ToolTip.Tip="{Binding Error}" IsVisible="{Binding HasError}" Margin="6,0,0,0" />
                                             </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -444,8 +521,8 @@
                     <!-- Centered empty state hint when no clip is selected -->
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="6"
                                 IsVisible="{Binding SelectedClip, Converter={x:Static ObjectConverters.IsNull}}">
-                        <TextBlock Classes="section-title" Text="Nothing selected." HorizontalAlignment="Center" TextAlignment="Center" />
-                        <TextBlock Classes="hint" Text="Pick a clip on the left to read and copy it." HorizontalAlignment="Center" TextAlignment="Center" />
+                        <mi:MaterialIcon Kind="CursorDefaultClickOutline" Width="32" Height="32" Foreground="{DynamicResource TextFaint}" HorizontalAlignment="Center" />
+                        <TextBlock Classes="hint" Text="Pick a clip to read, copy or send it." HorizontalAlignment="Center" TextAlignment="Center" />
                     </StackPanel>
                 </Grid>
             </Border>
@@ -453,4 +530,6 @@
 
         <TextBlock Grid.Row="3" Classes="hint" Margin="0,12,0,0" Text="{Binding StatusMessage}" />
     </Grid>
+    </Border>
+    </ScrollViewer>
 </UserControl>

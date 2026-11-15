@@ -25,7 +25,7 @@ public partial class DeviceDetailViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(PairButtonText))]
     private string _statusText = string.Empty;
 
-    public string PairButtonText => StatusText == "Pair again" ? "Pair again" : "Connect & Pair";
+    public string PairButtonText => StatusText == "Pair again" ? "Pair again" : "Connect & pair";
     [ObservableProperty] private PeerPlacement _placement = PeerPlacement.None;
     [ObservableProperty] private bool _isPaired;
 

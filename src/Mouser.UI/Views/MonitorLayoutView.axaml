@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Mouser.UI.ViewModels"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="640"
              x:Class="Mouser.UI.Views.MonitorLayoutView"
              x:DataType="vm:MonitorLayoutViewModel">
@@ -24,16 +25,21 @@
         </Style>
     </UserControl.Styles>
 
-    <ScrollViewer>
-        <StackPanel Margin="24" Spacing="16">
-            <StackPanel Spacing="4">
-                <TextBlock Classes="page-title" Text="Displays &amp; Network" />
-                <TextBlock Classes="page-subtitle" Text="{Binding DesktopSummary}" />
-            </StackPanel>
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="0,8,0,24" Spacing="16">
+            <TextBlock Classes="page-subtitle"
+                       Text="Drag a paired computer to the edge of your screen where it sits. The cursor crosses over at that edge." />
 
-            <Grid ColumnDefinitions="*,16,260">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="240" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" MinWidth="180" MaxWidth="260" />
+                </Grid.ColumnDefinitions>
                 <Border Grid.Column="0" Classes="glass-card" Padding="12" ClipToBounds="True">
-                    <Viewbox Stretch="Uniform" MaxHeight="320">
+                    <Grid RowDefinitions="Auto,*">
+                    <TextBlock Classes="label" Text="{Binding DesktopSummary}" Margin="4,0,0,8" TextTrimming="CharacterEllipsis" />
+                    <Viewbox Grid.Row="1" Stretch="Uniform" MaxHeight="320">
                         <ItemsControl x:Name="ScreensItemsControl" ItemsSource="{Binding Screens}" Width="640" Height="300">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -65,10 +71,12 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </Viewbox>
+                    </Grid>
                 </Border>
 
                 <Border Grid.Column="2" Classes="glass-card" Padding="18">
                     <StackPanel Spacing="12">
+                        <mi:MaterialIcon Kind="MonitorMultiple" Width="22" Height="22" HorizontalAlignment="Left" Foreground="{DynamicResource AccentSoft}" />
                         <TextBlock Classes="section-title" Text="{Binding SelectedScreen.Name, FallbackValue='Display'}" TextWrapping="Wrap" />
                         <StackPanel Spacing="2">
                             <TextBlock Classes="label" Text="Resolution" />
@@ -87,7 +95,7 @@
                             <TextBlock Text="{Binding SelectedScreen.RoleText, FallbackValue='-'}" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
                         </StackPanel>
                         <TextBlock Classes="hint" FontSize="11"
-                                   Text="Arrange or rescale your own displays in the operating system's display settings; this view updates automatically." />
+                                   Text="Arrange or rescale your own displays in your system's display settings. This view follows along." />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -109,36 +117,52 @@
                     <ItemsControl ItemsSource="{Binding Peers}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="vm:PeerViewModel">
-                                <Border Background="{DynamicResource BgRaised}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8" Padding="14,12" Margin="0,0,0,8">
-                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                                        <StackPanel Grid.Column="0" Spacing="3">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" />
-                                                <TextBlock Text="{Binding Hostname}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
-                                                <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
+                                <Border Background="{DynamicResource BgRaised}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
+                                        CornerRadius="{DynamicResource ControlCornerRadius}" Padding="14,12" Margin="0,0,0,8">
+                                    <StackPanel Spacing="10">
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <mi:MaterialIcon Kind="Monitor" Width="18" Height="18" Foreground="{DynamicResource TextMuted}" Margin="0,0,12,0" />
+                                            <StackPanel Grid.Column="1" Spacing="2">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="{Binding Hostname}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                                    <Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                                <TextBlock FontSize="11" Foreground="{DynamicResource TextFaint}" TextTrimming="CharacterEllipsis">
+                                                    <Run Text="{Binding OperatingSystem}" /><Run Text="  " /><Run Text="{Binding Address}" /><Run Text="  " /><Run Text="{Binding ScreenText}" />
+                                                </TextBlock>
                                             </StackPanel>
-                                            <TextBlock FontSize="11" Foreground="{DynamicResource TextFaint}">
-                                                <Run Text="{Binding OperatingSystem}" /><Run Text=" • " /><Run Text="{Binding Address}" /><Run Text=" • " /><Run Text="{Binding ScreenText}" />
-                                            </TextBlock>
-                                        </StackPanel>
+                                        </Grid>
 
-                                        <!-- Not paired: connect & pair -->
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsVisible="{Binding !IsPaired}" VerticalAlignment="Center">
-                                            <Button Classes="primary-btn" Content="Pair" Command="{Binding PairCommand}" />
-                                        </StackPanel>
+                                        <!-- Not paired -->
+                                        <Button Classes="primary-btn" HorizontalAlignment="Left" Command="{Binding PairCommand}"
+                                                IsVisible="{Binding !IsPaired}" IsEnabled="{Binding IsOnline}">
+                                            <StackPanel Classes="btn">
+                                                <mi:MaterialIcon Kind="LanConnect" />
+                                                <TextBlock Text="{Binding PairButtonText}" />
+                                            </StackPanel>
+                                        </Button>
 
-                                        <!-- Paired: choose where it sits -->
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsPaired}" VerticalAlignment="Center">
-                                            <TextBlock Text="Is to the" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center" />
-                                            <ComboBox ItemsSource="{x:Static vm:PeerViewModel.PlacementOptions}" SelectedItem="{Binding Placement}" Width="110" />
-                                            <TextBlock Text="of this screen" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center" />
-                                            <Button Classes="secondary-btn" Content="Send file…" Command="{Binding SendFileCommand}" />
-                                            <Button Classes="secondary-btn" Content="Forget" Command="{Binding ForgetCommand}" />
-                                        </StackPanel>
+                                        <!-- Paired: choose where it sits; wraps on narrow windows -->
+                                        <WrapPanel Orientation="Horizontal" IsVisible="{Binding IsPaired}">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,12,6">
+                                                <TextBlock Text="Sits to the" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center" />
+                                                <ComboBox ItemsSource="{x:Static vm:PeerViewModel.PlacementOptions}" SelectedItem="{Binding Placement}" MinWidth="104" />
+                                                <TextBlock Text="of this screen" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,6">
+                                                <Button Classes="icon-btn" Command="{Binding SendFileCommand}" ToolTip.Tip="Send a file to this computer">
+                                                    <mi:MaterialIcon Kind="FileSendOutline" Width="18" Height="18" />
+                                                </Button>
+                                                <Button Classes="icon-btn" Command="{Binding ForgetCommand}" ToolTip.Tip="Forget this computer">
+                                                    <mi:MaterialIcon Kind="LinkOff" Width="18" Height="18" />
+                                                </Button>
+                                            </StackPanel>
+                                        </WrapPanel>
 
-                                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Error}" Foreground="{DynamicResource BannerErrorText}" FontSize="11" Margin="0,8,0,0"
+                                        <TextBlock Text="{Binding Error}" Foreground="{DynamicResource Danger}" FontSize="12" TextWrapping="Wrap"
                                                    IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                                    </Grid>
+                                    </StackPanel>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -148,8 +172,11 @@
                                IsVisible="{Binding TransferStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
                     <Border Classes="banner-info">
-                        <TextBlock Foreground="{DynamicResource BannerInfoText}" FontSize="12" TextWrapping="Wrap"
-                                   Text="Pair with the PIN shown on the other computer's Phone Remote page, then pick its side. Push the cursor past that edge to control it; come back through the same edge. Paired computers also share copied text and can send each other files. Ctrl+Alt+Esc (or Scroll Lock) always returns control here, and pressed on this computer locks the cursor to this screen." />
+                        <Grid ColumnDefinitions="Auto,*">
+                            <mi:MaterialIcon Kind="KeyboardOutline" Foreground="{DynamicResource BannerInfoText}" Margin="0,0,10,0" VerticalAlignment="Top" />
+                            <TextBlock Grid.Column="1" Foreground="{DynamicResource BannerInfoText}" FontSize="12" TextWrapping="Wrap"
+                                       Text="Push the cursor past the edge you picked to control that computer, and come back through the same edge. Ctrl+Alt+Esc or Scroll Lock always brings control back here; pressed on this computer, it locks the cursor to this screen." />
+                        </Grid>
                     </Border>
                 </StackPanel>
             </Border>

@@ -116,6 +116,6 @@ public class SecretStoreTests
         Assert.NotNull(device);
         Assert.True(device.IsPaired);
         Assert.Equal("Offline", device.StatusText);
-        Assert.Equal("Connect & Pair", device.PairButtonText);
+        Assert.Equal("Connect & pair", device.PairButtonText);
     }
 }

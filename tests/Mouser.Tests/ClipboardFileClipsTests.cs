@@ -190,7 +190,7 @@ public sealed class ClipboardFileClipsTests : IDisposable
         Assert.Equal("Folder", items[0].SizeOrType);
         Assert.True(items[0].Exists);
         Assert.True(items[0].IsDirectory);
-        Assert.Equal("📁", items[0].Icon);
+        Assert.Equal(Material.Icons.MaterialIconKind.FolderOutline, items[0].Icon);
 
         // File with size
         Assert.Equal(testFile, items[1].Path);
@@ -198,7 +198,7 @@ public sealed class ClipboardFileClipsTests : IDisposable
         Assert.Equal("12.5 KB", items[1].SizeOrType);
         Assert.True(items[1].Exists);
         Assert.False(items[1].IsDirectory);
-        Assert.Equal("📄", items[1].Icon);
+        Assert.Equal(Material.Icons.MaterialIconKind.FileOutline, items[1].Icon);
 
         // Missing file
         Assert.Equal(missingPath, items[2].Path);
@@ -206,7 +206,7 @@ public sealed class ClipboardFileClipsTests : IDisposable
         Assert.Equal("Missing", items[2].SizeOrType);
         Assert.False(items[2].Exists);
         Assert.False(items[2].IsDirectory);
-        Assert.Equal("⚠️", items[2].Icon);
+        Assert.Equal(Material.Icons.MaterialIconKind.AlertOutline, items[2].Icon);
     }
 
     [Fact]

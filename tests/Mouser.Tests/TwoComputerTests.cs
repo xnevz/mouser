@@ -252,4 +252,47 @@ public class TwoComputerTests
         string sender = await lockFired.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(a.Settings.Current.DeviceId, sender);
     }
+
+    [Fact]
+    public async Task Pairing_WhenOtherSideDidNotClickAddComputer_IsRefused_WithActionableMessage()
+    {
+        int discovery = Random.Shared.Next(40_000, 50_000);
+        await using var a = new AppFixture(discovery);
+        await using var b = new AppFixture(discovery); // no AllowNewDevices: pairing window closed
+        await Wait.UntilAsync(() => a.Host.Peers.Any(p => p.DeviceId == b.Settings.Current.DeviceId), timeoutMs: 5000);
+        var peerB = a.Host.Peers.Single(p => p.DeviceId == b.Settings.Current.DeviceId);
+
+        var result = await a.Host.PairPeerV2Async(peerB, (_, _) => Task.FromResult(true));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("PairingDisabled", result.Reason);
+        Assert.Contains("Add computer", Mouser.UI.ViewModels.DevicesViewModel.PairingErrorText(result, "B"));
+        Assert.Equal(PeerLinkStatus.NotPaired, a.Host.GetPeerStatus(peerB.DeviceId));
+    }
+
+    [Fact]
+    public void PeerStatus_ShowsOnlineFromDiscovery_EvenWhenNotPaired()
+    {
+        string tmp = Path.Combine(Path.GetTempPath(), "mouser-presence-" + Guid.NewGuid() + ".json");
+        try
+        {
+            var store = new SettingsStore(tmp);
+            store.Current.Peers["saved-offline"] = new PeerSettings { Name = "Office PC" };
+            var layout = new Mouser.UI.ViewModels.MonitorLayoutViewModel(settings: store);
+
+            layout.SetPeers(new[] { new Mouser.Core.Networking.DiscoveredPeer { DeviceId = "running", Hostname = "Laptop" } });
+
+            var running = layout.Peers.Single(p => p.Id == "running");
+            Assert.True(running.IsOnline);
+            Assert.Equal("Online, not paired", running.StatusText);
+
+            var offline = layout.Peers.Single(p => p.Id == "saved-offline");
+            Assert.False(offline.IsOnline);
+            Assert.Equal("Offline", offline.StatusText);
+        }
+        finally
+        {
+            if (File.Exists(tmp)) File.Delete(tmp);
+        }
+    }
 }

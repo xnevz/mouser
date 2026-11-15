@@ -93,6 +93,12 @@ public partial class MainViewModel : ViewModelBase
         DevicesPage = new DevicesViewModel(host, MonitorLayout, AndroidRemote, settings);
         Activity = new ActivityViewModel(host.Log, host, clipboardAccess);
         Snippets = new SnippetsViewModel(clipboardStorage);
+        // A pairing request from another computer must be seen even when Mouser is minimised.
+        DevicesPage.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(DevicesViewModel.IsPairingPromptVisible) && DevicesPage.IsPairingPromptVisible)
+                EnsureWindowVisible?.Invoke();
+        };
         ClipboardHistory.ShareCapturedText = host.ShareClipboardAsync;
         ClipboardHistory.SendClipToPeerHandler = (peer, text) => host.SendClipToAsync(peer, text);
         ClipboardHistory.SendFileToPeerAction = async filePath =>

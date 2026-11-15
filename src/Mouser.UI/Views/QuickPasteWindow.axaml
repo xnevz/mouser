@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Mouser.UI.ViewModels"
+        xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
         x:Class="Mouser.UI.Views.QuickPasteWindow"
         x:DataType="vm:QuickPasteViewModel"
         Title="Quick paste"
@@ -34,16 +35,24 @@
 
     <Border Classes="glass-card" BorderBrush="{DynamicResource AccentSoft}" BorderThickness="1" CornerRadius="{DynamicResource CardCornerRadius}" Padding="14" BoxShadow="0 8 32 0 #50000000">
         <StackPanel Spacing="10">
-            <TextBox x:Name="SearchBox" Text="{Binding Query}" PlaceholderText="Search clipboard history… (Enter to paste, Shift+Enter for rich, Esc to close)" />
+            <TextBox x:Name="SearchBox" Text="{Binding Query}" PlaceholderText="Search history. Enter pastes, Shift+Enter keeps formatting, Esc closes">
+                <TextBox.InnerLeftContent>
+                    <mi:MaterialIcon Kind="Magnify" Foreground="{DynamicResource TextFaint}" Margin="10,0,0,0" />
+                </TextBox.InnerLeftContent>
+            </TextBox>
 
             <!-- Tabs: All / Pinned / each tag -->
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <Button Classes="tab-chip active"
                             IsVisible="{Binding HasDeviceFilter}"
-                            Content="{Binding DeviceFilterText}"
                             Command="{Binding ClearDeviceFilterCommand}"
-                            ToolTip.Tip="Clear device filter" />
+                            ToolTip.Tip="Clear device filter">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="{Binding DeviceFilterText}" VerticalAlignment="Center" />
+                            <mi:MaterialIcon Kind="Close" Width="12" Height="12" />
+                        </StackPanel>
+                    </Button>
                     <ItemsControl ItemsSource="{Binding Tabs}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -90,15 +99,15 @@
                                 <Border Background="{DynamicResource BgRaised}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
                                         CornerRadius="4" Width="26" Height="26"
                                         IsVisible="{Binding !IsImage}">
-                                    <TextBlock Text="{Binding BadgeText}" FontSize="10" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <mi:MaterialIcon Kind="{Binding TypeIconKind}" Width="14" Height="14"
+                                                     Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" />
                                 </Border>
                                 <!-- Fallback placeholder for image without loaded thumbnail -->
                                 <Border Background="{DynamicResource BgRaised}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
                                         CornerRadius="4" Width="26" Height="26"
                                         IsVisible="{Binding IsImagePlaceholder}">
-                                    <TextBlock Text="🖼️" FontSize="11"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <mi:MaterialIcon Kind="ImageOutline" Width="14" Height="14"
+                                                     Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" />
                                 </Border>
                             </Panel>
 
@@ -113,8 +122,8 @@
                                        VerticalAlignment="Center" />
 
                             <!-- Star / Pinned indicator -->
-                            <TextBlock Grid.Column="4" Text="{Binding StarIcon}" Foreground="{Binding StarColor}"
-                                       Margin="8,0,0,0" VerticalAlignment="Center" IsVisible="{Binding IsPinned}" />
+                            <mi:MaterialIcon Grid.Column="4" Kind="{Binding StarIcon}" Foreground="{Binding StarColor}" Width="14" Height="14"
+                                             Margin="8,0,0,0" IsVisible="{Binding IsPinned}" />
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

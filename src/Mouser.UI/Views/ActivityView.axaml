@@ -3,31 +3,29 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Mouser.UI.ViewModels"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="640"
              x:Class="Mouser.UI.Views.ActivityView"
              x:DataType="vm:ActivityViewModel">
 
-    <Grid RowDefinitions="Auto,*" Margin="24">
+    <Grid RowDefinitions="Auto,*" Margin="24,20,24,16">
         <!-- Header Row -->
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,20">
             <StackPanel Grid.Column="0" Spacing="4">
                 <TextBlock Classes="page-title" Text="Activity" />
-                <TextBlock Classes="page-subtitle" Text="History of connections, transfers and events." />
+                <TextBlock Classes="page-subtitle" Text="Pairings, transfers and connections, newest first." />
             </StackPanel>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top" Margin="16,2,0,0">
                 <TextBlock Text="{Binding StatusMessage}" Classes="hint" VerticalAlignment="Center"
                            IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                <Button Classes="secondary-btn" Command="{Binding OpenLogFolderCommand}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <TextBlock Text="📁" VerticalAlignment="Center" />
-                        <TextBlock Text="Open log folder" VerticalAlignment="Center" />
-                    </StackPanel>
+                <Button Classes="icon-btn" Command="{Binding OpenLogFolderCommand}" ToolTip.Tip="Open log folder">
+                    <mi:MaterialIcon Kind="FolderOutline" Width="18" Height="18" />
                 </Button>
                 <Button Classes="secondary-btn" Command="{Binding CopyDiagnosticsCommand}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <TextBlock Text="📋" VerticalAlignment="Center" />
-                        <TextBlock Text="Copy diagnostics" VerticalAlignment="Center" />
+                    <StackPanel Classes="btn">
+                        <mi:MaterialIcon Kind="ContentCopy" />
+                        <TextBlock Text="Copy diagnostics" />
                     </StackPanel>
                 </Button>
             </StackPanel>
@@ -75,11 +73,10 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
 
-                <TextBlock Classes="hint"
-                           Text="No activity recorded yet."
-                           IsVisible="{Binding !Entries.Count}"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center" />
+                <StackPanel IsVisible="{Binding !Entries.Count}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+                    <mi:MaterialIcon Kind="History" Width="32" Height="32" Foreground="{DynamicResource TextFaint}" HorizontalAlignment="Center" />
+                    <TextBlock Classes="hint" Text="Nothing yet. Pairings, transfers and connections show up here." />
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

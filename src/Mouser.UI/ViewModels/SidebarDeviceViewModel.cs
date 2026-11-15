@@ -10,9 +10,15 @@ public partial class SidebarDeviceViewModel : ObservableObject
     public DeviceKind Kind { get; }
     [ObservableProperty] private string _name = "";
     [ObservableProperty] private bool _isOnline;
-    public string Icon => Kind == DeviceKind.Phone ? "📱" : "🖥";
-    public string StatusColor => IsOnline ? "#10b981" : "#64748b";
+    public Material.Icons.MaterialIconKind IconKind =>
+        Kind == DeviceKind.Phone ? Material.Icons.MaterialIconKind.Cellphone : Material.Icons.MaterialIconKind.Monitor;
+    public string StatusColor => IsOnline ? "#22c55e" : "#64748b";
+    public string StatusText => IsOnline ? "Online" : "Offline";
 
     public SidebarDeviceViewModel(string key, DeviceKind kind) { Key = key; Kind = kind; }
-    partial void OnIsOnlineChanged(bool value) => OnPropertyChanged(nameof(StatusColor));
+    partial void OnIsOnlineChanged(bool value)
+    {
+        OnPropertyChanged(nameof(StatusColor));
+        OnPropertyChanged(nameof(StatusText));
+    }
 }

@@ -35,6 +35,11 @@ public partial class PeerViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsPaired), nameof(StatusText), nameof(StatusColor), nameof(NeedsPin), nameof(IsOnline), nameof(CanWake), nameof(PairButtonText))]
     private PeerLinkStatus _status;
 
+    /// <summary>Its discovery beacon is arriving, so Mouser is running there (independent of pairing).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOnline), nameof(StatusText), nameof(StatusColor), nameof(CanWake))]
+    private bool _isDiscovered;
+
     [ObservableProperty] private PeerPlacement _placement;
     [ObservableProperty] private string? _error;
 
@@ -52,9 +57,12 @@ public partial class PeerViewModel : ViewModelBase
     [ObservableProperty] private bool _syncDisplayOff;
     [ObservableProperty] private string? _anchorId;
 
-    public bool IsPaired => Status is PeerLinkStatus.Paired;
-    public bool NeedsPin => Status is PeerLinkStatus.NotPaired;
-    public bool IsOnline => Status != PeerLinkStatus.Unreachable;
+    // A saved key counts as paired even while the link is still coming up, so the Pair button doesn't reappear.
+    public bool IsPaired => Status is PeerLinkStatus.Paired || HasValidPairKey;
+    public bool NeedsPin => !IsPaired;
+    private bool HasValidPairKey => _owner.Settings?.Current.Peers.TryGetValue(Id, out var s) == true
+        && !string.IsNullOrEmpty(s.PairKeyProtected) && SecretStore.Unprotect(s.PairKeyProtected) != null;
+    public bool IsOnline => IsDiscovered || Status == PeerLinkStatus.Paired;
     public string Mac => _owner.Settings?.Current.Peers.TryGetValue(Id, out var s) == true ? s.Mac : string.Empty;
     public bool CanWake => !IsOnline && !string.IsNullOrWhiteSpace(Mac);
 
@@ -84,28 +92,32 @@ public partial class PeerViewModel : ViewModelBase
             }
             return Status switch
             {
-                PeerLinkStatus.Paired => "Paired",
+                PeerLinkStatus.Paired => "Connected",
                 PeerLinkStatus.Pairing => "Pairing…",
-                PeerLinkStatus.Unreachable => "Not responding",
-                _ => "Not paired"
+                _ when !IsDiscovered => "Offline",
+                PeerLinkStatus.Unreachable => "Online, connecting…",
+                _ => "Online, not paired"
             };
         }
     }
 
-    public string PairButtonText => StatusText == "Pair again" ? "Pair again" : "Connect & Pair";
+    public string PairButtonText => StatusText == "Pair again" ? "Pair again" : "Connect & pair";
 
     public string StatusColor => Status switch
     {
-        PeerLinkStatus.Paired => "#10b981",
+        PeerLinkStatus.Paired => "#22c55e",
+        PeerLinkStatus.Pairing => "#7c9cff",
+        _ when !IsDiscovered => "#64748b",
         PeerLinkStatus.Unreachable => "#f59e0b",
-        _ => "#64748b"
+        _ => "#38bdf8"
     };
 
-    public PeerViewModel(MonitorLayoutViewModel owner, DiscoveredPeer peer, PeerLinkStatus status, PeerPlacement placement)
+    public PeerViewModel(MonitorLayoutViewModel owner, DiscoveredPeer peer, PeerLinkStatus status, PeerPlacement placement, bool? isDiscovered = null)
     {
         _owner = owner;
         Peer = peer;
         _status = status;
+        _isDiscovered = isDiscovered ?? status != PeerLinkStatus.Unreachable;
         _placement = placement;
         _updating = true;
         LoadSettings();
@@ -141,10 +153,11 @@ public partial class PeerViewModel : ViewModelBase
         }
     }
 
-    internal void Update(DiscoveredPeer peer, PeerLinkStatus status, PeerPlacement placement)
+    internal void Update(DiscoveredPeer peer, PeerLinkStatus status, PeerPlacement placement, bool? isDiscovered = null)
     {
         Peer = peer;
         _updating = true;
+        if (isDiscovered is { } discovered) IsDiscovered = discovered;
         Status = status;
         Placement = placement;
         LoadSettings();
@@ -399,8 +412,8 @@ public partial class MonitorLayoutViewModel : ViewModelBase
             var status = _host?.GetPeerStatus(peer.DeviceId) ?? PeerLinkStatus.NotPaired;
             var placement = SavedPlacement(peer.DeviceId);
             var vm = Peers.FirstOrDefault(p => p.Id == peer.DeviceId);
-            if (vm == null) Peers.Insert(Math.Min(i, Peers.Count), new PeerViewModel(this, peer, status, placement));
-            else vm.Update(peer, status, placement);
+            if (vm == null) Peers.Insert(Math.Min(i, Peers.Count), new PeerViewModel(this, peer, status, placement, isDiscovered: true));
+            else vm.Update(peer, status, placement, isDiscovered: true);
         }
 
         if (savedPeers != null)
@@ -416,11 +429,11 @@ public partial class MonitorLayoutViewModel : ViewModelBase
                         DeviceId = id,
                         Hostname = string.IsNullOrWhiteSpace(saved.Name) ? id : saved.Name
                     };
-                    Peers.Add(new PeerViewModel(this, offlinePeer, PeerLinkStatus.Unreachable, saved.Placement));
+                    Peers.Add(new PeerViewModel(this, offlinePeer, PeerLinkStatus.Unreachable, saved.Placement, isDiscovered: false));
                 }
                 else
                 {
-                    vm.Update(vm.Peer, PeerLinkStatus.Unreachable, saved.Placement);
+                    vm.Update(vm.Peer, PeerLinkStatus.Unreachable, saved.Placement, isDiscovered: false);
                 }
             }
         }
@@ -433,8 +446,12 @@ public partial class MonitorLayoutViewModel : ViewModelBase
     private PeerPlacement SavedPlacement(string id) =>
         Settings?.Current.Peers.TryGetValue(id, out var s) == true ? s.Placement : PeerPlacement.None;
 
+    /// <summary>Set by the devices page so every Pair button runs the same code-confirmation flow.</summary>
+    public Func<PeerViewModel, Task>? PairHandler { get; set; }
+
     internal async Task PairAsync(PeerViewModel peer)
     {
+        if (PairHandler != null) { await PairHandler(peer); return; }
         if (_host == null) return;
         peer.Error = null;
         peer.Status = PeerLinkStatus.Pairing;

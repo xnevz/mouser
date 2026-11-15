@@ -98,6 +98,7 @@ public partial class DevicesViewModel : ViewModelBase
         _settings = settings;
         ThisDevice = new ThisDeviceViewModel(this);
         _selected = ThisDevice;
+        Layout.PairHandler = p => PairComputerV2Async(p);
 
         _host.PairingRequested += OnHostPairingRequested;
         _host.PairingWindowChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(UpdatePairingWindowState);
@@ -371,8 +372,18 @@ public partial class DevicesViewModel : ViewModelBase
             _ => null
         };
         if (peerId == null) return;
+        var peerVm = Layout.Peers.FirstOrDefault(p => p.Id == peerId);
         var peer = _host.Peers.FirstOrDefault(p => p.DeviceId == peerId);
-        if (peer == null) return;
+        if (peer == null)
+        {
+            if (peerVm != null) peerVm.Error = $"{peerVm.Hostname} is offline. Start Mouser on it, wait until it shows as online, then try again.";
+            return;
+        }
+        if (peerVm != null)
+        {
+            peerVm.Error = null;
+            peerVm.Status = PeerLinkStatus.Pairing;
+        }
 
         var promptTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -392,10 +403,25 @@ public partial class DevicesViewModel : ViewModelBase
             return promptTcs.Task;
         }
 
-        await _host.PairPeerV2Async(peer, ShowPromptAsync);
+        var result = await _host.PairPeerV2Async(peer, ShowPromptAsync);
         DismissPairingPrompt();
+        Layout.SetPeers(_host.Peers);
+        if (peerVm != null) peerVm.Error = PairingErrorText(result, peer.Hostname);
         Refresh();
     }
+
+    /// <summary>What to tell the user when pairing didn't finish; null when there is nothing to fix.</summary>
+    public static string? PairingErrorText(Mouser.Core.Networking.PairingInitiatorResult result, string name) =>
+        result.IsSuccess ? null : result.Reason switch
+        {
+            "CancelledByUser" => null,
+            "PairingDisabled" => $"{name} isn't accepting new computers right now. On {name}, open Manage devices and click Add computer, then click Connect & pair here within 2 minutes.",
+            "DeniedByUser" => $"Pairing was declined on {name}.",
+            "RateLimited" or "LockedOut" => $"{name} blocked pairing after too many attempts. Wait 5 minutes and try again.",
+            "Unreachable" => $"Couldn't connect to {name}. Check that Mouser is running there and allowed through its firewall on private networks.",
+            "NoControlPort" => $"{name} isn't ready to pair yet. Make sure Accept remote input is on there, then try again.",
+            _ => $"The connection to {name} closed before pairing finished. Try again."
+        };
 
     [RelayCommand]
     public async Task LockAllDevicesAsync()

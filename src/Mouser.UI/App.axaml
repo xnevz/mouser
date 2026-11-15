@@ -1,9 +1,9 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="Mouser.UI.App"
              xmlns:local="using:Mouser.UI"
              RequestedThemeVariant="Default">
-             <!-- Refined Modern Dark Theme (UniClipboard & Linear Aesthetic) -->
 
     <Application.Resources>
         <ResourceDictionary>
@@ -11,11 +11,12 @@
                 <ResourceInclude Source="avares://Mouser.UI/Styles/Tokens.axaml" />
             </ResourceDictionary.MergedDictionaries>
             <!-- Brand accent instead of the user's Windows accent colour (toggles, checkboxes, focus). -->
-            <Color x:Key="SystemAccentColor">#4f46e5</Color>
-            <Color x:Key="SystemAccentColorLight1">#6366f1</Color>
-            <Color x:Key="SystemAccentColorLight2">#818cf8</Color>
-            <Color x:Key="SystemAccentColorDark1">#4338ca</Color>
+            <Color x:Key="SystemAccentColor">#4f6bed</Color>
+            <Color x:Key="SystemAccentColorLight1">#6a84f5</Color>
+            <Color x:Key="SystemAccentColorLight2">#8ea3ff</Color>
+            <Color x:Key="SystemAccentColorDark1">#3d58d6</Color>
             <FontFamily x:Key="CodeFontFamily">Cascadia Code, Consolas, Courier New, monospace</FontFamily>
+            <FontFamily x:Key="DisplayFontFamily">Segoe UI Variable Display, Segoe UI, Inter, sans-serif</FontFamily>
 
             <!-- Default UI Geometry, Density and Typography Tokens -->
             <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
@@ -26,7 +27,7 @@
             <Thickness x:Key="CardPadding">20</Thickness>
             <Thickness x:Key="ListItemPadding">12,8</Thickness>
             <Thickness x:Key="CardBorderThickness">1</Thickness>
-            <FontFamily x:Key="AppFontFamily">Segoe UI, Inter, Aptos, Arial, sans-serif</FontFamily>
+            <FontFamily x:Key="AppFontFamily">Segoe UI Variable Text, Segoe UI, Inter, Aptos, Arial, sans-serif</FontFamily>
             <x:Double x:Key="BaseFontSize">13</x:Double>
         </ResourceDictionary>
     </Application.Resources>
@@ -37,7 +38,8 @@
 
     <Application.Styles>
         <FluentTheme />
-        
+        <mi:MaterialIconStyles />
+
         <!-- Base Window and Controls Styling -->
         <Style Selector="Window">
             <Setter Property="Background" Value="{DynamicResource BgApp}" />
@@ -45,10 +47,27 @@
             <Setter Property="FontSize" Value="{DynamicResource BaseFontSize}" />
         </Style>
 
-        <!-- Sidebar Navigation Buttons -->
+        <!-- Icons: vector paths from Material Design Icons; size follows the surrounding text -->
+        <Style Selector="mi|MaterialIcon">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- Icon + text inside any button -->
+        <Style Selector="StackPanel.btn">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Spacing" Value="7" />
+        </Style>
+        <Style Selector="StackPanel.btn > TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Sidebar Navigation Buttons: transparent rows, active row gets a tinted fill and an accent edge -->
         <Style Selector="Button.nav-button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="3,0,0,0" />
             <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
             <Setter Property="Padding" Value="{DynamicResource NavPadding}" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -56,8 +75,13 @@
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="Medium" />
         </Style>
+        <Style Selector="Button.nav-button mi|MaterialIcon">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+        </Style>
         <Style Selector="Button.nav-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource BgHover}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
         <Style Selector="Button.nav-button:pressed /template/ ContentPresenter#PART_ContentPresenter">
@@ -67,7 +91,9 @@
             <Setter Property="Background" Value="{DynamicResource BgActive}" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
-            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Button.nav-button.active mi|MaterialIcon">
+            <Setter Property="Foreground" Value="{DynamicResource AccentSoft}" />
         </Style>
         <Style Selector="Border.nav-badge">
             <Setter Property="Background" Value="{DynamicResource BadgeBg}" />
@@ -76,8 +102,8 @@
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <Style Selector="Border.nav-badge TextBlock">
-            <Setter Property="FontSize" Value="10" />
-            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
         <!-- Shortcut badge in sidebar / buttons -->
@@ -99,8 +125,8 @@
         <!-- Keyboard Keycap badge (<kbd> style) -->
         <Style Selector="Border.kbd">
             <Setter Property="Background" Value="{DynamicResource BgRaised}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+            <Setter Property="BorderThickness" Value="1,1,1,2" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="7,3" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -112,25 +138,31 @@
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
 
-        <!-- Page headings and helper text -->
+        <!-- Type scale: 22 / 15 / 13 / 12 -->
         <Style Selector="TextBlock.page-title">
-            <Setter Property="FontSize" Value="20" />
-            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontFamily" Value="{DynamicResource DisplayFontFamily}" />
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
         <Style Selector="TextBlock.page-subtitle">
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
             <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="MaxWidth" Value="720" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
         <Style Selector="TextBlock.section-title">
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontSize" Value="15" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <Style Selector="TextBlock.label">
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFaint}" />
         </Style>
         <Style Selector="TextBlock.hint">
             <Setter Property="FontSize" Value="12" />
@@ -144,21 +176,21 @@
             <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
-            <Setter Property="Padding" Value="12,9" />
+            <Setter Property="Padding" Value="12,10" />
         </Style>
         <Style Selector="Border.banner-warning">
             <Setter Property="Background" Value="{DynamicResource BannerWarningBg}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Warning}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
-            <Setter Property="Padding" Value="12,9" />
+            <Setter Property="Padding" Value="12,10" />
         </Style>
         <Style Selector="Border.banner-info">
             <Setter Property="Background" Value="{DynamicResource BannerInfoBg}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BannerInfoBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
-            <Setter Property="Padding" Value="12,9" />
+            <Setter Property="Padding" Value="12,10" />
         </Style>
 
         <!-- Primary Accent Buttons -->
@@ -171,9 +203,11 @@
         </Style>
         <Style Selector="Button.primary-btn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AccentHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
         </Style>
         <Style Selector="Button.primary-btn:pressed /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AccentPressed}" />
+            <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
         </Style>
 
         <!-- Secondary Surface Buttons -->
@@ -188,10 +222,31 @@
         </Style>
         <Style Selector="Button.secondary-btn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource BgHover}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
         <Style Selector="Button.secondary-btn:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BgPressed}" />
+        </Style>
+        <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
+        </Style>
+
+        <!-- Icon-only buttons (always carry a ToolTip) -->
+        <Style Selector="Button.icon-btn">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.icon-btn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BgHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        </Style>
+        <Style Selector="Button.icon-btn:pressed /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource BgPressed}" />
         </Style>
 
@@ -205,7 +260,7 @@
         </Style>
         <Style Selector="ComboBox:pointerover /template/ Border#Background">
             <Setter Property="Background" Value="{DynamicResource BgHover}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
         </Style>
 
         <!-- Link Buttons -->
@@ -219,7 +274,7 @@
         </Style>
         <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
         <Style Selector="Button.link:pressed /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="Transparent" />
@@ -233,14 +288,42 @@
             <Setter Property="BorderThickness" Value="{DynamicResource CardBorderThickness}" />
             <Setter Property="CornerRadius" Value="{DynamicResource CardCornerRadius}" />
         </Style>
+        <!-- Square tile holding a device or section icon -->
+        <Style Selector="Border.icon-tile">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+            <Setter Property="Background" Value="{DynamicResource BgActive}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.icon-tile > mi|MaterialIcon">
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentSoft}" />
+        </Style>
 
-        <!-- Status Pills -->
+        <!-- Status Pills / chips -->
         <Style Selector="Border.status-pill">
             <Setter Property="Background" Value="{DynamicResource PillBg}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Success}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="{DynamicResource PillCornerRadius}" />
             <Setter Property="Padding" Value="10,4" />
+        </Style>
+        <Style Selector="Border.chip">
+            <Setter Property="Background" Value="{DynamicResource BgRaised}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource PillCornerRadius}" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.chip TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
         <!-- Modern Input Controls -->
@@ -258,6 +341,45 @@
         <Style Selector="CheckBox">
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <Style Selector="ListBoxItem">
+            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+        </Style>
+        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BgHover}" />
+        </Style>
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BgActive}" />
+        </Style>
+        <Style Selector="ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BgActive}" />
+        </Style>
+
+        <Style Selector="Separator">
+            <Setter Property="Background" Value="{DynamicResource BorderSubtle}" />
+        </Style>
+
+        <Style Selector="ToolTip">
+            <Setter Property="Background" Value="{DynamicResource BgRaised}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+
+        <!-- Page tabs (Devices / Screen layout) -->
+        <Style Selector="TabControl.page-tabs">
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="TabControl.page-tabs TabItem">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="Padding" Value="2,0,18,0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+        </Style>
+        <Style Selector="TabControl.page-tabs TabItem:selected">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
     </Application.Styles>
 

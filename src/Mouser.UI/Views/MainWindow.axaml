@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Mouser.UI.ViewModels"
+        xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1140" d:DesignHeight="740"
@@ -9,7 +10,7 @@
         Icon="/Assets/avalonia-logo.ico"
         Title="{Binding WindowTitle}"
         Width="1140" Height="740"
-        MinWidth="900" MinHeight="600"
+        MinWidth="760" MinHeight="500"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BgApp}">
 
@@ -19,155 +20,166 @@
         <KeyBinding Gesture="Ctrl+L" Command="{Binding LockNowCommand}" />
     </Window.KeyBindings>
 
-    <Grid ColumnDefinitions="232,*">
+    <Grid ColumnDefinitions="224,*">
+        <!-- Sidebar -->
         <Border Grid.Column="0"
                 IsEnabled="{Binding !IsLocked}"
                 Background="{DynamicResource BgSidebar}"
                 BorderBrush="{DynamicResource BorderSubtle}"
-                BorderThickness="0,0,1,0"
-                Padding="14">
+                BorderThickness="0,0,1,0">
             <Grid RowDefinitions="Auto,*,Auto">
-                <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="6,8,6,24">
-                    <Border Grid.Column="0" Width="34" Height="34" CornerRadius="9" Background="{DynamicResource Accent}" Margin="0,0,12,0">
-                        <TextBlock Text="M" Foreground="{DynamicResource OnAccent}" FontSize="18" FontWeight="ExtraBold"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <!-- Brand -->
+                <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="18,18,14,14">
+                    <Border Grid.Column="0" Width="34" Height="34" CornerRadius="10" Background="{DynamicResource Accent}" Margin="0,0,11,0">
+                        <mi:MaterialIcon Kind="MouseVariant" Width="20" Height="20" Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" />
                     </Border>
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Text="Mouser" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
-                            <Border Classes="status-pill" IsVisible="{Binding IsElevated}" VerticalAlignment="Center" Padding="6,2">
+                            <TextBlock Text="Mouser" FontFamily="{DynamicResource DisplayFontFamily}" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                            <Border Classes="status-pill" IsVisible="{Binding IsElevated}" VerticalAlignment="Center" Padding="6,1">
                                 <TextBlock Text="Admin" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Success}" />
                             </Border>
                         </StackPanel>
-                        <TextBlock Text="Phone remote &amp; clipboard" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+                        <TextBlock Text="One mouse, every screen" FontSize="11" Foreground="{DynamicResource TextFaint}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                 </Grid>
 
-                <StackPanel Grid.Row="1" Spacing="4">
-                    <Button Classes="nav-button" Classes.active="{Binding IsClipboardTab}"
-                            Command="{Binding ShowLibraryCommand}" CommandParameter="All">
-                        <Grid ColumnDefinitions="24,*,Auto">
-                            <TextBlock Grid.Column="0" Text="📋" FontSize="14" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="All items" Margin="8,0,0,0" VerticalAlignment="Center" />
-                            <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!ClipboardHistory.AllCount}">
-                                <TextBlock Text="{Binding ClipboardHistory.AllCount}" Foreground="{DynamicResource BadgeViolet}" />
-                            </Border>
-                        </Grid>
-                    </Button>
+                <!-- Navigation scrolls on short windows so nothing below the fold is lost -->
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="2" Margin="10,0,10,12">
+                        <TextBlock Classes="label" Text="Clipboard" Margin="12,4,0,6" />
 
-                    <Button Classes="nav-button"
-                            Command="{Binding ShowLibraryCommand}" CommandParameter="Starred">
-                        <Grid ColumnDefinitions="24,*,Auto">
-                            <TextBlock Grid.Column="0" Text="☆" FontSize="14" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="Pinned" Margin="8,0,0,0" VerticalAlignment="Center" />
-                            <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!ClipboardHistory.StarredCount}">
-                                <TextBlock Text="{Binding ClipboardHistory.StarredCount}" Foreground="{DynamicResource BadgeViolet}" />
-                            </Border>
-                        </Grid>
-                    </Button>
+                        <Button Classes="nav-button" Classes.active="{Binding IsClipboardTab}"
+                                Command="{Binding ShowLibraryCommand}" CommandParameter="All">
+                            <Grid ColumnDefinitions="26,*,Auto">
+                                <mi:MaterialIcon Kind="ClipboardTextMultipleOutline" />
+                                <TextBlock Grid.Column="1" Text="All items" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!ClipboardHistory.AllCount}">
+                                    <TextBlock Text="{Binding ClipboardHistory.AllCount}" Foreground="{DynamicResource BadgeViolet}" />
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                    <Button Classes="nav-button" Classes.active="{Binding IsSnippetsTab}"
-                            Command="{Binding NavigateCommand}" CommandParameter="Snippets"
-                            ToolTip.Tip="Reusable text snippets with variables">
-                        <Grid ColumnDefinitions="24,*,Auto">
-                            <TextBlock Grid.Column="0" Text="✂️" FontSize="14" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="Snippets" Margin="8,0,0,0" VerticalAlignment="Center" />
-                            <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!Snippets.Snippets.Count}">
-                                <TextBlock Text="{Binding Snippets.Snippets.Count}" Foreground="{DynamicResource BadgeViolet}" />
-                            </Border>
-                        </Grid>
-                    </Button>
+                        <Button Classes="nav-button"
+                                Command="{Binding ShowLibraryCommand}" CommandParameter="Starred">
+                            <Grid ColumnDefinitions="26,*,Auto">
+                                <mi:MaterialIcon Kind="StarOutline" />
+                                <TextBlock Grid.Column="1" Text="Pinned" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!ClipboardHistory.StarredCount}">
+                                    <TextBlock Text="{Binding ClipboardHistory.StarredCount}" Foreground="{DynamicResource BadgeViolet}" />
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                    <TextBlock Classes="label" Text="TAGS" Margin="12,12,0,4" />
+                        <Button Classes="nav-button" Classes.active="{Binding IsSnippetsTab}"
+                                Command="{Binding NavigateCommand}" CommandParameter="Snippets"
+                                ToolTip.Tip="Reusable text snippets with variables">
+                            <Grid ColumnDefinitions="26,*,Auto">
+                                <mi:MaterialIcon Kind="TextBoxOutline" />
+                                <TextBlock Grid.Column="1" Text="Snippets" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!Snippets.Snippets.Count}">
+                                    <TextBlock Text="{Binding Snippets.Snippets.Count}" Foreground="{DynamicResource BadgeViolet}" />
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                    <ItemsControl ItemsSource="{Binding Tags}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="vm:TagViewModel">
-                                <Button Classes="nav-button"
-                                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).FilterByTagCommand}"
-                                        CommandParameter="{Binding}">
-                                    <Grid ColumnDefinitions="24,*,Auto">
-                                        <Rectangle Grid.Column="0" Width="8" Height="8" RadiusX="2" RadiusY="2"
-                                                   Fill="{Binding Brush}" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                                        <TextBlock Grid.Column="1" Text="{Binding DisplayName}" Margin="8,0,0,0" VerticalAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis" />
-                                        <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!Count}">
-                                            <TextBlock Text="{Binding Count}" Foreground="{DynamicResource BadgeViolet}" />
-                                        </Border>
+                        <TextBlock Classes="label" Text="Tags" Margin="12,14,0,6" IsVisible="{Binding !!Tags.Count}" />
+
+                        <ItemsControl ItemsSource="{Binding Tags}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="vm:TagViewModel">
+                                    <Button Classes="nav-button"
+                                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).FilterByTagCommand}"
+                                            CommandParameter="{Binding}">
+                                        <Grid ColumnDefinitions="26,*,Auto">
+                                            <Ellipse Width="8" Height="8" Fill="{Binding Brush}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" />
+                                            <TextBlock Grid.Column="1" Text="{Binding DisplayName}" VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!Count}">
+                                                <TextBlock Text="{Binding Count}" Foreground="{DynamicResource BadgeViolet}" />
+                                            </Border>
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Classes="label" Text="Devices" Margin="12,14,0,6" />
+
+                        <ItemsControl ItemsSource="{Binding Devices}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="vm:SidebarDeviceViewModel">
+                                    <Grid ColumnDefinitions="26,*,Auto" Margin="15,5,12,5" ToolTip.Tip="{Binding StatusText}">
+                                        <mi:MaterialIcon Kind="{Binding IconKind}" Foreground="{DynamicResource TextFaint}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                                        <Ellipse Grid.Column="2" Fill="{Binding StatusColor}" Width="7" Height="7" VerticalAlignment="Center" Margin="8,0,0,0" />
                                     </Grid>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <TextBlock Classes="hint" Text="No tags yet" IsVisible="{Binding !Tags.Count}" Margin="12,4" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Classes="hint" Text="No devices yet" IsVisible="{Binding !Devices.Count}" Margin="15,4" />
 
-                    <TextBlock Classes="label" Text="DEVICES" Margin="12,12,0,4" />
+                        <Button Classes="nav-button" Classes.active="{Binding IsDisplaysTab}"
+                                Command="{Binding NavigateCommand}" CommandParameter="DisplayMatrix"
+                                ToolTip.Tip="Pair computers, arrange screens, manage phones" Margin="0,4,0,0">
+                            <Grid ColumnDefinitions="26,*">
+                                <mi:MaterialIcon Kind="Devices" />
+                                <TextBlock Grid.Column="1" Text="Manage devices" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                        </Button>
 
-                    <ItemsControl ItemsSource="{Binding Devices}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="vm:SidebarDeviceViewModel">
-                                <Grid ColumnDefinitions="Auto,*" Margin="12,4">
-                                    <Ellipse Grid.Column="0" Fill="{Binding StatusColor}" Width="8" Height="8"
-                                             VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis"
-                                               Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <TextBlock Classes="hint" Text="No devices yet" IsVisible="{Binding !Devices.Count}" Margin="12,4" />
+                        <Button Classes="nav-button"
+                                Command="{Binding NavigateCommand}" CommandParameter="AndroidRemote"
+                                ToolTip.Tip="Show this computer's address for the phone app">
+                            <Grid ColumnDefinitions="26,*,Auto">
+                                <mi:MaterialIcon Kind="CellphoneLink" />
+                                <TextBlock Grid.Column="1" Text="Add a phone" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!AndroidRemote.ActiveClientCount}">
+                                    <TextBlock Text="{Binding AndroidRemote.ActiveClientCount}" Foreground="{DynamicResource Success}" />
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                    <Button Classes="nav-button"
-                            Command="{Binding NavigateCommand}" CommandParameter="AndroidRemote"
-                            ToolTip.Tip="Add a phone or view pairing PIN">
-                        <Grid ColumnDefinitions="24,*,Auto">
-                            <TextBlock Grid.Column="0" Text="+" FontSize="14" VerticalAlignment="Center" FontWeight="Bold" />
-                            <TextBlock Grid.Column="1" Text="Add a phone" Margin="8,0,0,0" VerticalAlignment="Center" />
-                            <Border Grid.Column="2" Classes="nav-badge" IsVisible="{Binding !!AndroidRemote.ActiveClientCount}">
-                                <TextBlock Text="{Binding AndroidRemote.ActiveClientCount}" Foreground="{DynamicResource Success}" />
-                            </Border>
-                        </Grid>
-                    </Button>
+                        <TextBlock Classes="label" Text="App" Margin="12,14,0,6" />
 
-                    <Button Classes="nav-button" Classes.active="{Binding IsDisplaysTab}"
-                            Command="{Binding NavigateCommand}" CommandParameter="DisplayMatrix"
-                            ToolTip.Tip="Manage connected computers and phones">
-                        <Grid ColumnDefinitions="24,*">
-                            <TextBlock Grid.Column="0" Text="🖥" FontSize="14" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="Manage devices…" Margin="8,0,0,0" VerticalAlignment="Center" />
-                        </Grid>
-                    </Button>
+                        <Button Classes="nav-button" Classes.active="{Binding IsActivityTab}"
+                                Command="{Binding NavigateCommand}" CommandParameter="Activity">
+                            <Grid ColumnDefinitions="26,*">
+                                <mi:MaterialIcon Kind="History" />
+                                <TextBlock Grid.Column="1" Text="Activity" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                        </Button>
 
-                    <Button Classes="nav-button" Classes.active="{Binding IsActivityTab}"
-                            Command="{Binding NavigateCommand}" CommandParameter="Activity">
-                        <Grid ColumnDefinitions="24,*">
-                            <TextBlock Grid.Column="0" Text="⏱" FontSize="14" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="Activity" Margin="8,0,0,0" VerticalAlignment="Center" />
-                        </Grid>
-                    </Button>
-
-                    <Button Classes="nav-button" Classes.active="{Binding IsSettingsTab}"
-                            Command="{Binding NavigateCommand}" CommandParameter="Settings">
-                        <Grid ColumnDefinitions="24,*,Auto">
-                            <TextBlock Grid.Column="0" Text="⚙" FontSize="14" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="Settings" Margin="8,0,0,0" VerticalAlignment="Center" />
-                            <Border Grid.Column="2" Classes="shortcut-badge" Margin="8,0,0,0">
-                                <TextBlock Text="Ctrl+," />
-                            </Border>
-                        </Grid>
-                    </Button>
-                </StackPanel>
-
-                <Border Grid.Row="2" Background="{DynamicResource BgInput}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
-                        CornerRadius="10" Padding="12,10">
-                    <StackPanel Spacing="4">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding SystemStatusTitle}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
-                        </StackPanel>
-                        <TextBlock Text="{Binding SystemStatusText}" FontSize="11" Foreground="{DynamicResource TextMuted}"
-                                   TextWrapping="Wrap" />
+                        <Button Classes="nav-button" Classes.active="{Binding IsSettingsTab}"
+                                Command="{Binding NavigateCommand}" CommandParameter="Settings">
+                            <Grid ColumnDefinitions="26,*,Auto">
+                                <mi:MaterialIcon Kind="CogOutline" />
+                                <TextBlock Grid.Column="1" Text="Settings" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <Border Grid.Column="2" Classes="shortcut-badge" Margin="8,0,0,0">
+                                    <TextBlock Text="Ctrl+," />
+                                </Border>
+                            </Grid>
+                        </Button>
                     </StackPanel>
+                </ScrollViewer>
+
+                <!-- Live link status -->
+                <Border Grid.Row="2" Margin="10,0,10,12" Background="{DynamicResource BgSurface}"
+                        BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
+                        CornerRadius="{DynamicResource CardCornerRadius}" Padding="12,11">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Panel Width="16" Height="16" VerticalAlignment="Top" Margin="0,1,10,0">
+                            <Ellipse Width="16" Height="16" Fill="{Binding StatusColor}" Opacity="0.22" />
+                            <Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" />
+                        </Panel>
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="{Binding SystemStatusTitle}" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding SystemStatusText}" FontSize="11" FontFamily="{DynamicResource CodeFontFamily}"
+                                       Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
                 </Border>
             </Grid>
         </Border>
@@ -185,31 +197,73 @@
                         Content="{Binding Lock}"
                         IsVisible="{Binding IsLocked}" />
 
+        <!-- Pairing code check: window-level so it shows on whatever page is open -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="2"
+              IsVisible="{Binding DevicesPage.IsPairingPromptVisible}">
+            <Border Background="{DynamicResource BgApp}" Opacity="0.85" />
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Border Classes="glass-card" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Padding="28" MaxWidth="420" Margin="24"
+                        BorderBrush="{DynamicResource BorderStrong}">
+                    <StackPanel Spacing="16">
+                        <Border Classes="icon-tile" HorizontalAlignment="Center" Width="44" Height="44">
+                            <mi:MaterialIcon Kind="ShieldLockOutline" Width="24" Height="24" />
+                        </Border>
+                        <TextBlock Text="{Binding DevicesPage.PairingPromptTitle}" FontWeight="SemiBold" FontSize="18"
+                                   Foreground="{DynamicResource TextPrimary}" TextAlignment="Center" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding DevicesPage.PairingPromptSubtitle}" Classes="hint"
+                                   Foreground="{DynamicResource TextSecondary}" TextAlignment="Center" TextWrapping="Wrap" />
+                        <Border Background="{DynamicResource BgSunken}" CornerRadius="10" Padding="22,12"
+                                BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
+                                HorizontalAlignment="Center">
+                            <TextBlock Text="{Binding DevicesPage.PairingPromptCode}" FontFamily="{DynamicResource CodeFontFamily}"
+                                       FontSize="32" FontWeight="Bold" Foreground="{DynamicResource AccentSoft}"
+                                       LetterSpacing="6" TextAlignment="Center" />
+                        </Border>
+                        <Grid ColumnDefinitions="*,12,*" Margin="0,4,0,0">
+                            <Button Grid.Column="0" Classes="primary-btn" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                    Content="{Binding DevicesPage.ConfirmButtonText}" Command="{Binding DevicesPage.ConfirmPairingCommand}" />
+                            <Button Grid.Column="2" Classes="secondary-btn" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                    Content="{Binding DevicesPage.DenyButtonText}" Command="{Binding DevicesPage.DenyPairingCommand}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </ScrollViewer>
+        </Grid>
+
         <!-- Modal incoming file card overlay -->
         <Grid Grid.Column="0" Grid.ColumnSpan="2"
               IsVisible="{Binding IsIncomingFilePromptVisible}">
-            <Border Background="{DynamicResource BgApp}" Opacity="0.8" />
-            <Border Classes="glass-card" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Padding="28" Width="460" CornerRadius="12"
-                    BorderBrush="{DynamicResource BorderStrong}" BorderThickness="1"
-                    Background="{DynamicResource BgSurface}">
-                <StackPanel Spacing="16">
-                    <TextBlock Text="{Binding IncomingFilePromptTitle}"
-                               FontWeight="SemiBold" FontSize="16"
-                               Foreground="{DynamicResource TextPrimary}"
-                               TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding IncomingFilePromptSubtitle}"
-                               Classes="hint" TextWrapping="Wrap" />
-                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Classes="secondary-btn" Content="Decline"
-                                Command="{Binding DeclineIncomingFileCommand}" Margin="0,0,8,0" />
-                        <Button Classes="secondary-btn" Content="Always accept from this device"
-                                Command="{Binding AlwaysAcceptIncomingFileCommand}" Margin="0,0,8,0" />
-                        <Button Classes="primary-btn" Content="Accept"
-                                Command="{Binding AcceptIncomingFileCommand}" />
-                    </WrapPanel>
-                </StackPanel>
-            </Border>
+            <Border Background="{DynamicResource BgApp}" Opacity="0.85" />
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Border Classes="glass-card" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Padding="28" MaxWidth="480" Margin="24"
+                        BorderBrush="{DynamicResource BorderStrong}">
+                    <StackPanel Spacing="16">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Classes="icon-tile" Margin="0,0,14,0" VerticalAlignment="Top">
+                                <mi:MaterialIcon Kind="FileSendOutline" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Spacing="4">
+                                <TextBlock Text="{Binding IncomingFilePromptTitle}"
+                                           FontWeight="SemiBold" FontSize="16"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding IncomingFilePromptSubtitle}"
+                                           Classes="hint" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+                        <WrapPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Classes="secondary-btn" Content="Decline"
+                                    Command="{Binding DeclineIncomingFileCommand}" Margin="0,0,8,8" />
+                            <Button Classes="secondary-btn" Content="Always accept from this device"
+                                    Command="{Binding AlwaysAcceptIncomingFileCommand}" Margin="0,0,8,8" />
+                            <Button Classes="primary-btn" Content="Accept"
+                                    Command="{Binding AcceptIncomingFileCommand}" Margin="0,0,0,8" />
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </Window>

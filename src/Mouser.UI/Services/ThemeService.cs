@@ -22,14 +22,14 @@ public static class ThemeService
         double DefaultRadius,
         double DefaultCardRadius,
         double DefaultBorderThickness,
-        string DefaultFont = "Segoe UI, Inter, Aptos, Arial, sans-serif"
+        string DefaultFont = "Segoe UI Variable Text, Segoe UI, Inter, Aptos, Arial, sans-serif"
     );
 
     public record AccentColorPreset(string Name, string HexColor, string Description);
 
     public static readonly DesignThemeInfo[] Designs =
     {
-        new("ModernMinimalist", "Modern Minimalist", "Precision slate with electric indigo accent", "#4f46e5", "#0c0d12", "#f5f6fa", 8, 12, 1),
+        new("ModernMinimalist", "Signal", "Blue graphite with a cornflower accent (default)", "#4f6bed", "#11151d", "#f3f5f9", 8, 12, 1),
         new("CyberpunkTerminal", "Cyberpunk Terminal", "Matrix obsidian with neon emerald HUD", "#00e599", "#05070a", "#eaf0ed", 2, 4, 1.5, "Cascadia Code, Consolas, Courier New, monospace"),
         new("NordicFrost", "Nordic Frost", "Clean Scandinavian arctic mist with glacier ice", "#38bdf8", "#0b0f17", "#f0f4f9", 10, 14, 1),
         new("TokyoNight", "Tokyo Night", "Midnight Shibuya dusk with synthwave fuchsia", "#ec4899", "#0f0d1a", "#fbf7fd", 8, 12, 1),
@@ -205,7 +205,7 @@ public static class ThemeService
         }
         else if (font.StartsWith("Modern", StringComparison.OrdinalIgnoreCase))
         {
-            app.Resources["AppFontFamily"] = new FontFamily("Segoe UI, Inter, Aptos, Arial, sans-serif");
+            app.Resources["AppFontFamily"] = new FontFamily("Segoe UI Variable Text, Segoe UI, Inter, Aptos, Arial, sans-serif");
         }
         else // System Default
         {

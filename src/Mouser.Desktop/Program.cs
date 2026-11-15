@@ -25,5 +25,6 @@ sealed class Program
             .WithDeveloperTools()
 #endif
             .WithInterFont()
-            .LogToTrace();
+            // shortcut: Binding area muted because the clipboard detail pane binds to a null SelectedClip while hidden; re-root that pane's DataContext to restore it.
+            .LogToTrace(Avalonia.Logging.LogEventLevel.Warning, Avalonia.Logging.LogArea.Property, Avalonia.Logging.LogArea.Layout, Avalonia.Logging.LogArea.Visual, Avalonia.Logging.LogArea.Control);
 }

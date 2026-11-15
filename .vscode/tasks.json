@@ -1,15 +1,10 @@
 {
     "version": "2.0.0",
-    "options": {
-        "env": {
-            "PATH": "C:\\Users\\abdelkarim\\.dotnet;${env:PATH}"
-        }
-    },
     "tasks": [
         {
             "label": "build",
             "command": "dotnet",
-            "type": "process",
+            "type": "shell",
             "args": [
                 "build",
                 "${workspaceFolder}/Mouser.sln",
@@ -25,7 +20,7 @@
         {
             "label": "run",
             "command": "dotnet",
-            "type": "process",
+            "type": "shell",
             "args": [
                 "run",
                 "--project",
@@ -37,7 +32,7 @@
         {
             "label": "test",
             "command": "dotnet",
-            "type": "process",
+            "type": "shell",
             "args": [
                 "test",
                 "${workspaceFolder}/tests/Mouser.Tests/Mouser.Tests.csproj"
@@ -51,7 +46,7 @@
         {
             "label": "clean",
             "command": "dotnet",
-            "type": "process",
+            "type": "shell",
             "args": [
                 "clean",
                 "${workspaceFolder}/Mouser.sln"
@@ -61,7 +56,7 @@
         {
             "label": "publish",
             "command": "dotnet",
-            "type": "process",
+            "type": "shell",
             "args": [
                 "publish",
                 "${workspaceFolder}/src/Mouser.Desktop/Mouser.Desktop.csproj",

@@ -3,20 +3,24 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Mouser.UI.ViewModels"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:Class="Mouser.UI.Views.LockView"
              x:DataType="vm:LockViewModel"
              Background="{DynamicResource BgApp}">
 
-    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <Border Classes="glass-card"
                 Padding="32"
                 MaxWidth="440"
+                Margin="24"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center">
             <StackPanel Spacing="20">
                 <StackPanel Spacing="8" HorizontalAlignment="Center">
-                    <TextBlock Text="🔒" FontSize="36" HorizontalAlignment="Center" />
+                    <Border Classes="icon-tile" Width="56" Height="56" HorizontalAlignment="Center">
+                        <mi:MaterialIcon Kind="LockOutline" Width="28" Height="28" />
+                    </Border>
                     <TextBlock Text="Mouser is locked" FontSize="20" FontWeight="Bold"
                                Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" />
                 </StackPanel>
@@ -78,5 +82,5 @@
                 </StackPanel>
             </StackPanel>
         </Border>
-    </Grid>
+    </ScrollViewer>
 </UserControl>

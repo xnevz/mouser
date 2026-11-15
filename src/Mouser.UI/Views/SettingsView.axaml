@@ -3,20 +3,27 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Mouser.UI.ViewModels"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:views="using:Mouser.UI.Views"
              xmlns:services="using:Mouser.UI.Services"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:Class="Mouser.UI.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
 
-    <ScrollViewer>
-        <StackPanel Margin="24" Spacing="16" MaxWidth="720" HorizontalAlignment="Left">
-            <TextBlock Classes="page-title" Text="Settings" />
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="24,20,24,24" Spacing="16" MaxWidth="760" HorizontalAlignment="Left">
+            <StackPanel Spacing="4">
+                <TextBlock Classes="page-title" Text="Settings" />
+                <TextBlock Classes="page-subtitle" Text="Changes save as you make them." />
+            </StackPanel>
 
             <!-- Card 1: Appearance & UI Customization -->
             <Border Classes="glass-card" Padding="20">
                 <StackPanel Spacing="14">
-                    <TextBlock Classes="section-title" Text="Appearance &amp; UI Customization" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,4">
+                        <mi:MaterialIcon Kind="Palette" Width="20" Height="20" Foreground="{DynamicResource AccentSoft}" />
+                        <TextBlock Classes="section-title" FontSize="16" Text="Appearance" VerticalAlignment="Center" />
+                    </StackPanel>
 
                     <!-- Design Theme Picker -->
                     <Grid ColumnDefinitions="*,Auto" Margin="0,4">
@@ -123,7 +130,10 @@
             <!-- Card 2: General -->
             <Border Classes="glass-card" Padding="20">
                 <StackPanel Spacing="12">
-                    <TextBlock Classes="section-title" Text="General" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,4">
+                        <mi:MaterialIcon Kind="Tune" Width="20" Height="20" Foreground="{DynamicResource AccentSoft}" />
+                        <TextBlock Classes="section-title" FontSize="16" Text="General" VerticalAlignment="Center" />
+                    </StackPanel>
                     <Grid ColumnDefinitions="*,Auto" Margin="0,4" IsVisible="{Binding IsStartAtLoginSupported}">
                         <StackPanel Spacing="2">
                             <TextBlock Classes="section-title" FontSize="13" Text="Start Mouser when I sign in" />
@@ -224,7 +234,10 @@
             <!-- Card 3: Clipboard -->
             <Border Classes="glass-card" Padding="20">
                 <StackPanel Spacing="12">
-                    <TextBlock Classes="section-title" Text="Clipboard" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,4">
+                        <mi:MaterialIcon Kind="ClipboardOutline" Width="20" Height="20" Foreground="{DynamicResource AccentSoft}" />
+                        <TextBlock Classes="section-title" FontSize="16" Text="Clipboard" VerticalAlignment="Center" />
+                    </StackPanel>
                     <Grid ColumnDefinitions="*,Auto" Margin="0,4">
                         <StackPanel Spacing="2">
                             <TextBlock Classes="section-title" FontSize="13" Text="Save text I copy" />
@@ -310,7 +323,10 @@
             <!-- Card 4: Sharing -->
             <Border Classes="glass-card" Padding="20">
                 <StackPanel Spacing="12">
-                    <TextBlock Classes="section-title" Text="Sharing" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,4">
+                        <mi:MaterialIcon Kind="MonitorShare" Width="20" Height="20" Foreground="{DynamicResource AccentSoft}" />
+                        <TextBlock Classes="section-title" FontSize="16" Text="Sharing" VerticalAlignment="Center" />
+                    </StackPanel>
                     <Grid ColumnDefinitions="*,Auto" Margin="0,4">
                         <StackPanel Spacing="2">
                             <TextBlock Classes="section-title" FontSize="13" Text="Accept remote input from phones" />
@@ -461,7 +477,10 @@
             <!-- Card 6: Security -->
             <Border Classes="glass-card" Padding="20">
                 <StackPanel Spacing="12">
-                    <TextBlock Classes="section-title" Text="Security" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,4">
+                        <mi:MaterialIcon Kind="ShieldLockOutline" Width="20" Height="20" Foreground="{DynamicResource AccentSoft}" />
+                        <TextBlock Classes="section-title" FontSize="16" Text="Security" VerticalAlignment="Center" />
+                    </StackPanel>
 
                     <!-- When NOT configured -->
                     <StackPanel Spacing="12" IsVisible="{Binding !IsLockConfigured}">
@@ -641,7 +660,10 @@
             <!-- Card 6: This device -->
             <Border Classes="glass-card" Padding="20">
                 <StackPanel Spacing="12">
-                    <TextBlock Classes="section-title" Text="This device" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,4">
+                        <mi:MaterialIcon Kind="Laptop" Width="20" Height="20" Foreground="{DynamicResource AccentSoft}" />
+                        <TextBlock Classes="section-title" FontSize="16" Text="This device" VerticalAlignment="Center" />
+                    </StackPanel>
                     <Grid ColumnDefinitions="*,Auto" Margin="0,4">
                         <StackPanel Spacing="2">
                             <TextBlock Classes="section-title" FontSize="13" Text="Device name" />

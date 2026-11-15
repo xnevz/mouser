@@ -77,7 +77,7 @@ Every computer and phone must be on the **same network** (same Wi-Fi or LAN, no 
 1. **Install and start Mouser** on each computer. Allow it through the firewall on private networks.
 2. **Find the PIN.** Open the **Phone Remote** page; it shows a 6-digit pairing PIN for this computer.
 3. **Connect a phone.** Open the Android app, pick your computer from the list and type the PIN. The app remembers it.
-4. **Connect another computer.** On the computer whose keyboard and mouse you want to share, open **Displays & Network**, enter the other computer's PIN, and choose which side of your screen it sits on. It shows as **Paired** when connected.
+4. **Connect another computer.** On the *other* computer, open **Manage devices** and click **Add computer** (it accepts new computers for 2 minutes). On this computer, open **Manage devices**, pick it from the list (it shows **Online, not paired**), click **Connect & pair**, and check that both screens show the same code. Then choose which side of your screen it sits on under **Screen layout**. It shows as **Connected** when the link is up.
 
 ## Using the app
 
@@ -155,7 +155,7 @@ Network ports in use:
 | Input does nothing over some windows | Those windows run as administrator. Run Mouser as administrator too. |
 | Cursor stays on the other computer | Press **Ctrl+Alt+Esc** or **Scroll Lock**. |
 | Win+Alt+V does nothing | Another app owns the hotkey; the Clipboard History page tells you. |
-| Pairing keeps failing | Make sure you typed the PIN of the computer you are connecting **to**. After 5 wrong tries wait 60 seconds. |
+| Pairing keeps failing | Click **Add computer** on the computer you are pairing **with** first, then **Connect & pair** within 2 minutes. The error under the device says what went wrong. After 3 refusals in a row, wait 5 minutes. |
 | macOS shows no input | Grant Accessibility permission to Mouser in System Settings, then restart it. |
 | Port already in use | Change the phone connection port in Settings. |
 
