@@ -14,6 +14,8 @@ public sealed partial class Win32InputSink : IInputSink
     private const uint INPUT_KEYBOARD = 1;
 
     private const uint MOUSEEVENTF_MOVE = 0x0001;
+    private const uint MOUSEEVENTF_ABSOLUTE = 0x8000;
+    private const uint MOUSEEVENTF_VIRTUALDESK = 0x4000;
     private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
     private const uint MOUSEEVENTF_LEFTUP = 0x0004;
     private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
@@ -35,8 +37,16 @@ public sealed partial class Win32InputSink : IInputSink
         SendMouse(dx, dy, 0, MOUSEEVENTF_MOVE);
     }
 
-    // SetCursorPos takes physical pixels in a per-monitor DPI aware process (Avalonia sets that up).
-    public void MoveAbsolute(int x, int y) => SetCursorPos(x, y);
+    // SetCursorPos emits no input event, so the XAML Start menu/taskbar never see hover; use a real absolute SendInput.
+    // x/y are physical virtual-screen pixels (Avalonia is per-monitor DPI aware); normalised to 0..65535 at the pixel centre.
+    public void MoveAbsolute(int x, int y)
+    {
+        int vx = GetSystemMetrics(76), vy = GetSystemMetrics(77), vw = GetSystemMetrics(78), vh = GetSystemMetrics(79);
+        if (vw <= 0 || vh <= 0) { SetCursorPos(x, y); return; }
+        int nx = (int)(((long)(x - vx) * 2 + 1) * 65536 / (2L * vw));
+        int ny = (int)(((long)(y - vy) * 2 + 1) * 65536 / (2L * vh));
+        SendMouse(Math.Clamp(nx, 0, 65535), Math.Clamp(ny, 0, 65535), 0, MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK);
+    }
 
     public void SetButton(MouseButton button, bool isDown)
     {
@@ -179,4 +189,7 @@ public sealed partial class Win32InputSink : IInputSink
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool SetCursorPos(int x, int y);
+
+    [LibraryImport("user32.dll")]
+    private static partial int GetSystemMetrics(int nIndex);
 }

@@ -16,6 +16,13 @@ public sealed class Win32InputCapture : IInputCapture
     private const uint LLMHF_INJECTED = 0x01;
     private const uint LLKHF_INJECTED = 0x10;
 
+    // Only touched on the hook thread.
+    private readonly HashSet<uint> _held = [];
+    private static readonly uint[] ShiftKeys = [0x10, 0xA0, 0xA1];
+    private static readonly uint[] CtrlKeys = [0x11, 0xA2, 0xA3];
+    private static readonly uint[] AltKeys = [0x12, 0xA4, 0xA5];
+    private static readonly uint[] WinKeys = [0x5B, 0x5C];
+
     private readonly HookProc _mouseProc;
     private readonly HookProc _keyboardProc;
     private Thread? _thread;
@@ -103,12 +110,14 @@ public sealed class Win32InputCapture : IInputCapture
             {
                 uint msg = (uint)wParam;
                 bool isDown = msg is 0x0100 or 0x0104; // WM_KEYDOWN, WM_SYSKEYDOWN
+                // Keys swallowed by this hook never reach the system key state, so GetKeyState can't see held Win/Ctrl/Alt.
+                if (isDown) _held.Add(info.vkCode); else _held.Remove(info.vkCode);
                 char? text = null;
                 if (isDown)
                 {
-                    bool ctrlDown = (GetKeyState(0x11) & 0x8000) != 0;
-                    bool altDown = (GetKeyState(0x12) & 0x8000) != 0;
-                    bool winDown = ((GetKeyState(0x5B) | GetKeyState(0x5C)) & 0x8000) != 0;
+                    bool ctrlDown = _held.Overlaps(CtrlKeys);
+                    bool altDown = _held.Overlaps(AltKeys);
+                    bool winDown = _held.Overlaps(WinKeys);
                     bool isAltGr = ctrlDown && altDown;
 
                     if (!winDown && (isAltGr || (!ctrlDown && !altDown)))
@@ -119,7 +128,7 @@ public sealed class Win32InputCapture : IInputCapture
 
                         byte* keyState = stackalloc byte[256];
                         GetKeyboardState(keyState);
-                        if ((GetKeyState(0x10) & 0x8000) != 0) keyState[0x10] |= 0x80;
+                        if (_held.Overlaps(ShiftKeys)) keyState[0x10] |= 0x80;
                         if ((GetKeyState(0x14) & 0x0001) != 0) keyState[0x14] |= 0x01;
                         if (isAltGr)
                         {
