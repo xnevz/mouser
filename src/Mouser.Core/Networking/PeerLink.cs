@@ -81,6 +81,17 @@ public sealed class PeerLink : IDisposable
     public void Send(byte type, short dx = 0, short dy = 0, byte buttons = 0) =>
         SendPacket(InputMotionPacket.Create(type, NextSequence(), dx, dy, buttons));
 
+    /// <summary>
+    /// Sends a key/char event twice under one sequence id. Key events are rare, and a single lost UDP datagram would
+    /// otherwise drop a keystroke or modifier; the receiver discards the duplicate by its sequence id.
+    /// </summary>
+    public void SendKeyEvent(byte type, short dx, short dy, byte buttons, byte modifiers)
+    {
+        var packet = InputMotionPacket.Create(type, NextSequence(), dx, dy, buttons, modifiers);
+        SendPacket(packet);
+        SendPacket(packet);
+    }
+
     // Lock-free: this runs on the input hook thread, which must never block or allocate.
     private ushort NextSequence() => unchecked((ushort)Interlocked.Increment(ref _sequence));
 

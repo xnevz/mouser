@@ -20,7 +20,11 @@ public partial class QuickPasteViewModel : ViewModelBase
 
     [ObservableProperty] private string _query = string.Empty;
     [ObservableProperty] private ClipboardItemViewModel? _selected;
-    [ObservableProperty] private string? _activeTransformName;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasActiveTransform))]
+    private string? _activeTransformName;
+
+    public bool HasActiveTransform => !string.IsNullOrEmpty(ActiveTransformName);
     [ObservableProperty] private string _selectedTab = "All";
     [ObservableProperty] private string? _deviceFilter;
 

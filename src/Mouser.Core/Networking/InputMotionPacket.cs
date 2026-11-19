@@ -32,6 +32,15 @@ public struct InputMotionPacket : IEquatable<InputMotionPacket>
     public const byte TypeChar = 0x0A;
     public const byte TypeLaser = 0x0B;
 
+    // Key/Char packets from desktop peers carry the sender's full held-modifier state in Modifiers, so a lost or
+    // reordered Ctrl/Shift/Alt/Win packet can't turn Ctrl+C into a plain "c" (or leave Ctrl stuck) on the receiver.
+    // ModifiersValid marks the mask as present; older senders and the phone leave the byte zero.
+    public const byte ModifierWin = 0x01;
+    public const byte ModifierShift = 0x02;
+    public const byte ModifierCtrl = 0x04;
+    public const byte ModifierAlt = 0x08;
+    public const byte ModifiersValid = 0x80;
+
     public uint Magic;
     public byte Version;
     public byte PacketType;
@@ -51,6 +60,13 @@ public struct InputMotionPacket : IEquatable<InputMotionPacket>
         DeltaY = dy,
         ButtonFlags = buttons
     };
+
+    public static InputMotionPacket Create(byte type, ushort sequenceId, short dx, short dy, byte buttons, byte modifiers)
+    {
+        var packet = Create(type, sequenceId, dx, dy, buttons);
+        packet.Modifiers = modifiers;
+        return packet;
+    }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

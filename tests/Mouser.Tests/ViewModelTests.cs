@@ -590,44 +590,13 @@ public class ViewModelTests
     }
 
     [Fact]
-    public async Task DesignTheme_DefaultsToModernMinimalist()
+    public void Settings_FromOlderVersionWithRemovedDesignKeys_StillLoad()
     {
-        var app = new AppFixture();
-        await using var _ = app;
-        Assert.Equal("ModernMinimalist", app.Settings.Current.DesignTheme);
-    }
-
-    [Fact]
-    public async Task DesignTheme_SettingPersists()
-    {
-        var app = new AppFixture();
-        await using var _ = app;
-        app.Main.Settings.DesignTheme = "NordicFrost";
-        var reloaded = new SettingsStore(app.Settings.FilePath).Current;
-        Assert.Equal("NordicFrost", reloaded.DesignTheme);
-    }
-
-    [Fact]
-    public async Task SelectedDesignTheme_UpdatesDesignThemeAndPersists()
-    {
-        var app = new AppFixture();
-        await using var _ = app;
-        var cyberpunk = ThemeService.Designs.First(d => d.Id == "CyberpunkTerminal");
-        app.Main.Settings.SelectedDesignTheme = cyberpunk;
-        Assert.Equal("CyberpunkTerminal", app.Main.Settings.DesignTheme);
-        var reloaded = new SettingsStore(app.Settings.FilePath).Current;
-        Assert.Equal("CyberpunkTerminal", reloaded.DesignTheme);
-    }
-
-    [Fact]
-    public void DesignTheme_InvalidValueFallsBackToModernMinimalist()
-    {
-        string path = Path.Combine(Path.GetTempPath(), $"mouser_designtheme_{Guid.NewGuid():N}.json");
-        File.WriteAllText(path, "{\n  \"DesignTheme\": \"NonExistentTheme\"\n}");
+        string path = Path.Combine(Path.GetTempPath(), $"mouser_legacy_{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, "{\n  \"Theme\": \"Dark\",\n  \"DesignTheme\": \"CyberpunkTerminal\",\n  \"UiCornerRadius\": \"Sharp (0px)\",\n  \"CustomAccentColor\": \"#ff00ff\"\n}");
         try
         {
-            var store = new SettingsStore(path);
-            Assert.Equal("ModernMinimalist", store.Current.DesignTheme);
+            Assert.Equal("Dark", new SettingsStore(path).Current.Theme);
         }
         finally
         {

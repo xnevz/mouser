@@ -6,6 +6,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -28,6 +29,8 @@ public class TestAppBuilder
     public static AppBuilder BuildAvaloniaApp() =>
         AppBuilder.Configure<Mouser.UI.App>()
             .UseSkia()
+            .WithInterFont()
+            .With(new FontManagerOptions { DefaultFamilyName = "fonts:Inter#Inter" })
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
 }
 
@@ -91,7 +94,7 @@ public class HeadlessUiTests
         var vm = fixture.Main;
         vm.Onboarding = null; // dismiss onboarding so pages are visible
 
-        ThemeService.Apply("Dark", "ModernMinimalist");
+        ThemeService.Apply("Dark");
         var window = new MainWindow { DataContext = vm };
         window.Show();
         Dispatcher.UIThread.RunJobs();
@@ -242,16 +245,24 @@ public class HeadlessUiTests
         monitorWin.Close();
 
         // 12. QuickPaste Window
-        var qpWin = new QuickPasteWindow
+        var qpVm = new QuickPasteViewModel(fixture.Storage, fixture.Clipboard);
+        await qpVm.LoadTabsAsync();
+        await qpVm.LoadAsync();
+        foreach (var mode in new[] { "Dark", "Light" })
         {
-            Width = 560,
-            Height = 420,
-            DataContext = new QuickPasteViewModel(fixture.Storage, fixture.Clipboard)
-        };
-        qpWin.Show();
+            ThemeService.Apply(mode);
+            var qpWin = new QuickPasteWindow { Height = 420, DataContext = qpVm };
+            qpWin.Show();
+            Dispatcher.UIThread.RunJobs();
+            SaveSnapshot(qpWin, $"page-12-quickpaste-{mode.ToLowerInvariant()}.png");
+            qpWin.Close();
+        }
+        var qpEmpty = new QuickPasteWindow { Height = 300, DataContext = new QuickPasteViewModel(fixture.Storage, fixture.Clipboard) };
+        qpEmpty.Show();
         Dispatcher.UIThread.RunJobs();
-        SaveSnapshot(qpWin, "page-12-quickpaste.png");
-        qpWin.Close();
+        SaveSnapshot(qpEmpty, "page-12-quickpaste-empty.png");
+        qpEmpty.Close();
+        ThemeService.Apply("Dark");
 
         // 13. Toast Window
         var toastWin = new ToastWindow
@@ -320,29 +331,19 @@ public class HeadlessUiTests
     }
 
     [AvaloniaFact]
-    public void DesignThemes_AllSeven_ApplyAndRenderInLightAndDark()
+    public void Theme_LightAndDark_RenderMainWindow()
     {
         var window = new MainWindow();
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
-        var designs = ThemeService.Designs;
-        Assert.Equal(7, designs.Length);
-
-        string[] modes = ["Dark", "Light"];
-
-        foreach (var design in designs)
+        foreach (var mode in new[] { "Dark", "Light", "System" })
         {
-            foreach (var mode in modes)
-            {
-                ThemeService.Apply(mode, design.Id);
-                Dispatcher.UIThread.RunJobs();
-
-                var frame = window.CaptureRenderedFrame();
-                Assert.NotNull(frame);
-                Assert.True(frame.PixelSize.Width > 0);
-                Assert.True(frame.PixelSize.Height > 0);
-            }
+            ThemeService.Apply(mode);
+            Dispatcher.UIThread.RunJobs();
+            var frame = window.CaptureRenderedFrame();
+            Assert.NotNull(frame);
+            Assert.True(frame.PixelSize.Width > 0);
         }
 
         window.Close();

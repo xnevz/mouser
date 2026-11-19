@@ -74,14 +74,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _isCheckingForUpdates;
     [ObservableProperty] private bool _warnElevatedWindows;
     [ObservableProperty] private string _theme;
-    [ObservableProperty] private string _designTheme;
-    [ObservableProperty] private string _uiCornerRadius = "Theme default";
-    [ObservableProperty] private string _uiDensity = "Comfortable";
-    [ObservableProperty] private string _uiFontFamily = "System Default";
     [ObservableProperty] private string _uiScale = "100%";
-    [ObservableProperty] private string _customAccentColor = string.Empty;
-    [ObservableProperty] private string _windowEffect = "Solid";
-    [ObservableProperty] private bool _reduceMotion;
     [ObservableProperty] private string _deviceName;
     [ObservableProperty] private string _switchFeel = "Normal";
     [ObservableProperty] private bool _blockInFullscreen;
@@ -125,41 +118,9 @@ public partial class SettingsViewModel : ViewModelBase
     public bool IsLockConfigured => _appLock?.IsConfigured ?? false;
     public bool IsStartAtLoginSupported => StartupRegistration.IsSupported;
     public string[] ThemeOptions => ThemeService.Options;
-    public ThemeService.DesignThemeInfo[] DesignThemes => ThemeService.Designs;
-    public string[] CornerRadiusOptions => ThemeService.CornerRadiusOptions;
-    public string[] DensityOptions => ThemeService.DensityOptions;
-    public string[] FontFamilyOptions => ThemeService.FontFamilyOptions;
     public string[] UiScaleOptions { get; } = ["90%", "100%", "110%", "125%"];
-    public ThemeService.AccentColorPreset[] AccentPresets => ThemeService.AccentPresets;
-    public string[] WindowEffectOptions => ThemeService.WindowEffectOptions;
 
-    public ThemeService.AccentColorPreset? SelectedAccentPreset
-    {
-        get => ThemeService.AccentPresets.FirstOrDefault(p =>
-            string.Equals(p.HexColor, CustomAccentColor, StringComparison.OrdinalIgnoreCase))
-            ?? (string.IsNullOrEmpty(CustomAccentColor) ? ThemeService.AccentPresets[0] : null);
-        set
-        {
-            if (value != null && value.HexColor != CustomAccentColor)
-            {
-                CustomAccentColor = value.HexColor;
-                OnPropertyChanged();
-            }
-        }
-    }
 
-    public ThemeService.DesignThemeInfo? SelectedDesignTheme
-    {
-        get => ThemeService.Designs.FirstOrDefault(d => d.Id == DesignTheme) ?? ThemeService.Designs[0];
-        set
-        {
-            if (value != null && value.Id != DesignTheme)
-            {
-                DesignTheme = value.Id;
-                OnPropertyChanged();
-            }
-        }
-    }
 
     public string DataDirectory => _store.DataDirectory;
     public HotkeysViewModel Hotkeys { get; }
@@ -204,14 +165,7 @@ public partial class SettingsViewModel : ViewModelBase
         _notifications = s.Notifications;
         _warnElevatedWindows = s.WarnElevatedWindows;
         _theme = s.Theme;
-        _designTheme = s.DesignTheme;
-        _uiCornerRadius = s.UiCornerRadius ?? "Theme default";
-        _uiDensity = s.UiDensity ?? "Comfortable";
-        _uiFontFamily = s.UiFontFamily ?? "System Default";
         _uiScale = s.UiScale ?? "100%";
-        _customAccentColor = s.CustomAccentColor ?? string.Empty;
-        _windowEffect = s.WindowEffect ?? "Solid";
-        _reduceMotion = s.ReduceMotion;
         _deviceName = s.DeviceName;
         _switchFeel = s.SwitchFeel;
         _blockInFullscreen = s.BlockInFullscreen;
@@ -257,15 +211,7 @@ public partial class SettingsViewModel : ViewModelBase
 
     private void ApplyThemeSettings()
     {
-        ThemeService.Apply(
-            Theme,
-            DesignTheme,
-            UiCornerRadius,
-            UiDensity,
-            UiFontFamily,
-            CustomAccentColor,
-            WindowEffect,
-            ReduceMotion);
+        ThemeService.Apply(Theme);
     }
 
     partial void OnThemeChanged(string value)
@@ -274,49 +220,12 @@ public partial class SettingsViewModel : ViewModelBase
         Save(s => s.Theme = value);
     }
 
-    partial void OnDesignThemeChanged(string value)
-    {
-        ApplyThemeSettings();
-        OnPropertyChanged(nameof(SelectedDesignTheme));
-        Save(s => s.DesignTheme = value);
-    }
 
-    partial void OnUiCornerRadiusChanged(string value)
-    {
-        ApplyThemeSettings();
-        Save(s => s.UiCornerRadius = value);
-    }
 
-    partial void OnUiDensityChanged(string value)
-    {
-        ApplyThemeSettings();
-        Save(s => s.UiDensity = value);
-    }
 
-    partial void OnUiFontFamilyChanged(string value)
-    {
-        ApplyThemeSettings();
-        Save(s => s.UiFontFamily = value);
-    }
 
-    partial void OnCustomAccentColorChanged(string value)
-    {
-        ApplyThemeSettings();
-        OnPropertyChanged(nameof(SelectedAccentPreset));
-        Save(s => s.CustomAccentColor = value);
-    }
 
-    partial void OnWindowEffectChanged(string value)
-    {
-        ApplyThemeSettings();
-        Save(s => s.WindowEffect = value);
-    }
 
-    partial void OnReduceMotionChanged(bool value)
-    {
-        ApplyThemeSettings();
-        Save(s => s.ReduceMotion = value);
-    }
 
     partial void OnClipboardHistoryEnabledChanged(bool value) => Save(s => s.ClipboardHistoryEnabled = value);
     partial void OnSaveImagesChanged(bool value) => Save(s => s.SaveImages = value);

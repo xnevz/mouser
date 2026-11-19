@@ -18,6 +18,7 @@ public partial class QuickPasteWindow : Window
         AddHandler(KeyDownEvent, OnKey, RoutingStrategies.Tunnel);
         Opened += (_, _) =>
         {
+            Services.WindowChrome.ApplyRoundedPopup(this);
             PositionNextToCursor();
             this.FindControl<TextBox>("SearchBox")?.Focus();
         };

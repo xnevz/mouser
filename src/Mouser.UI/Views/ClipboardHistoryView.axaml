@@ -362,7 +362,7 @@
                         <Grid Grid.Row="2" RowDefinitions="*,Auto" IsVisible="{Binding SelectedClip.IsTextClip}">
                             <TextBox Grid.Row="0" Text="{Binding SelectedClip.DisplayText, Mode=OneWay, FallbackValue=''}"
                                      IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
-                                     FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12"
+                                     FontFamily="{DynamicResource CodeFontFamily}" FontSize="12"
                                      VerticalContentAlignment="Top" />
 
                             <!-- Transform Result Section -->
@@ -382,7 +382,7 @@
                                     </Grid>
                                     <ScrollViewer MaxHeight="140" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                                         <TextBlock Text="{Binding TransformResult}" TextWrapping="Wrap"
-                                                   FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12"
+                                                   FontFamily="{DynamicResource CodeFontFamily}" FontSize="12"
                                                    Foreground="{DynamicResource TextPrimary}" />
                                     </ScrollViewer>
                                     <Button Classes="primary-btn" Content="Copy result"

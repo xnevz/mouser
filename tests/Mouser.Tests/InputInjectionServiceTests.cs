@@ -89,6 +89,72 @@ public class InputInjectionServiceTests
         Assert.Contains("char 0x0627 up", sink.Snapshot());
     }
 
+    private static InputMotionPacket K(ushort seq, ushort vk, bool down, byte mods) =>
+        InputMotionPacket.Create(InputMotionPacket.TypeKey, seq, (short)vk, (short)(down ? 1 : 0), 0,
+            (byte)(InputMotionPacket.ModifiersValid | mods));
+
+    [Fact]
+    public void LostCtrlDown_IsRestoredFromModifierMask_SoCtrlCStillCopies()
+    {
+        var (service, sink) = Create();
+        using var _s = service;
+
+        // The Ctrl-down datagram never arrived; C carries "Ctrl held" in its mask.
+        service.HandlePacket(K(2, 0x43, true, InputMotionPacket.ModifierCtrl), Phone);
+        service.HandlePacket(K(3, 0x43, false, InputMotionPacket.ModifierCtrl), Phone);
+        service.HandlePacket(K(4, 0xA2, false, 0), Phone);
+
+        Assert.Equal(new[] { "key 0xA2 down", "key 0x43 down", "key 0x43 up", "key 0xA2 up" }, sink.Snapshot());
+    }
+
+    [Fact]
+    public void LostCtrlUp_IsReleasedFromModifierMask()
+    {
+        var (service, sink) = Create();
+        using var _s = service;
+
+        service.HandlePacket(K(1, 0xA3, true, InputMotionPacket.ModifierCtrl), Phone); // right Ctrl
+        // The Ctrl-up datagram was lost; the next key says no modifiers are held.
+        service.HandlePacket(K(3, 0x41, true, 0), Phone);
+
+        Assert.Equal(new[] { "key 0xA3 down", "key 0xA3 up", "key 0x41 down" }, sink.Snapshot());
+    }
+
+    [Fact]
+    public void KeyPacketsWithoutMask_LeaveModifiersAlone()
+    {
+        var (service, sink) = Create();
+        using var _s = service;
+
+        // Phone / older desktop: Modifiers byte is zero, so a held Ctrl must not be released.
+        service.HandlePacket(P(InputMotionPacket.TypeKey, 1, 0x11, 1), Phone);
+        service.HandlePacket(P(InputMotionPacket.TypeKey, 2, 0x56, 1), Phone);
+
+        Assert.Equal(new[] { "key 0x11 down", "key 0x56 down" }, sink.Snapshot());
+    }
+
+    [Fact]
+    public void Pings_KeepHeldModifiersAlive()
+    {
+        var now = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        var (service, sink) = Create(() => now);
+        using var _s = service;
+
+        service.HandlePacket(P(InputMotionPacket.TypeKey, 1, 0x11, 1), Phone);
+        now += InputInjectionService.StuckInputTimeout - TimeSpan.FromSeconds(1);
+        service.HandleDatagram(Bytes(P(InputMotionPacket.TypePing, 2)), Phone);
+        now += TimeSpan.FromSeconds(2);
+
+        Assert.False(service.ReleaseHeldInputIfIdle());
+    }
+
+    private static byte[] Bytes(InputMotionPacket packet)
+    {
+        var bytes = new byte[InputMotionPacket.PacketSize];
+        packet.TryWrite(bytes);
+        return bytes;
+    }
+
     [Fact]
     public void TypeLaser_Packet_FiresLaserStateChanged()
     {

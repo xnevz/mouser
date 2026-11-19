@@ -43,7 +43,7 @@
                             <Grid ColumnDefinitions="Auto,Auto,*" Margin="8,4">
                                 <TextBlock Grid.Column="0"
                                            Text="{Binding Timestamp, StringFormat='{}{0:HH:mm:ss}'}"
-                                           FontFamily="Cascadia Mono, Consolas, Menlo, monospace"
+                                           FontFamily="{DynamicResource CodeFontFamily}"
                                            Classes="label"
                                            VerticalAlignment="Center"
                                            Margin="0,0,12,0" />

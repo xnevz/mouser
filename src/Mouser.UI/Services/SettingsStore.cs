@@ -42,14 +42,7 @@ public sealed class AppSettings
     public bool StartAtLogin { get; set; }
     public bool RunAsAdministrator { get; set; } = false;
     public string Theme { get; set; } = "System";
-    public string DesignTheme { get; set; } = "ModernMinimalist";
-    public string UiCornerRadius { get; set; } = "Theme default";
-    public string UiDensity { get; set; } = "Comfortable";
-    public string UiFontFamily { get; set; } = "System Default";
     public string UiScale { get; set; } = "100%";
-    public string CustomAccentColor { get; set; } = string.Empty;
-    public string WindowEffect { get; set; } = "Solid";
-    public bool ReduceMotion { get; set; } = false;
 
     public bool CloseToTray { get; set; } = true;
     public bool MinimizeToTray { get; set; } = true;
@@ -248,7 +241,6 @@ public sealed class SettingsStore
             // SaveImages default is true
             if (settings.AutoLockMinutes < 0) settings.AutoLockMinutes = 0;
             if (!ThemeService.Options.Contains(settings.Theme)) settings.Theme = "System";
-            if (!ThemeService.Designs.Any(d => d.Id == settings.DesignTheme)) settings.DesignTheme = "ModernMinimalist";
             if (settings.SwitchFeel != "Relaxed" && settings.SwitchFeel != "Normal" && settings.SwitchFeel != "Careful")
             {
                 settings.SwitchFeel = "Normal";

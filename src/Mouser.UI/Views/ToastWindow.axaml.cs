@@ -11,6 +11,7 @@ public partial class ToastWindow : Window
     public ToastWindow()
     {
         InitializeComponent();
+        Opened += (_, _) => Services.WindowChrome.ApplyRoundedPopup(this);
     }
 
     private void InitializeComponent()

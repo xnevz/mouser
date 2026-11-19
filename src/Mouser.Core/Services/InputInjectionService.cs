@@ -69,6 +69,7 @@ public sealed class InputInjectionService : IDisposable
     private readonly object _stateLock = new();
     private readonly HashSet<ushort> _heldKeys = new();
     private readonly HashSet<ushort> _heldChars = new();
+    private readonly Dictionary<IPEndPoint, (ushort Sequence, DateTime At)> _lastKeyPacket = new();
     private byte _buttonState;
     private DateTime _lastInputUtc;
     private Timer? _watchdog;
@@ -207,6 +208,9 @@ public sealed class InputInjectionService : IDisposable
         if (packet.PacketType == InputMotionPacket.TypePing)
         {
             Touch(Normalize(remoteEndPoint.Address), null);
+            // A peer that still pings is still there: holding Ctrl for a few seconds before pressing C must not let
+            // the stuck-input watchdog release it. The watchdog is for peers that went silent (pings stop too).
+            lock (_stateLock) _lastInputUtc = _clock();
             Span<byte> pongPlaintext = stackalloc byte[InputMotionPacket.PacketSize];
             InputMotionPacket.Create(InputMotionPacket.TypePong, packet.SequenceId, packet.DeltaX, packet.DeltaY, 1).TryWrite(pongPlaintext);
             lock (peerEntry.Lock)
@@ -240,6 +244,7 @@ public sealed class InputInjectionService : IDisposable
         {
             case InputMotionPacket.TypePing:
             {
+                lock (_stateLock) _lastInputUtc = _clock();
                 _receiver.SendTo(InputMotionPacket.Create(InputMotionPacket.TypePong, packet.SequenceId,
                     packet.DeltaX, packet.DeltaY, 0), remoteEndPoint);
                 return;
@@ -282,9 +287,18 @@ public sealed class InputInjectionService : IDisposable
 
                 case InputMotionPacket.TypeKey:
                 {
-                    KeyEventsProcessed++;
                     ushort vk = (ushort)packet.DeltaX;
                     bool isDown = packet.DeltaY != 0;
+                    var order = ClassifyKeyPacket(remoteEndPoint, packet.SequenceId);
+                    if (order == KeyPacketOrder.Duplicate) return;
+                    if (order == KeyPacketOrder.Stale && (isDown || !_heldKeys.Contains(vk)))
+                    {
+                        // A newer key event already overtook this one; pressing now would leave the key stuck.
+                        DroppedOutOfOrderPackets++;
+                        return;
+                    }
+                    KeyEventsProcessed++;
+                    if (order == KeyPacketOrder.Fresh) ReconcileModifiers(packet.Modifiers, vk);
                     if (isDown) _heldKeys.Add(vk);
                     else _heldKeys.Remove(vk);
                     _sink.Key(vk, isDown);
@@ -294,9 +308,17 @@ public sealed class InputInjectionService : IDisposable
 
                 case InputMotionPacket.TypeChar:
                 {
-                    CharEventsProcessed++;
                     ushort unit = (ushort)packet.DeltaX;
                     bool isDown = packet.DeltaY == 1 || (packet.ButtonFlags & 0x01) != 0;
+                    var order = ClassifyKeyPacket(remoteEndPoint, packet.SequenceId);
+                    if (order == KeyPacketOrder.Duplicate) return;
+                    if (order == KeyPacketOrder.Stale && (isDown || !_heldChars.Contains(unit)))
+                    {
+                        DroppedOutOfOrderPackets++;
+                        return;
+                    }
+                    CharEventsProcessed++;
+                    if (order == KeyPacketOrder.Fresh) ReconcileModifiers(packet.Modifiers, 0);
                     if (isDown) _heldChars.Add(unit);
                     else _heldChars.Remove(unit);
                     _sink.Char(unit, isDown);
@@ -327,6 +349,66 @@ public sealed class InputInjectionService : IDisposable
 
         Touch(address, customEvent ?? description);
         PacketProcessed?.Invoke(packet, remoteEndPoint);
+    }
+
+    private enum KeyPacketOrder { Fresh, Duplicate, Stale }
+
+    /// <summary>Reordering on a LAN spans milliseconds; past this gap the 16-bit sequence may have wrapped, so a key packet is simply new.</summary>
+    private static readonly TimeSpan KeyOrderWindow = TimeSpan.FromSeconds(1);
+
+    /// <summary>
+    /// Orders key/char packets per sender by sequence id. Desktop peers send each key event twice (PeerLink.SendKeyEvent),
+    /// and the secure path has no other ordering filter. Caller holds _stateLock.
+    /// </summary>
+    private KeyPacketOrder ClassifyKeyPacket(IPEndPoint sender, ushort sequence)
+    {
+        var now = _clock();
+        if (_lastKeyPacket.TryGetValue(sender, out var last) && now - last.At < KeyOrderWindow)
+        {
+            short diff = unchecked((short)(sequence - last.Sequence));
+            if (diff == 0) return KeyPacketOrder.Duplicate;
+            if (diff < 0) return KeyPacketOrder.Stale;
+        }
+        _lastKeyPacket[sender] = (sequence, now);
+        return KeyPacketOrder.Fresh;
+    }
+
+    private static readonly (byte Bit, ushort Press, ushort[] Keys)[] ModifierGroups =
+    {
+        (InputMotionPacket.ModifierShift, 0xA0, new ushort[] { 0x10, 0xA0, 0xA1 }),
+        (InputMotionPacket.ModifierCtrl, 0xA2, new ushort[] { 0x11, 0xA2, 0xA3 }),
+        (InputMotionPacket.ModifierAlt, 0xA4, new ushort[] { 0x12, 0xA4, 0xA5 }),
+        (InputMotionPacket.ModifierWin, 0x5B, new ushort[] { 0x5B, 0x5C }),
+    };
+
+    /// <summary>
+    /// Brings held modifiers in line with the sender's mask before a key is injected, repairing a lost Ctrl/Shift/Alt/Win
+    /// press (Ctrl+C arriving as "c") or release (Ctrl stuck). The group the packet's own key belongs to is left to the packet.
+    /// Caller holds _stateLock.
+    /// </summary>
+    private void ReconcileModifiers(byte mask, ushort ownKey)
+    {
+        if ((mask & InputMotionPacket.ModifiersValid) == 0) return; // phone / older desktop: no mask
+
+        foreach (var (bit, press, keys) in ModifierGroups)
+        {
+            if (Array.IndexOf(keys, ownKey) >= 0) continue;
+
+            bool wanted = (mask & bit) != 0;
+            bool held = false;
+            foreach (var k in keys) held |= _heldKeys.Contains(k);
+
+            if (wanted && !held)
+            {
+                _heldKeys.Add(press);
+                _sink.Key(press, true);
+            }
+            else if (!wanted && held)
+            {
+                foreach (var k in keys)
+                    if (_heldKeys.Remove(k)) _sink.Key(k, false);
+            }
+        }
     }
 
     /// <summary>Releases buttons and keys a silent client left pressed. Returns true if anything was released.</summary>
