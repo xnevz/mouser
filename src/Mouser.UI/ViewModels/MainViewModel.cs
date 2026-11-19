@@ -54,6 +54,21 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _systemStatusTitle = string.Empty;
     [ObservableProperty] private string _systemStatusText = string.Empty;
     [ObservableProperty] private string _statusColor = "#64748b";
+
+    // Second header pill: linked computers / KVM control, alongside the phone status above.
+    [ObservableProperty] private string _computerStatusTitle = "Ready for computers";
+    [ObservableProperty] private string _computerStatusText = string.Empty;
+    [ObservableProperty] private string _computerStatusColor = "#6366f1";
+
+    /// <summary>Effective (resolved) theme; set by the window so the header toggle shows the right icon.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ThemeToggleTip))]
+    private bool _isDarkTheme = true;
+
+    public string ThemeToggleTip => IsDarkTheme ? "Switch to light mode" : "Switch to dark mode";
+
+    /// <summary>Header shortcuts (status, settings) are hidden while the lock screen or onboarding covers the app.</summary>
+    public bool IsShellInteractive => !IsLocked && !IsOnboarding;
     [ObservableProperty] private bool _foregroundIsElevated;
 
     public bool IsElevated => ElevationInfo.IsCurrentProcessElevated();
@@ -66,7 +81,7 @@ public partial class MainViewModel : ViewModelBase
     partial void OnForegroundIsElevatedChanged(bool value) => DevicesPage.ForegroundIsElevated = value;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsOnboarding))]
+    [NotifyPropertyChangedFor(nameof(IsOnboarding), nameof(IsShellInteractive))]
     private OnboardingViewModel? _onboarding;
 
     public bool IsOnboarding => Onboarding != null;
@@ -118,6 +133,7 @@ public partial class MainViewModel : ViewModelBase
             _appLock.Locked += () =>
             {
                 OnPropertyChanged(nameof(IsLocked));
+                OnPropertyChanged(nameof(IsShellInteractive));
                 OnPropertyChanged(nameof(CanLockNow));
                 _host.SetLocked(true);
                 ClipboardHistory.IsLocked = true;
@@ -125,6 +141,7 @@ public partial class MainViewModel : ViewModelBase
             _appLock.Unlocked += () =>
             {
                 OnPropertyChanged(nameof(IsLocked));
+                OnPropertyChanged(nameof(IsShellInteractive));
                 OnPropertyChanged(nameof(CanLockNow));
                 _host.SetLocked(false);
                 ClipboardHistory.IsLocked = false;
@@ -178,14 +195,7 @@ public partial class MainViewModel : ViewModelBase
         ClipboardHistory.UpdateSendablePeers(_host.Peers);
         DevicesPage.Refresh();
         CheckElevatedForeground();
-
-        if (_host.Kvm?.ActivePeerName is { } controlled)
-        {
-            SystemStatusTitle = $"Controlling {controlled}";
-            SystemStatusText = "Ctrl+Alt+Esc to come back";
-            StatusColor = "#f59e0b";
-            return;
-        }
+        RefreshComputerStatus();
 
         if (_host.Input == null)
         {
@@ -206,6 +216,30 @@ public partial class MainViewModel : ViewModelBase
         SystemStatusText = ip == null ? "No network connection" : $"{ip}:{_host.Input.BoundPort}";
         StatusColor = active > 0 ? "#10b981" : "#6366f1";
     }
+
+    private void RefreshComputerStatus()
+    {
+        if (_host.Kvm?.ActivePeerName is { } controlled)
+        {
+            ComputerStatusTitle = $"Controlling {controlled}";
+            ComputerStatusText = "Ctrl+Alt+Esc to come back";
+            ComputerStatusColor = "#f59e0b";
+            return;
+        }
+
+        int online = Devices.Count(d => d.Kind == DeviceKind.Computer && d.IsOnline);
+        ComputerStatusTitle = online switch
+        {
+            0 => "Ready for computers",
+            1 => "1 computer linked",
+            _ => $"{online} computers linked"
+        };
+        ComputerStatusText = online == 0 ? "Pair another computer in Devices" : "Move the pointer past a screen edge to switch";
+        ComputerStatusColor = online > 0 ? "#10b981" : "#6366f1";
+    }
+
+    [RelayCommand]
+    private void ToggleTheme() => Settings.Theme = IsDarkTheme ? "Light" : "Dark";
 
     private void CheckElevatedForeground()
     {

@@ -24,6 +24,7 @@
       <SolidColorBrush x:Key="BgSelected">#252640</SolidColorBrush>
       <SolidColorBrush x:Key="BorderSubtle">#27272b</SolidColorBrush>
       <SolidColorBrush x:Key="BorderStrong">#36363c</SolidColorBrush>
+      <SolidColorBrush x:Key="WindowFrameBorder">#3a3a44</SolidColorBrush>
       <SolidColorBrush x:Key="ControlStrokeColorDefault">#27272b</SolidColorBrush>
       <SolidColorBrush x:Key="CardStrokeColorDefault">#27272b</SolidColorBrush>
       <SolidColorBrush x:Key="ControlElevationBorderBrush">Transparent</SolidColorBrush>
@@ -68,6 +69,7 @@
       <SolidColorBrush x:Key="BgSelected">#eceefe</SolidColorBrush>
       <SolidColorBrush x:Key="BorderSubtle">#e4e4e7</SolidColorBrush>
       <SolidColorBrush x:Key="BorderStrong">#d4d4d8</SolidColorBrush>
+      <SolidColorBrush x:Key="WindowFrameBorder">#c8c8d0</SolidColorBrush>
       <SolidColorBrush x:Key="ControlStrokeColorDefault">#e4e4e7</SolidColorBrush>
       <SolidColorBrush x:Key="CardStrokeColorDefault">#e4e4e7</SolidColorBrush>
       <SolidColorBrush x:Key="ControlElevationBorderBrush">Transparent</SolidColorBrush>

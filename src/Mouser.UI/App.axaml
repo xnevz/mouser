@@ -42,6 +42,19 @@
 
             <!-- Fluent text box: a single 1px border when focused instead of the thick accent underline. -->
             <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+
+            <!-- Window chrome: Mouser draws its own title bar and caption buttons (MainWindow), so the
+                 decorations Avalonia would otherwise draw over the client area are emptied out. -->
+            <ControlTheme x:Key="MouserWindowDecorations" TargetType="WindowDrawnDecorations">
+                <Setter Property="DefaultTitleBarHeight" Value="44" />
+                <Setter Property="DefaultFrameThickness" Value="0" />
+                <Setter Property="DefaultShadowThickness" Value="0" />
+                <Setter Property="Template">
+                    <WindowDrawnDecorationsTemplate>
+                        <WindowDrawnDecorationsContent />
+                    </WindowDrawnDecorationsTemplate>
+                </Setter>
+            </ControlTheme>
         </ResourceDictionary>
     </Application.Resources>
 

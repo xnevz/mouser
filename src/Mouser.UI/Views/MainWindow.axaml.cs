@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Styling;
 using Avalonia.VisualTree;
 using Mouser.UI.ViewModels;
 
@@ -39,10 +40,12 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        SetUpChrome();
         DataContextChanged += (_, _) =>
         {
             if (DataContext is MainViewModel vm)
             {
+                vm.IsDarkTheme = ActualThemeVariant == ThemeVariant.Dark;
                 vm.FocusSearchRequested += () =>
                 {
                     var view = this.GetVisualDescendants().OfType<ClipboardHistoryView>().FirstOrDefault();
@@ -50,5 +53,33 @@ public partial class MainWindow : Window
                 };
             }
         };
+        ActualThemeVariantChanged += (_, _) =>
+        {
+            if (DataContext is MainViewModel vm)
+                vm.IsDarkTheme = ActualThemeVariant == ThemeVariant.Dark;
+        };
     }
+
+    // The title bar is our own (see MainWindow.axaml): the bar itself has the native TitleBar role (drag,
+    // double-click to maximise, Aero Snap), while the caption buttons are ordinary buttons handled here.
+    private void SetUpChrome()
+    {
+        MinimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
+        MaximizeButton.Click += (_, _) => ToggleMaximized();
+        CloseButton.Click += (_, _) => Close();
+
+        if (OperatingSystem.IsMacOS())
+        {
+            // macOS keeps its native traffic lights on the left; make room for them and drop ours.
+            CaptionButtons.IsVisible = false;
+            HeaderBrand.Margin = new Thickness(78, 0, 12, 0);
+        }
+
+        // Windows and macOS resize from the native frame; only frameless platforms need our grips.
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsFreeBSD())
+            ResizeGrips.IsVisible = false;
+    }
+
+    private void ToggleMaximized() =>
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 }

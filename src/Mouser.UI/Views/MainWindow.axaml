@@ -12,6 +12,10 @@
         Width="1140" Height="740"
         MinWidth="760" MinHeight="500"
         WindowStartupLocation="CenterScreen"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="44"
+        WindowDecorations="Full"
+        WindowDecorationsTheme="{StaticResource MouserWindowDecorations}"
         Background="{DynamicResource BgApp}">
 
     <Window.KeyBindings>
@@ -20,33 +24,273 @@
         <KeyBinding Gesture="Ctrl+L" Command="{Binding LockNowCommand}" />
     </Window.KeyBindings>
 
-    <Grid ColumnDefinitions="224,*">
+    <Window.Styles>
+        <!-- ═══ Window frame ═══ -->
+        <Style Selector="Border#WindowFrame">
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource WindowFrameBorder}" />
+        </Style>
+        <Style Selector="Window[IsActive=False] Border#WindowFrame">
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+        </Style>
+        <Style Selector="Window[WindowState=Maximized] Border#WindowFrame, Window[WindowState=FullScreen] Border#WindowFrame">
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Window[WindowState=Maximized] Panel#ResizeGrips, Window[WindowState=FullScreen] Panel#ResizeGrips">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="Panel#ResizeGrips > Border">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <!-- ═══ Title bar ═══ -->
+        <Style Selector="Border#AccentStrip">
+            <Setter Property="Transitions">
+                <Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.2" /></Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Window[IsActive=False] Border#AccentStrip">
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+        <Style Selector="Window[IsActive=False] StackPanel#HeaderBrand">
+            <Setter Property="Opacity" Value="0.6" />
+        </Style>
+
+        <Style Selector="Button.header-pill">
+            <Setter Property="Background" Value="{DynamicResource BgSurface}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource PillCornerRadius}" />
+            <Setter Property="Padding" Value="9,0,12,0" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.header-pill:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BgHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+        </Style>
+        <Style Selector="Button.header-pill:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BgPressed}" />
+        </Style>
+        <Style Selector="Button.header-pill TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+
+        <Style Selector="Button.header-btn">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="{DynamicResource OverlayCornerRadius}" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.header-btn mi|MaterialIcon">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+        </Style>
+        <Style Selector="Button.header-btn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BgHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        </Style>
+        <Style Selector="Button.header-btn:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BgPressed}" />
+        </Style>
+        <Style Selector="Button.header-btn.active /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BgSelected}" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentSoft}" />
+        </Style>
+
+        <!-- Caption buttons: full title-bar height, square edges, Windows-style red close. -->
+        <Style Selector="Button.caption">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Width" Value="46" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Focusable" Value="False" />
+        </Style>
+        <Style Selector="Button.caption mi|MaterialIcon">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+        </Style>
+        <Style Selector="Button.caption:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BgHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        </Style>
+        <Style Selector="Button.caption:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BgPressed}" />
+        </Style>
+        <Style Selector="Button.caption.close:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#e81123" />
+            <Setter Property="Foreground" Value="#ffffff" />
+        </Style>
+        <Style Selector="Button.caption.close:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#c50f1f" />
+            <Setter Property="Foreground" Value="#ffffff" />
+        </Style>
+        <Style Selector="mi|MaterialIcon#RestoreGlyph">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="Window[WindowState=Maximized] mi|MaterialIcon#RestoreGlyph">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="Window[WindowState=Maximized] mi|MaterialIcon#MaximizeGlyph">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+    </Window.Styles>
+
+    <!-- Frame: our own border. Margin absorbs the off-screen overhang Windows gives maximised windows. -->
+    <Border x:Name="WindowFrame"
+            Background="{DynamicResource BgApp}"
+            Margin="{Binding $parent[Window].OffScreenMargin}">
+    <Panel>
+    <Grid RowDefinitions="44,*">
+
+        <!-- ═══ Title bar: drag to move, double-click to maximise, Aero Snap — all native via ElementRole ═══ -->
+        <Border Grid.Row="0" x:Name="TitleBar"
+                WindowDecorationProperties.ElementRole="TitleBar"
+                Background="{DynamicResource BgSidebar}"
+                BorderBrush="{DynamicResource BorderSubtle}"
+                BorderThickness="0,0,0,1">
+            <Panel>
+                <Border x:Name="AccentStrip" Height="2" VerticalAlignment="Top" IsHitTestVisible="False">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                            <GradientStop Offset="0" Color="#006366f1" />
+                            <GradientStop Offset="0.2" Color="#6366f1" />
+                            <GradientStop Offset="0.55" Color="#a855f7" />
+                            <GradientStop Offset="0.85" Color="#22d3ee" />
+                            <GradientStop Offset="1" Color="#0022d3ee" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <!-- Brand. Not hit-testable, so it stays part of the drag area. -->
+                    <StackPanel x:Name="HeaderBrand" Grid.Column="0" Orientation="Horizontal" Spacing="10"
+                                Margin="14,0,12,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                        <Border Width="26" Height="26" CornerRadius="8" Background="{DynamicResource Accent}">
+                            <mi:MaterialIcon Kind="MouseVariant" Width="16" Height="16" Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="Mouser" FontFamily="{DynamicResource DisplayFontFamily}" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
+                        <Border Classes="status-pill" IsVisible="{Binding IsElevated}" VerticalAlignment="Center" Padding="6,1">
+                            <TextBlock Text="Admin" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Success}" />
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Live status + app actions -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="0,0,10,0" VerticalAlignment="Center">
+                        <Button Classes="header-pill" WindowDecorationProperties.ElementRole="User"
+                                IsVisible="{Binding IsShellInteractive}"
+                                Command="{Binding NavigateCommand}" CommandParameter="AndroidRemote">
+                            <ToolTip.Tip>
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{Binding SystemStatusTitle}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding SystemStatusText}" FontFamily="{DynamicResource CodeFontFamily}" />
+                                </StackPanel>
+                            </ToolTip.Tip>
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Panel Width="12" Height="12" VerticalAlignment="Center">
+                                    <Ellipse Width="12" Height="12" Fill="{Binding StatusColor}" Opacity="0.25" />
+                                    <Ellipse Width="6" Height="6" Fill="{Binding StatusColor}" />
+                                </Panel>
+                                <mi:MaterialIcon Kind="Cellphone" Width="14" Height="14" Foreground="{DynamicResource TextMuted}" />
+                                <TextBlock Text="{Binding SystemStatusTitle}" MaxWidth="150" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Classes="header-pill" WindowDecorationProperties.ElementRole="User"
+                                IsVisible="{Binding IsShellInteractive}"
+                                Command="{Binding NavigateCommand}" CommandParameter="DisplayMatrix">
+                            <ToolTip.Tip>
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{Binding ComputerStatusTitle}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding ComputerStatusText}" />
+                                </StackPanel>
+                            </ToolTip.Tip>
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Panel Width="12" Height="12" VerticalAlignment="Center">
+                                    <Ellipse Width="12" Height="12" Fill="{Binding ComputerStatusColor}" Opacity="0.25" />
+                                    <Ellipse Width="6" Height="6" Fill="{Binding ComputerStatusColor}" />
+                                </Panel>
+                                <mi:MaterialIcon Kind="MonitorMultiple" Width="14" Height="14" Foreground="{DynamicResource TextMuted}" />
+                                <TextBlock Text="{Binding ComputerStatusTitle}" MaxWidth="150" />
+                            </StackPanel>
+                        </Button>
+
+                        <Border Width="1" Height="18" Margin="4,0" Background="{DynamicResource BorderSubtle}" VerticalAlignment="Center" />
+
+                        <Button Classes="header-btn" WindowDecorationProperties.ElementRole="User"
+                                IsVisible="{Binding CanLockNow}"
+                                Command="{Binding LockNowCommand}" ToolTip.Tip="Lock now (Ctrl+L)">
+                            <mi:MaterialIcon Kind="LockOutline" />
+                        </Button>
+                        <Button Classes="header-btn" WindowDecorationProperties.ElementRole="User"
+                                Command="{Binding ToggleThemeCommand}" ToolTip.Tip="{Binding ThemeToggleTip}">
+                            <Panel>
+                                <mi:MaterialIcon Kind="WeatherSunny" IsVisible="{Binding IsDarkTheme}" />
+                                <mi:MaterialIcon Kind="WeatherNight" IsVisible="{Binding !IsDarkTheme}" />
+                            </Panel>
+                        </Button>
+                        <Button Classes="header-btn" Classes.active="{Binding IsSettingsTab}"
+                                WindowDecorationProperties.ElementRole="User"
+                                IsVisible="{Binding IsShellInteractive}"
+                                Command="{Binding NavigateCommand}" CommandParameter="Settings"
+                                ToolTip.Tip="Settings (Ctrl+,)">
+                            <mi:MaterialIcon Kind="CogOutline" />
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Window controls. Role "User" keeps them out of the drag area; clicks are handled in MainWindow.axaml.cs. -->
+                    <StackPanel x:Name="CaptionButtons" Grid.Column="3" Orientation="Horizontal">
+                        <Button Classes="caption" x:Name="MinimizeButton"
+                                WindowDecorationProperties.ElementRole="User"
+                                ToolTip.Tip="Minimize">
+                            <mi:MaterialIcon Kind="WindowMinimize" />
+                        </Button>
+                        <Button Classes="caption" x:Name="MaximizeButton"
+                                WindowDecorationProperties.ElementRole="User"
+                                ToolTip.Tip="Maximize / Restore">
+                            <Panel>
+                                <mi:MaterialIcon x:Name="MaximizeGlyph" Kind="WindowMaximize" />
+                                <mi:MaterialIcon x:Name="RestoreGlyph" Kind="WindowRestore" />
+                            </Panel>
+                        </Button>
+                        <Button Classes="caption close" x:Name="CloseButton"
+                                WindowDecorationProperties.ElementRole="User"
+                                ToolTip.Tip="Close">
+                            <mi:MaterialIcon Kind="WindowClose" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Panel>
+        </Border>
+
+    <Grid Grid.Row="1" ColumnDefinitions="224,*">
         <!-- Sidebar -->
         <Border Grid.Column="0"
                 IsEnabled="{Binding !IsLocked}"
                 Background="{DynamicResource BgSidebar}"
                 BorderBrush="{DynamicResource BorderSubtle}"
                 BorderThickness="0,0,1,0">
-            <Grid RowDefinitions="Auto,*,Auto">
-                <!-- Brand -->
-                <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="18,18,14,14">
-                    <Border Grid.Column="0" Width="34" Height="34" CornerRadius="10" Background="{DynamicResource Accent}" Margin="0,0,11,0">
-                        <mi:MaterialIcon Kind="MouseVariant" Width="20" Height="20" Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" />
-                    </Border>
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Text="Mouser" FontFamily="{DynamicResource DisplayFontFamily}" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
-                            <Border Classes="status-pill" IsVisible="{Binding IsElevated}" VerticalAlignment="Center" Padding="6,1">
-                                <TextBlock Text="Admin" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Success}" />
-                            </Border>
-                        </StackPanel>
-                        <TextBlock Text="One mouse, every screen" FontSize="11" Foreground="{DynamicResource TextFaint}" TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-                </Grid>
-
                 <!-- Navigation scrolls on short windows so nothing below the fold is lost -->
-                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Spacing="2" Margin="10,0,10,12">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="2" Margin="10,14,10,12">
                         <TextBlock Classes="label" Text="Clipboard" Margin="12,4,0,6" />
 
                         <Button Classes="nav-button" Classes.active="{Binding IsClipboardTab}"
@@ -150,38 +394,8 @@
                                 <TextBlock Grid.Column="1" Text="Activity" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                             </Grid>
                         </Button>
-
-                        <Button Classes="nav-button" Classes.active="{Binding IsSettingsTab}"
-                                Command="{Binding NavigateCommand}" CommandParameter="Settings">
-                            <Grid ColumnDefinitions="26,*,Auto">
-                                <mi:MaterialIcon Kind="CogOutline" />
-                                <TextBlock Grid.Column="1" Text="Settings" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                <Border Grid.Column="2" Classes="shortcut-badge" Margin="8,0,0,0">
-                                    <TextBlock Text="Ctrl+," />
-                                </Border>
-                            </Grid>
-                        </Button>
                     </StackPanel>
                 </ScrollViewer>
-
-                <!-- Live link status -->
-                <Border Grid.Row="2" Margin="10,0,10,12" Background="{DynamicResource BgSurface}"
-                        BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1"
-                        CornerRadius="{DynamicResource CardCornerRadius}" Padding="12,11">
-                    <Grid ColumnDefinitions="Auto,*">
-                        <Panel Width="16" Height="16" VerticalAlignment="Top" Margin="0,1,10,0">
-                            <Ellipse Width="16" Height="16" Fill="{Binding StatusColor}" Opacity="0.22" />
-                            <Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" />
-                        </Panel>
-                        <StackPanel Grid.Column="1" Spacing="2">
-                            <TextBlock Text="{Binding SystemStatusTitle}" FontSize="12" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
-                            <TextBlock Text="{Binding SystemStatusText}" FontSize="11" FontFamily="{DynamicResource CodeFontFamily}"
-                                       Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
-            </Grid>
         </Border>
 
         <ContentControl x:Name="PageContent" Grid.Column="1"
@@ -266,4 +480,19 @@
             </ScrollViewer>
         </Grid>
     </Grid>
+    </Grid>
+
+    <!-- Resize grips for platforms where Mouser draws the whole frame (Linux). Windows and macOS resize natively. -->
+    <Panel x:Name="ResizeGrips">
+        <Border Height="5" VerticalAlignment="Top" WindowDecorationProperties.ElementRole="ResizeN" Cursor="TopSide" />
+        <Border Height="5" VerticalAlignment="Bottom" WindowDecorationProperties.ElementRole="ResizeS" Cursor="BottomSide" />
+        <Border Width="5" HorizontalAlignment="Left" WindowDecorationProperties.ElementRole="ResizeW" Cursor="LeftSide" />
+        <Border Width="5" HorizontalAlignment="Right" WindowDecorationProperties.ElementRole="ResizeE" Cursor="RightSide" />
+        <Border Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Top" WindowDecorationProperties.ElementRole="ResizeNW" Cursor="TopLeftCorner" />
+        <Border Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Top" WindowDecorationProperties.ElementRole="ResizeNE" Cursor="TopRightCorner" />
+        <Border Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Bottom" WindowDecorationProperties.ElementRole="ResizeSW" Cursor="BottomLeftCorner" />
+        <Border Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" WindowDecorationProperties.ElementRole="ResizeSE" Cursor="BottomRightCorner" />
+    </Panel>
+    </Panel>
+    </Border>
 </Window>
